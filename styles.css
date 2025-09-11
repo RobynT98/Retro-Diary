@@ -1,192 +1,290 @@
+/* =================== THEME VARS =================== */
 :root{
-  --bg:#201612;
-  --panel:#2b1f1a;
-  --ink:#f3e9d7;
-  --muted:#c7b399;
-  --accent:#d2a76a;
-  --danger:#c16464;
-  --shadow:0 10px 30px rgba(0,0,0,.35);
-  --radius:18px;
+  /* Palett: retro + modern */
+  --bg: #121214;
+  --panel: #1a1b1e;
+  --panel-2: #202127;
+  --ink: #e9e9ef;
+  --muted: #b6b6c2;
+  --brand: #7df9ff;         /* cyan-glöd */
+  --brand-2: #ff9efc;       /* retro magenta */
+  --accent: #9dff57;        /* limegrön */
+  --danger: #ff6b6b;
+
+  /* UI neutrals */
+  --line: #2a2b31;
+  --shadow: 0 10px 20px rgba(0,0,0,.35);
+
+  /* Typo */
+  --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, "Noto Sans", sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+
+  /* Radier & spacing */
+  --r: 16px;
+  --r-sm: 10px;
+  --pad: 14px;
+  --gap: 14px;
+
+  /* Subtil “scanline”/brus för CRT-känsla */
+  --noise: radial-gradient(circle at 20% 20%, rgba(255,255,255,.025), transparent 40%),
+           radial-gradient(circle at 80% 0%, rgba(255,255,255,.015), transparent 45%),
+           repeating-linear-gradient(0deg, rgba(255,255,255,.03), rgba(255,255,255,.03) 1px, transparent 2px, transparent 3px);
 }
-*{box-sizing:border-box}
-html,body{height:100%}
+
+/* =================== BASE =================== */
+*{ box-sizing: border-box; }
+html, body{ height:100%; }
 body{
   margin:0;
-  background:
-    radial-gradient(1200px 800px at 20% 0%, #2c1e19 0%, #201612 60%, #170f0c 100%),
-    var(--bg);
-  color:var(--ink);
-  font-family: ui-serif, "Iowan Old Style","Times New Roman",serif;
-  display:flex; align-items:center; justify-content:center;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.5 var(--font);
+  letter-spacing:.15px;
+  /* Diskret CRT-textur */
+  background-image: var(--noise);
+  background-blend-mode: overlay;
 }
-.frame{
-  width:min(980px,92vw); height:min(780px,92vh);
-  background: linear-gradient(180deg, rgba(255,255,255,0.04), transparent 30%), #231813;
-  border:1px solid #3b2a22; border-radius: var(--radius);
-  box-shadow: var(--shadow), inset 0 0 0 1px rgba(255,255,255,.03);
-  position:relative; overflow:hidden;
+
+h1,h2,h3{ margin:0 0 8px; line-height:1.2; }
+h1{ font-size: 22px; }
+h2{ font-size: 18px; color: var(--brand); }
+h3{ font-size: 16px; color: var(--brand-2); }
+
+a, .linklike{
+  color: var(--brand);
+  cursor: pointer;
+  text-decoration: none;
 }
+.linklike:hover{ text-decoration: underline; }
+
+small, .tiny{ color: var(--muted); font-size: 12px; }
+.status{ min-height: 18px; color: var(--muted); }
+
+/* Inputs & buttons */
+input[type="text"], input[type="email"], input[type="password"], input[type="color"]{
+  width:100%; background: var(--panel-2); border:1px solid var(--line); color:var(--ink);
+  padding:10px 12px; border-radius: var(--r-sm); outline:none;
+}
+input:focus{ border-color: var(--brand); box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 25%, transparent); }
+
+button{
+  background: linear-gradient(180deg, #2a2b31, #222328);
+  color: var(--ink); border:1px solid var(--line);
+  padding:9px 12px; border-radius: var(--r-sm); cursor:pointer; box-shadow: var(--shadow);
+  transition: transform .05s ease, border-color .2s ease, background .2s ease;
+}
+button:hover{ border-color: color-mix(in srgb, var(--brand) 40%, var(--line)); }
+button:active{ transform: translateY(1px); }
+button.ghost{
+  background: transparent; border-color: var(--line); box-shadow: none;
+}
+button.danger{ border-color: color-mix(in srgb, var(--danger) 45%, var(--line)); color:#ffdede; }
+.filebtn{ display:inline-flex; align-items:center; gap:8px; }
+
+.field{ display:flex; gap:10px; align-items:center; margin:8px 0; }
+hr{ border:none; border-top:1px solid var(--line); margin:8px 0; }
+
+/* Scrollbars (webkit) */
+*::-webkit-scrollbar{ width:10px; height:10px; }
+*::-webkit-scrollbar-track{ background: transparent; }
+*::-webkit-scrollbar-thumb{ background: #2f3036; border-radius: 10px; border:2px solid transparent; background-clip: padding-box; }
+*::-webkit-scrollbar-thumb:hover{ background:#3a3b41; }
+
+/* Små utility-klasser */
+.center{ display:grid; place-items:center; }
+.row{ display:flex; gap:10px; align-items:center; }
+/* =================== FRAME & TITLEBAR =================== */
+.frame{ height:100%; display:flex; flex-direction:column; }
+
 .titlebar{
-  padding:14px 18px; border-bottom:1px solid #3b2a22;
-  background:linear-gradient(180deg,#2f211b, #241813);
-  letter-spacing:.08em; text-transform:uppercase; font-weight:700;
-  color:var(--muted); display:flex; align-items:center; gap:12px; justify-content:space-between;
+  display:flex; justify-content:space-between; align-items:center;
+  gap:12px; padding:10px var(--pad);
+  border-bottom:1px solid var(--line);
+  background: linear-gradient(180deg, #17181b, #141518);
+  position: sticky; top:0; z-index: 20;
 }
-.brand{display:flex; gap:10px; align-items:center}
-.badge{ width:10px;height:10px;border-radius:50%; background:var(--accent); box-shadow:0 0 12px var(--accent); }
-.titlebar .actions{display:flex; gap:8px}
 
-button, .ghost{
-  appearance:none; border:none; cursor:pointer;
-  background:#3a2922; color:var(--ink);
-  padding:10px 14px; border-radius:12px;
-  box-shadow:inset 0 0 0 1px #4a342b;
-  font-family:inherit; font-weight:600; letter-spacing:.02em;
+.brand{ display:flex; align-items:center; gap:10px; font-weight:600; letter-spacing:.3px; }
+.badge{
+  width:14px; height:14px; border-radius:50%;
+  background: radial-gradient(circle at 30% 30%, var(--brand), #116f7a 60%, #0b1b1f);
+  box-shadow: 0 0 12px rgba(125,249,255,.6);
 }
-button:hover{filter:brightness(1.08)}
-.ghost{background:transparent; box-shadow:inset 0 0 0 1px #4a342b}
-.danger{background:#4a2222; box-shadow:inset 0 0 0 1px #663333}
 
-.wrap{display:grid; grid-template-columns: 320px 1fr; height: calc(100% - 54px)}
+.actions{ display:flex; align-items:center; gap:10px; }
+
+/* =================== WRAP LAYOUT =================== */
+.wrap{
+  display:grid; grid-template-columns: 280px 1fr; gap: var(--gap);
+  padding: var(--gap);
+}
+
+/* Sidebar */
 .sidebar{
-  border-right:1px solid #3b2a22; padding:16px; overflow:auto;
-  background:linear-gradient(180deg,#241813, transparent 30%);
+  background: linear-gradient(180deg, #17181d, #14151a);
+  border:1px solid var(--line);
+  border-radius: var(--r);
+  padding: var(--pad);
+  box-shadow: var(--shadow);
+  min-height: calc(100dvh - 120px);
+  position: sticky; top: 62px;
 }
-.entry-list{display:flex; flex-direction:column; gap:8px}
+.entry-list{ display:flex; flex-direction:column; gap:10px; max-height: calc(100dvh - 160px); overflow:auto; }
 .entry-item{
-  padding:10px 12px; border-radius:12px; background:#2b1f1a;
-  box-shadow:inset 0 0 0 1px #3b2a22;
-  display:flex; justify-content:space-between; gap:8px; align-items:center;
+  display:flex; justify-content:space-between; align-items:center; gap:10px;
+  padding:10px; border:1px solid var(--line); border-radius: var(--r-sm);
+  background: #1b1c22;
 }
-.entry-item small{color:var(--muted)}
+.entry-item:hover{ border-color:#343640; }
+.entry-item .ghost{ white-space:nowrap; }
 
+/* Content */
 .content{
-  padding:16px; display:flex; flex-direction:column; gap:12px;
-  background: radial-gradient(800px 600px at 90% 10%, rgba(210,167,106,.06), transparent 60%);
+  background: linear-gradient(180deg, #18191f, #15161b);
+  border:1px solid var(--line);
+  border-radius: var(--r);
+  padding: var(--pad);
+  box-shadow: var(--shadow);
+  min-height: calc(100dvh - 120px);
+  display:flex; flex-direction:column; gap: 10px;
 }
-.date-line{ color:var(--muted); font-variant:small-caps; letter-spacing:.08em }
 
-/* RTF toolbar */
-.rt-toolbar{
-  display:flex; flex-wrap:wrap; gap:8px; align-items:center;
-  background:#231813; padding:8px; border-radius:12px; box-shadow:inset 0 0 0 1px #3b2a22;
-}
-.btn-group{display:flex; gap:8px; align-items:center}
-
-/* Contenteditable editor */
-.editor{
-  flex:1; overflow:auto; border:none; outline:none;
-  background:#231813; color:var(--ink);
-  padding:18px; border-radius:12px; line-height:1.5; min-height:300px;
-  box-shadow:inset 0 0 0 1px #3b2a22;
-}
-.editor:empty:before{
-  content: attr(data-placeholder);
+.date-line{
   color: var(--muted);
+  font-weight:600; letter-spacing:.3px;
 }
 
-/* Typografi inne i editor */
-.editor h1,.editor h2{ margin: .6em 0 .3em }
-.editor h1{ font-size:1.6rem; color:#f0d8b5 }
-.editor h2{ font-size:1.3rem; color:#e5c79e }
-.editor p{ margin:.4em 0 }
-.editor blockquote{
-  margin:.6em 0; padding:.6em .8em; background:#2b1f1a; border-left:4px solid var(--accent);
-  color:#e9dbc8; border-radius:8px;
+/* =================== RTF TOOLBAR =================== */
+.rt-toolbar{
+  display:flex; flex-wrap:wrap; gap:10px; align-items:center;
+  background:#15161b; border:1px solid var(--line); border-radius: var(--r-sm);
+  padding:8px; position: sticky; top: 62px; z-index: 10;
 }
-.editor a{ color:#f0c37e; text-decoration:underline }
+.rt-toolbar .btn-group{ display:flex; gap:6px; }
+.rt-toolbar button{ padding:8px 10px; }
 
-/* Standard UI */
-.toolbar{display:flex; gap:8px; justify-content:flex-end}
+/* Editor */
+.editor{
+  flex:1 1 auto; min-height: 45vh;
+  background: #0f1013; border:1px solid var(--line);
+  border-radius: var(--r-sm); padding: 14px;
+  outline:none; overflow:auto; line-height: 1.6;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.02);
+}
+.editor:focus{ border-color: #33414a; box-shadow: 0 0 0 2px rgba(125,249,255,.15) inset; }
+.editor a{ color: var(--brand-2); }
+.editor h1,.editor h2{ margin: 8px 0 6px; }
+.editor p{ margin: 8px 0; }
+.editor[data-placeholder]:empty:before{
+  content: attr(data-placeholder); color: #6c6d75; pointer-events:none;
+}
+
+/* Footer-stämpel + knappar */
+.toolbar{ display:flex; gap:10px; }
+.stamp{ color: var(--muted); font-family: var(--mono); font-size: 12px; margin-top: 4px; }
+/* =================== MENY =================== */
+.menu{ position:relative; }
+.dropdown{
+  position:absolute; right:0; top: calc(100% + 8px);
+  min-width: 280px; background: #14151a; border:1px solid var(--line); border-radius: var(--r);
+  box-shadow: var(--shadow); padding:8px; z-index: 40;
+  max-height: 70vh; overflow:auto;
+}
+.dropdown button, .dropdown .filebtn{
+  width:100%; justify-content:flex-start; background:#181a20;
+}
+#menuWrap{ position:relative; } /* enklare target */
+
+/* =================== DIALOGER =================== */
+dialog{
+  border:none; background: #16171c; color: var(--ink);
+  padding: 16px; border-radius: var(--r); width:min(520px, 96vw);
+  border:1px solid var(--line); box-shadow: var(--shadow);
+}
+dialog::backdrop{ background: rgba(0,0,0,.55); backdrop-filter: blur(2px); }
+
+/* Återställningsdialog */
+#resetDialog .status{ margin-top: 6px; color: var(--muted); }
+
+/* Visa/Skapa återställningskod */
+#recoveryCode{
+  font-family: var(--mono); letter-spacing: 2px; text-align:center;
+  font-size: 14px; padding: 10px 12px;
+}
+
+/* =================== LÅSSKÄRM =================== */
 .lockscreen{
-  position:absolute; inset:0; display:grid; place-items:center;
-  background:linear-gradient(180deg, rgba(0,0,0,.35), rgba(0,0,0,.55));
-  backdrop-filter: blur(2px);
+  position: fixed; inset: 0; background: rgba(4,6,8,.75);
+  display:grid; place-items:center; z-index: 50; backdrop-filter: blur(2px);
 }
 .lockcard{
-  width:min(480px,92vw); background:#231813; border-radius:var(--radius);
-  padding:22px; box-shadow:var(--shadow); border:1px solid #3b2a22;
+  width: min(560px, 92vw);
+  background: linear-gradient(180deg, #14151a, #101116);
+  border:1px solid var(--line); border-radius: 18px;
+  padding: 18px; box-shadow: var(--shadow);
 }
-.lockcard h2{margin:0 0 8px 0}
-.field{display:flex; gap:10px; margin-top:12px}
-input[type="password"], input[type="text"]{
-  flex:1; background:#2b1f1a; color:var(--ink); border:1px solid #3b2a22;
-  border-radius:10px; padding:10px 12px; font-family:inherit;
+.lockscreen .hint{ color: var(--muted); margin-bottom: 6px; }
+.lockscreen fieldset{
+  border:1px dashed #30313a; padding: 12px; border-radius: var(--r-sm); margin: 10px 0;
 }
-.hint{color:var(--muted); font-size:.9rem}
-.status{margin-top:10px; min-height:1.2em; color:var(--muted)}
-.tiny{font-size:.85rem; color:var(--muted); margin-top:8px}
-.linklike{background:transparent; border:none; color:var(--accent); cursor:pointer; padding:0}
-.stamp{ position:absolute; right:16px; bottom:12px; color:var(--muted); font-size:.8rem }
+.lockscreen legend{ color: var(--brand); padding: 0 6px; }
+.lockscreen .status{ min-height: 18px; color: #ffef9e; }
 
-.menu{position:relative}
-.dropdown{
-  position:absolute; right:0; top:42px; width:270px;
-  background:#2b1f1a; border:1px solid #3b2a22; border-radius:12px;
-  box-shadow:var(--shadow); display:flex; flex-direction:column; padding:8px; z-index:10;
-}
-.dropdown > * { text-align:left; }
-.filebtn{display:flex; align-items:center; gap:8px; cursor:pointer}
-.dropdown hr{border:0; border-top:1px solid #3b2a22; margin:8px 0}
+/* Dölj menyn och 'Ny sida' när låst */
+body.locked #newEntryBtn,
+body.locked #menuWrap { display: none; }
+body.locked .titlebar .actions #lockBtn{ opacity:.5; pointer-events:none; }
 
-dialog{
-  border:1px solid #3b2a22; border-radius:12px; padding:18px; background:#231813; color:var(--ink);
-  box-shadow:var(--shadow);
+/* =================== IKON-DIALOG =================== */
+#iconDialog .tabs{
+  display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px;
 }
-dialog::backdrop{background:rgba(0,0,0,.5)}
-
-/* Emoji/ikonpalett */
+#iconDialog .tab{
+  background:#1b1c22; border:1px solid var(--line); padding:6px 10px; border-radius: 999px;
+}
+#iconDialog .tab.active{
+  border-color: color-mix(in srgb, var(--brand) 50%, var(--line));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 20%, transparent);
+}
 .icon-grid{
-  display:grid; grid-template-columns: repeat(8, 1fr); gap:8px;
-  max-width:min(520px, 90vw); max-height:50vh; overflow:auto; padding:4px;
+  display:grid; grid-template-columns: repeat(auto-fill, minmax(44px,1fr)); gap:8px;
+  padding:6px; background: #101116; border:1px solid var(--line); border-radius: var(--r-sm);
 }
 .icon-grid button{
-  font-size:20px; line-height:1; padding:10px; background:#2b1f1a;
-  border:1px solid #3b2a22; border-radius:10px;
+  font-size: 20px; padding:10px; background:#17181d; border-color:#2a2b31;
+  }
+/* =================== RESPONSIVE =================== */
+@media (max-width: 980px){
+  .wrap{ grid-template-columns: 1fr; }
+  .sidebar{ position: static; min-height: auto; }
+  .entry-list{ max-height: none; }
+  .rt-toolbar{ top: 0; position: sticky; }
 }
 
-@media (max-width:900px){
-  .wrap{grid-template-columns:1fr}
-  .sidebar{display:none}
-         }
-body.locked #newEntryBtn,
-body.locked #menuWrap { display: none; }
-
-body.locked .titlebar .actions #lockBtn {
-  opacity: .6; pointer-events: none; /* låsknappen gör inget när vi redan är låsta */
-         }
-/* --- ICON TABS --- */
-.tabs{
-  display:flex; flex-wrap:wrap; gap:8px; margin:6px 0 8px;
-}
-.tab{
-  background:#2b1f1a; border:1px solid #3b2a22; border-radius:10px;
-  padding:8px 10px; cursor:pointer;
-}
-.tab.active{
-  box-shadow:0 0 0 1px var(--accent) inset, 0 0 12px rgba(210,167,106,.25);
-  color:#f0d8b5;
-}
-/* LOCKED STATE */
-body.locked #newEntryBtn,
-body.locked #menuWrap { display: none; }
-
-body.locked .titlebar .actions #lockBtn {
-  opacity:.6; pointer-events:none;
+@media (max-width: 520px){
+  .actions{ gap:6px; }
+  .titlebar{ padding: 8px 10px; }
+  .wrap{ padding: 10px; gap: 10px; }
+  .editor{ min-height: 40vh; }
 }
 
-/* Konto-fält på låsskärmen */
-fieldset { border:1px solid #3b2a22; border-radius:12px; padding:12px; margin:10px 0; }
-legend { padding:0 6px; color:var(--muted); }
-
-#menuWrap {
-  top: 3.5rem; /* lite längre ner */
+/* =================== GLOW-EFFEKTER =================== */
+button:hover{
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--brand) 20%, transparent),
+    0 8px 20px rgba(0,0,0,.35);
 }
-#menuWrap {
-  max-height: 70vh;  /* tar max 70% av höjden */
-  overflow-y: auto;  /* så man kan scrolla */
+button:focus-visible{
+  outline: none;
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--brand) 35%, transparent),
+    0 8px 20px rgba(0,0,0,.35);
 }
 
-.lockscreen { z-index: 50; }
-.dropdown { z-index: 40; } /* menyn under låsskärmen */
-.dropdown { max-height: 70vh; overflow-y: auto; }
+/* Små “LED”-prickar i paneler (retro vibe) */
+.sidebar, .content{
+  background-image:
+    radial-gradient(circle at 12px 14px, rgba(125,249,255,.12), transparent 20px),
+    radial-gradient(circle at 92% 8%, rgba(255,158,252,.10), transparent 18px);
+  background-blend-mode: screen;
+}
