@@ -14,8 +14,6 @@ function isValidWrap(w){ return !!(w && typeof w.saltHex==='string' && w.payload
 const SUPABASE_URL = window.__env?.SUPABASE_URL;
 const SUPABASE_ANON_KEY = window.__env?.SUPABASE_ANON_KEY;
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-let currentUser = null;
-
 // ===== IndexedDB (entries/meta) =====
 const DB = (() => {
   const ENTRIES='entries', META='meta';
