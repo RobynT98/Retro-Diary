@@ -1,3 +1,18 @@
+
+// --- HEARTBEAT: synlig indikator att app.js körs ---
+(function () {
+  const hb = document.createElement('div');
+  hb.id = 'hb';
+  hb.textContent = 'JS laddad ✓';
+  hb.style.cssText = 'position:fixed;left:8px;bottom:8px;background:#1b3a2e;color:#dff;padding:6px 8px;border-radius:8px;z-index:99999;font:12px/1.2 ui-monospace,monospace';
+  document.addEventListener('DOMContentLoaded', ()=> setTimeout(()=>hb.remove(), 1500));
+  document.body.appendChild(hb);
+
+  window.addEventListener('error', (e) => {
+    hb.textContent = 'JS-fel: ' + (e.message || e.error?.message || 'okänt');
+    hb.style.background = '#4a2222';
+  });
+})();
 // --- Mini diagnostics ---
 (function () {
   window.addEventListener('error', (e) => {
