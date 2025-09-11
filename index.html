@@ -12,13 +12,15 @@
   <link rel="stylesheet" href="styles.css">
 
   <!-- Supabase (CDN) -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- Injecta env om du vill slippa Vercel env: redigera här -->
-  <script>
-    window.__env = {
-      SUPABASE_URL: (typeof VITE_SUPABASE_URL !== 'undefined') ? VITE_SUPABASE_URL : "<DIN_SUPABASE_URL>",
-      SUPABASE_ANON_KEY: (typeof VITE_SUPABASE_ANON_KEY !== 'undefined') ? VITE_SUPABASE_ANON_KEY : "<DIN_ANON_KEY>"
-    };
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!-- Miljövariabler för klienten -->
+<script>
+  window.__env = {
+    SUPABASE_URL: "https://ehjsihadlrjbfocodxay.supabase.co",
+    SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVoanNpaGFkbHJqYmZvY29keGF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2MjY0NDcsImV4cCI6MjA3MzIwMjQ0N30.AMSMbuaVoQTY6hpcmqqHhf00EImk7VTytcegrLmHmQw"
+  };
+</script>
   </script>
 </head>
 <body>
