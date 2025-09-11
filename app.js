@@ -1,4 +1,4 @@
-// ===== Helpers =====
+// ================= Helpers =================
 const $ = sel => document.querySelector(sel);
 const deU8 = buf => new TextDecoder().decode(buf);
 const enU8 = str => new TextEncoder().encode(str);
@@ -8,8 +8,9 @@ function fromHex(str){ const a=new Uint8Array(str.length/2); for(let i=0;i<a.len
 function b64u(buf){ return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
 function randBytes(n){ const a=new Uint8Array(n); crypto.getRandomValues(a); return a; }
 function uuid(){ return crypto.randomUUID(); }
+function closeMenu(){ $('#menuDrop')?.setAttribute('hidden',''); }
 
-// ===== IndexedDB (entries/meta) =====
+// ================= IndexedDB (entries/meta) =================
 const DB = (() => {
   const ENTRIES='entries', META='meta';
   let db;
@@ -82,7 +83,7 @@ const DB = (() => {
   return {open, put, get, all, del, putMeta:(k,v)=>put('meta',{k,v}), getMeta:(k)=>get('meta',k)};
 })();
 
-// ===== Crypto primitives =====
+// ================= Crypto primitives =================
 const CryptoBox = (() => {
   async function pbkdf2(pass, salt, iter=150000){
     const base = await crypto.subtle.importKey('raw', enU8(pass), 'PBKDF2', false, ['deriveKey']);
@@ -108,10 +109,9 @@ const CryptoBox = (() => {
   return {pbkdf2, aesEncryptRaw, aesDecryptRaw};
 })();
 
-// ===== State =====
+// ================= State & UI refs =================
 const state = { pass:null, dek:null, currentId:null, entries:[], bio:{ credId:null } };
 
-// ===== UI refs =====
 const listEl = $('#list');
 const editor = $('#editor');
 const dateLine = $('#dateLine');
@@ -119,10 +119,9 @@ const stamp = $('#stamp');
 const lockscreen = $('#lockscreen');
 const statusEl = $('#status');
 
-// ===== Render helpers =====
+// ================= Render helpers =================
 function fmtDate(d){ return d.toLocaleString('sv-SE',{dateStyle:'full', timeStyle:'short'}); }
 function firstLineAsTitle(html){
-  // Plocka första text-raden (strippar HTML) som titel
   const tmp = document.createElement('div'); tmp.innerHTML = html || '';
   const text = (tmp.textContent || '').trim();
   return (text.split(/\n/)[0] || 'Omdirigerad tanke').slice(0,80);
@@ -149,7 +148,7 @@ function setCurrentMeta({title, created, updated}){
   stamp.textContent = `${created ? 'Skapad: '+fmtDate(new Date(created)) : ''}${updated ? ' · Senast sparad: '+fmtDate(new Date(updated)) : ''}`;
 }
 
-// ===== DEK wrap / recovery =====
+// ================= DEK wrap / recovery =================
 async function ensureDEKInitialized(pass){
   const wrap = await DB.getMeta('wrap_pass');
   if (wrap) return;
@@ -201,7 +200,7 @@ async function regenRecoveryWrap(dek){
   return rc;
 }
 
-// ===== Entry crypto with DEK =====
+// ================= Entry crypto with DEK =================
 async function encryptWithDEK(plainU8){
   const key = await crypto.subtle.importKey('raw', state.dek, 'AES-GCM', false, ['encrypt']);
   const iv = randBytes(12);
@@ -216,7 +215,7 @@ async function decryptWithDEK(payload){
   return new Uint8Array(buf);
 }
 
-// ===== CRUD entries (HTML in/out) =====
+// ================= CRUD entries (HTML in/out) =================
 async function openEntry(id){
   const rec = state.entries.find(x=>x.id===id) || await DB.get('entries', id);
   if(!rec) return;
@@ -248,8 +247,15 @@ async function deleteCurrent(){
   state.currentId=null; editor.innerHTML=''; dateLine.textContent=''; stamp.textContent=''; renderList();
 }
 
-// ===== Lock / unlock =====
-async function lock(){ state.pass=null; state.dek=null; lockscreen.hidden=false; editor.innerHTML=''; }
+// ================= Lock / unlock =================
+async function lock(){
+  state.pass = null;
+  state.dek = null;
+  lockscreen.hidden = false;
+  document.body.classList.add('locked');
+  editor.innerHTML = '';
+  closeMenu();
+}
 async function unlockWithPass(pass){
   statusEl.textContent='Låser upp...';
   try{
@@ -257,7 +263,11 @@ async function unlockWithPass(pass){
     state.dek = await loadDEK_withPass(pass);
     state.pass = pass;
     state.entries = await DB.all();
-    renderList(); lockscreen.hidden = true; statusEl.textContent='';
+    renderList();
+    lockscreen.hidden = true;
+    statusEl.textContent='';
+    document.body.classList.remove('locked');
+    closeMenu();
     if(!state.entries.length) newEntry();
   }catch(err){ statusEl.textContent = err.message || 'Fel lösenord.'; }
 }
@@ -268,7 +278,7 @@ function newEntry(){
   stamp.textContent='Ej sparad'; editor.focus();
 }
 
-// ===== Export / Import =====
+// ================= Export / Import =================
 async function exportAll(){
   if(!state.dek){ alert('Lås upp först.'); return; }
   const payload = {
@@ -295,7 +305,7 @@ async function importAll(file){
   alert('Import klart.');
 }
 
-// ===== Recovery dialogs =====
+// ================= Recovery dialogs =================
 function showRecovery(rc){ $('#recoveryCode').value = rc; $('#recoveryDialog').showModal(); }
 async function getOrCreateRecovery(){
   let rc = await DB.getMeta('recovery_code');
@@ -317,7 +327,7 @@ async function applyReset(){
   }catch{ out.textContent='Fel återställningskod.'; }
 }
 
-// ===== Biometri (lokal bekvämlighet) =====
+// ================= Biometri (lokal bekvämlighet) =================
 async function bioAvailable(){ return !!(window.PublicKeyCredential && navigator.credentials); }
 async function bioRegister(){
   if(!(await bioAvailable())) return alert('Biometri/WebAuthn stöds inte här.');
@@ -366,11 +376,13 @@ async function bioUnlock(){
     const dekBuf = await crypto.subtle.decrypt({name:'AES-GCM', iv: fromHex(obj.iv)}, key, fromHex(obj.cipher));
     state.dek = new Uint8Array(dekBuf); state.pass=null;
     state.entries = await DB.all(); renderList(); lockscreen.hidden=true; statusEl.textContent='';
+    document.body.classList.remove('locked');
+    closeMenu();
     if(!state.entries.length) newEntry();
   }catch{ statusEl.textContent='Biometrisk upplåsning avbröts/misslyckades.'; }
 }
 
-// ===== RTF actions =====
+// ================= RTF actions =================
 function applyFormat(cmd, value=null){
   document.execCommand(cmd, false, value);
   editor.focus();
@@ -400,7 +412,7 @@ function openIconPalette(){
   const dlg = $('#iconDialog');
   const grid = $('#iconGrid');
   if(!grid.dataset.loaded){
-    const icons = "⭐️✨🔥💧🌿🌙☀️⚡️🧭📌📎📝📖💎🔒🔑🕯️🧿🎴🪄🏷️💬❤️🧠🌟🎯📅🗂️📍🧩🛡️⚙️🔗✅❌➕➖➡️⬅️⏳⌛️⏰🧭📷🎵🎧💡".split('');
+    const icons = "⭐️✨🔥💧🌿🌙☀️⚡️🧭📌📎📝📖💎🔒🔑🕯️🧿🎴🪄🏷️💬❤️🧠🌟🎯📅🗂️📍🧩🛡️⚙️🔗✅❌➕➖➡️⬅️⏳⌛️⏰🧭📷🎵🎧💡🌝🫢🤫🌞😃😉🔥💚😀🤪🌈😭🥳😍🥰😘🤧🥵🤯🥶🤮🤢😳☹️😔😊☺️🙂❤️".split('');
     icons.forEach(ch=>{
       const b=document.createElement('button'); b.textContent=ch;
       b.onclick=()=>{ document.execCommand('insertText', false, ch); dlg.close(); editor.focus(); };
@@ -411,7 +423,7 @@ function openIconPalette(){
   dlg.showModal();
 }
 
-// ===== Events =====
+// ================= Event wiring =================
 document.addEventListener('DOMContentLoaded', ()=>{
   // unlock/lock
   $('#unlockBtn').onclick = ()=>unlockWithPass($('#pass').value);
@@ -424,19 +436,30 @@ document.addEventListener('DOMContentLoaded', ()=>{
   $('#deleteBtn').onclick = deleteCurrent;
 
   // export/import/recovery
-  $('#exportBtn')?.addEventListener('click', exportAll);
-  $('#importFile')?.addEventListener('change', e=>importAll(e.target.files[0]));
-  $('#showRecoveryBtn')?.addEventListener('click', getOrCreateRecovery);
-  $('#resetPasswordBtn')?.addEventListener('click', openReset);
+  const requireUnlocked = ()=>{ if(!state.dek){ alert('Lås upp först.'); return false; } return true; };
+  $('#exportBtn')?.addEventListener('click', ()=>{ if(!requireUnlocked()) return; exportAll(); });
+  $('#importFile')?.addEventListener('change', e=>{ if(!requireUnlocked()) return; importAll(e.target.files[0]); });
+  $('#showRecoveryBtn')?.addEventListener('click', ()=>{ if(!requireUnlocked()) return; getOrCreateRecovery(); });
+  $('#resetPasswordBtn')?.addEventListener('click', ()=>{ if(!requireUnlocked()) return; openReset(); });
+
   $('#applyReset')?.addEventListener('click', applyReset);
   $('#cancelReset')?.addEventListener('click', ()=>$('#resetDialog').close());
   $('#copyRecovery')?.addEventListener('click', ()=>navigator.clipboard.writeText($('#recoveryCode').value));
-  $('#regenRecovery')?.addEventListener('click', async ()=>{ if(!state.dek) return alert('Lås upp först.'); const rc=await regenRecoveryWrap(state.dek); $('#recoveryCode').value=rc; alert('Ny återställningskod skapad.'); });
+  $('#regenRecovery')?.addEventListener('click', async ()=>{ if(!requireUnlocked()) return;
+    const rc=await regenRecoveryWrap(state.dek); $('#recoveryCode').value=rc; alert('Ny återställningskod skapad.');
+  });
   $('#closeRecovery')?.addEventListener('click', ()=>$('#recoveryDialog').close());
 
   // menu
-  $('#menuBtn')?.addEventListener('click', ()=>{ const d=$('#menuDrop'); d.hidden = !d.hidden; });
-  document.body.addEventListener('click', e=>{ if(e.target.id==='menuBtn' || e.target.closest('.dropdown')) return; $('#menuDrop')?.setAttribute('hidden',''); });
+  $('#menuBtn')?.addEventListener('click', ()=>{
+    if (!state.dek) return; // blockera när låst
+    const d = $('#menuDrop');
+    d.hidden = !d.hidden;
+  });
+  document.body.addEventListener('click', (e)=>{
+    if (e.target.id==='menuBtn' || e.target.closest('.dropdown')) return;
+    closeMenu();
+  });
 
   // RTF bar
   document.querySelectorAll('[data-cmd]').forEach(b=>b.addEventListener('click', ()=>applyFormat(b.dataset.cmd, b.dataset.value||null)));
@@ -451,5 +474,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
   // autosave
   setInterval(()=>{ if(state.dek && editor.innerHTML.trim()) saveCurrent(); }, 20000);
 
-  lock(); // visa låsskärmen
+  // start i låst läge
+  lock();
 });
