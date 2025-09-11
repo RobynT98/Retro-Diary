@@ -316,20 +316,53 @@ window.addEventListener('load', async ()=>{
   $('#showRecoveryBtn')?.addEventListener('click', ()=>{ if(!requireUnlocked()) return; getOrCreateRecovery(); });
   $('#resetPasswordBtn')?.addEventListener('click', ()=>{ if(!requireUnlocked()) return; openReset(); });
 
+  // Recovery med återställningskod
+  $('#useRecoveryBtn')?.addEventListener('click', openReset);
   $('#applyReset')?.addEventListener('click', applyReset);
   $('#cancelReset')?.addEventListener('click', ()=>$('#resetDialog').close());
-  $('#copyRecovery')?.addEventListener('click', ()=>navigator.clipboard.writeText($('#recoveryCode').value));
-  $('#regenRecovery')?.addEventListener('click', async ()=>{ if(!requireUnlocked()) return; const rc=await regenRecoveryWrap(state.dek); $('#recoveryCode').value=rc; alert('Ny återställningskod skapad.'); });
-  $('#closeRecovery')?.addEventListener('click', ()=>$('#recoveryDialog').close());
-  // Meny (blockeras när låst)
-  $('#menuBtn')?.addEventListener('click', ()=>{ if (!state.dek) return; const d=$('#menuDrop'); d.hidden=!d.hidden; });
-  document.body.addEventListener('click', e=>{ if(e.target.id==='menuBtn' || e.target.closest('.dropdown')) return; closeMenu(); });
 
-  // RTF
+  // Recovery-dialog knappar
+  $('#copyRecovery')?.addEventListener('click', ()=>navigator.clipboard.writeText($('#recoveryCode').value));
+  $('#regenRecovery')?.addEventListener('click', async ()=>{ 
+    if(!requireUnlocked()) return; 
+    const rc = await regenRecoveryWrap(state.dek); 
+    $('#recoveryCode').value = rc; 
+    alert('Ny återställningskod skapad.'); 
+  });
+  $('#closeRecovery')?.addEventListener('click', ()=>$('#recoveryDialog').close());
+
+  // Meny (blockeras när låst)
+  $('#menuBtn')?.addEventListener('click', ()=>{ 
+    if (!state.dek) return; 
+    const d = $('#menuDrop'); 
+    d.hidden = !d.hidden; 
+  });
+  document.body.addEventListener('click', e=>{ 
+    if(e.target.id==='menuBtn' || e.target.closest('.dropdown')) return; 
+    closeMenu(); 
+  });
+
+  // RTF (rich text formatting)
   document.querySelectorAll('[data-cmd]').forEach(b=>b.addEventListener('click', ()=>document.execCommand(b.dataset.cmd,false,b.dataset.value||null)));
   document.querySelectorAll('[data-block]').forEach(b=>b.addEventListener('click', ()=>document.execCommand('formatBlock',false,b.dataset.block)));
-  $('#insertLinkBtn').addEventListener('click', ()=>{ const url=prompt('Länk (https://...)'); if(!url) return; document.execCommand('createLink',false,url); editor.focus(); });
-  $('#clearFormatBtn').addEventListener('click', ()=>{ document.execCommand('removeFormat',false,null); const sel=window.getSelection(); if(!sel.rangeCount) return; (sel.getRangeAt(0).commonAncestorContainer.parentElement||editor).querySelectorAll('a').forEach(a=>{ const t=document.createTextNode(a.textContent||''); a.parentNode.replaceChild(t,a); }); editor.focus(); });
+  $('#insertLinkBtn').addEventListener('click', ()=>{ 
+    const url=prompt('Länk (https://...)'); 
+    if(!url) return; 
+    document.execCommand('createLink',false,url); 
+    editor.focus(); 
+  });
+  $('#clearFormatBtn').addEventListener('click', ()=>{ 
+    document.execCommand('removeFormat',false,null); 
+    const sel=window.getSelection(); 
+    if(!sel.rangeCount) return; 
+    (sel.getRangeAt(0).commonAncestorContainer.parentElement||editor)
+      .querySelectorAll('a')
+      .forEach(a=>{ 
+        const t=document.createTextNode(a.textContent||''); 
+        a.parentNode.replaceChild(t,a); 
+      }); 
+    editor.focus(); 
+  });
   $('#insertIconBtn').addEventListener('click', openIconPalette);
   $('#applyForeColor').addEventListener('click', ()=>document.execCommand('foreColor',false,$('#foreColor').value));
   $('#applyHiliteColor').addEventListener('click', ()=>document.execCommand('hiliteColor',false,$('#hiliteColor').value));
@@ -338,14 +371,22 @@ window.addEventListener('load', async ()=>{
   // Wipe lokal data
   $('#wipeLocalBtn')?.addEventListener('click', async ()=>{
     if(!confirm('Rensa ALL lokal data på den här enheten?')) return;
-    if ('indexedDB' in window) await new Promise(r=>{ const req=indexedDB.deleteDatabase('retro-diary'); req.onsuccess=req.onerror=req.onblocked=()=>r(); });
-    localStorage.clear(); location.reload();
+    if ('indexedDB' in window) {
+      await new Promise(r=>{ 
+        const req=indexedDB.deleteDatabase('retro-diary'); 
+        req.onsuccess=req.onerror=req.onblocked=()=>r(); 
+      });
+    }
+    localStorage.clear(); 
+    location.reload();
   });
 
   // Supabase session (om inloggad sedan tidigare)
   const { data:{session} } = await supabase.auth.getSession();
   currentUser = session?.user || null;
-  $('#authStatus') && ( $('#authStatus').textContent = currentUser ? 'Inloggad.' : 'Inte inloggad.' );
+  if($('#authStatus')) {
+    $('#authStatus').textContent = currentUser ? 'Inloggad.' : 'Inte inloggad.';
+  }
 
   // Start i låst läge
   lock();
