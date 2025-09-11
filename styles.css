@@ -186,3 +186,7 @@ legend { padding:0 6px; color:var(--muted); }
   max-height: 70vh;  /* tar max 70% av höjden */
   overflow-y: auto;  /* så man kan scrolla */
 }
+
+.lockscreen { z-index: 50; }
+.dropdown { z-index: 40; } /* menyn under låsskärmen */
+.dropdown { max-height: 70vh; overflow-y: auto; }
