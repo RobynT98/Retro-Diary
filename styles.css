@@ -167,3 +167,14 @@ body.locked .titlebar .actions #lockBtn {
   box-shadow:0 0 0 1px var(--accent) inset, 0 0 12px rgba(210,167,106,.25);
   color:#f0d8b5;
 }
+/* LOCKED STATE */
+body.locked #newEntryBtn,
+body.locked #menuWrap { display: none; }
+
+body.locked .titlebar .actions #lockBtn {
+  opacity:.6; pointer-events:none;
+}
+
+/* Konto-fält på låsskärmen */
+fieldset { border:1px solid #3b2a22; border-radius:12px; padding:12px; margin:10px 0; }
+legend { padding:0 6px; color:var(--muted); }
