@@ -10,6 +10,16 @@
   <link rel="icon" href="icon-192.png" sizes="192x192">
   <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="stylesheet" href="styles.css">
+
+  <!-- Supabase (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Injecta env om du vill slippa Vercel env: redigera här -->
+  <script>
+    window.__env = {
+      SUPABASE_URL: (typeof VITE_SUPABASE_URL !== 'undefined') ? VITE_SUPABASE_URL : "<DIN_SUPABASE_URL>",
+      SUPABASE_ANON_KEY: (typeof VITE_SUPABASE_ANON_KEY !== 'undefined') ? VITE_SUPABASE_ANON_KEY : "<DIN_ANON_KEY>"
+    };
+  </script>
 </head>
 <body>
   <div class="frame">
@@ -21,8 +31,7 @@
 
       <div class="actions">
         <button id="newEntryBtn">Ny sida</button>
-
-        <div class="menu">
+        <div class="menu" id="menuWrap">
           <button id="menuBtn" class="ghost">⋮</button>
           <div id="menuDrop" class="dropdown" hidden>
             <button id="exportBtn">Exportera (krypterad .json)</button>
@@ -36,9 +45,12 @@
             <hr>
             <button id="showRecoveryBtn">Visa/Skapa återställningskod</button>
             <button id="resetPasswordBtn">Byt/Återställ lösenord</button>
+            <hr>
+            <button id="wipeLocalBtn" class="danger">Rensa lokala data (denna enhet)</button>
+            <hr>
+            <button id="logoutBtn" class="ghost">Logga ut</button>
           </div>
         </div>
-
         <button id="lockBtn" class="ghost">Lås</button>
       </div>
     </div>
@@ -82,9 +94,8 @@
           </div>
         </div>
 
-        <!-- Contenteditable redigerare -->
         <div id="editor" class="editor" contenteditable="true" spellcheck="true"
-             data-placeholder="Skriv fritt. Du kan färgsätta text, göra rubriker, listor och lägga in ikoner."></div>
+             data-placeholder="Skriv fritt. Allt krypteras lokalt innan det synkas."></div>
 
         <div class="toolbar">
           <button id="saveBtn">Spara</button>
@@ -98,23 +109,38 @@
     <div class="lockscreen" id="lockscreen" hidden>
       <div class="lockcard">
         <h2>🔒 Lås upp dagboken</h2>
-        <p class="hint">Första gången du anger ett lösenord skapas din nyckel. Glömmer du det kan du återställa med återställningskoden.</p>
-        <div class="field">
-          <input id="pass" type="password" autocomplete="current-password" placeholder="Lösenord">
-        </div>
-        <div class="field">
-          <button id="unlockBtn">Lås upp</button>
-          <button id="bioUnlockBtn" class="ghost">Biometrisk upplåsning</button>
-        </div>
-        <div class="status" id="status"></div>
-        <div class="tiny"><button id="useRecoveryBtn" class="linklike">Har återställningskod?</button></div>
+        <p class="hint">Skapa konto för synk, eller logga in om du redan har. Dagbokens krypteringslösen är separat.</p>
+
+        <fieldset class="account">
+          <legend>Konto</legend>
+          <div class="field"><input id="email" type="email" placeholder="E-post"></div>
+          <div class="field"><input id="acctPass" type="password" placeholder="Konto-lösenord"></div>
+          <div class="field">
+            <button id="signupBtn" class="ghost">Skapa konto</button>
+            <button id="signinBtn" class="ghost">Logga in</button>
+          </div>
+          <div class="tiny" id="authStatus"></div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Dagbokens lösen (kryptering)</legend>
+          <div class="field">
+            <input id="pass" type="password" autocomplete="current-password" placeholder="Dagbokens lösenord">
+          </div>
+          <div class="field">
+            <button id="unlockBtn">Lås upp</button>
+            <button id="bioUnlockBtn" class="ghost">Biometrisk upplåsning</button>
+          </div>
+          <div class="status" id="status"></div>
+          <div class="tiny"><button id="useRecoveryBtn" class="linklike">Har återställningskod?</button></div>
+        </fieldset>
       </div>
     </div>
 
     <!-- Återställningsmodal -->
     <dialog id="recoveryDialog">
       <h3>Återställningskod</h3>
-      <p class="hint">Spara koden säkert (offline). Med den kan du byta lösenord.</p>
+      <p class="hint">Spara koden säkert (offline). Med den kan du byta dagbokslösenord.</p>
       <div class="field">
         <input id="recoveryCode" type="text" readonly>
         <button id="copyRecovery" class="ghost">Kopiera</button>
@@ -128,37 +154,32 @@
 
     <!-- Byt/återställ lösenord -->
     <dialog id="resetDialog">
-      <h3>Byt/Återställ lösenord</h3>
-      <p class="hint">Ange din återställningskod, välj nytt lösenord.</p>
+      <h3>Byt/Återställ dagbokslösen</h3>
       <div class="field"><input id="rcInput" type="text" placeholder="Återställningskod (XXXX-XXXX-XXXX-XXXX)"></div>
-      <div class="field"><input id="newPass1" type="password" placeholder="Nytt lösenord"></div>
-      <div class="field"><input id="newPass2" type="password" placeholder="Upprepa nytt lösenord"></div>
+      <div class="field"><input id="newPass1" type="password" placeholder="Nytt dagbokslösen"></div>
+      <div class="field"><input id="newPass2" type="password" placeholder="Upprepa nytt dagbokslösen"></div>
       <div class="field">
-        <button id="applyReset">Spara nytt lösenord</button>
+        <button id="applyReset">Spara nytt</button>
         <button id="cancelReset" class="ghost">Avbryt</button>
       </div>
       <div class="status" id="resetStatus"></div>
     </dialog>
 
-<!-- Emoji/ikon-palett med flikar -->
-<dialog id="iconDialog">
-  <h3>Ikoner & emojis</h3>
-
-  <div class="tabs" id="iconTabs" role="tablist" aria-label="Ikonkategorier">
-    <button class="tab active" data-tab="Symboler" role="tab" aria-selected="true">Symboler</button>
-    <button class="tab" data-tab="Status" role="tab">Status</button>
-    <button class="tab" data-tab="Element" role="tab">Element</button>
-    <button class="tab" data-tab="Himmel" role="tab">Himmel</button>
-    <button class="tab" data-tab="Objekt" role="tab">Objekt</button>
-    <button class="tab" data-tab="Ansikten" role="tab">Ansikten</button>
-    <button class="tab" data-tab="Kärlek" role="tab">Kärlek</button>
-  </div>
-
-  <div id="iconGrid" class="icon-grid" aria-label="Emoji palette"></div>
-
-  <div class="field"><button id="closeIconDlg" class="ghost">Stäng</button></div>
-</dialog>
-    
+    <!-- Ikondialog med flikar (från tidigare steg) -->
+    <dialog id="iconDialog">
+      <h3>Ikoner & emojis</h3>
+      <div class="tabs" id="iconTabs" role="tablist" aria-label="Ikonkategorier">
+        <button class="tab active" data-tab="Symboler" role="tab" aria-selected="true">Symboler</button>
+        <button class="tab" data-tab="Status" role="tab">Status</button>
+        <button class="tab" data-tab="Element" role="tab">Element</button>
+        <button class="tab" data-tab="Himmel" role="tab">Himmel</button>
+        <button class="tab" data-tab="Objekt" role="tab">Objekt</button>
+        <button class="tab" data-tab="Ansikten" role="tab">Ansikten</button>
+        <button class="tab" data-tab="Kärlek" role="tab">Kärlek</button>
+      </div>
+      <div id="iconGrid" class="icon-grid" aria-label="Emoji palette"></div>
+      <div class="field"><button id="closeIconDlg" class="ghost">Stäng</button></div>
+    </dialog>
   </div>
 
   <script src="app.js" defer></script>
@@ -168,4 +189,4 @@
     }
   </script>
 </body>
-          </html>
+</html>
