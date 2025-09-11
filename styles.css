@@ -149,3 +149,9 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
   .wrap{grid-template-columns:1fr}
   .sidebar{display:none}
          }
+body.locked #newEntryBtn,
+body.locked #menuWrap { display: none; }
+
+body.locked .titlebar .actions #lockBtn {
+  opacity: .6; pointer-events: none; /* låsknappen gör inget när vi redan är låsta */
+         }
