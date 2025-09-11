@@ -5,23 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Retro Diary</title>
 
-  
+  <!-- PWA -->
   <link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#2d2d2d">
+  <meta name="theme-color" content="#2d2d2d">
+
+  <!-- Ikoner -->
   <link rel="icon" href="icon-192.png" sizes="192x192">
   <link rel="apple-touch-icon" href="icon-192.png">
+
   <link rel="stylesheet" href="styles.css">
 
   <!-- Supabase (CDN) -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<!-- Miljövariabler för klienten -->
-<script>
-  window.__env = {
-    SUPABASE_URL: "https://ehjsihadlrjbfocodxay.supabase.co",
-    SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVoanNpaGFkbHJqYmZvY29keGF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2MjY0NDcsImV4cCI6MjA3MzIwMjQ0N30.AMSMbuaVoQTY6hpcmqqHhf00EImk7VTytcegrLmHmQw"
-  };
-</script>
+  <!-- Miljövariabler för klienten -->
+  <script>
+    window.__env = {
+      SUPABASE_URL: "https://ehjsihadlrjbfocodxay.supabase.co",
+      SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVoanNpaGFkbHJqYmZvY29keGF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2MjY0NDcsImV4cCI6MjA3MzIwMjQ0N30.AMSMbuaVoQTY6hpcmqqHhf00EImk7VTytcegrLmHmQw"
+    };
   </script>
 </head>
 <body>
@@ -34,6 +36,7 @@
 
       <div class="actions">
         <button id="newEntryBtn">Ny sida</button>
+
         <div class="menu" id="menuWrap">
           <button id="menuBtn" class="ghost">⋮</button>
           <div id="menuDrop" class="dropdown" hidden>
@@ -54,6 +57,7 @@
             <button id="logoutBtn" class="ghost">Logga ut</button>
           </div>
         </div>
+
         <button id="lockBtn" class="ghost">Lås</button>
       </div>
     </div>
@@ -136,46 +140,51 @@
           </div>
           <div class="status" id="status"></div>
           <div class="tiny">
-  <button id="useRecoveryBtn" class="linklike">Har återställningskod?</button>
-</div>
+            <button id="useRecoveryBtn" class="linklike">Har återställningskod?</button>
+          </div>
+        </fieldset>
       </div>
     </div>
-<!-- Återställ/byt dagbokslösen med återställningskod -->
-<dialog id="resetDialog">
-  <h3>Byt/Återställ dagbokslösen</h3>
 
-  <div class="field">
-    <input id="rcInput" type="text" placeholder="Återställningskod (XXXX-XXXX-XXXX-XXXX)" inputmode="latin-prose" />
-  </div>
-
-  <div class="field">
-    <input id="newPass1" type="password" placeholder="Nytt dagbokslösen" />
-  </div>
-  <div class="field">
-    <input id="newPass2" type="password" placeholder="Upprepa nytt dagbokslösen" />
-  </div>
-
-  <div class="field">
-    <button id="applyReset">Spara nytt</button>
-    <button id="cancelReset" class="ghost">Avbryt</button>
-  </div>
-
-  <div class="status" id="resetStatus"></div>
-            </dialog>
-    <!-- Byt/återställ lösenord -->
+    <!-- Återställ/byt dagbokslösen med återställningskod -->
     <dialog id="resetDialog">
       <h3>Byt/Återställ dagbokslösen</h3>
-      <div class="field"><input id="rcInput" type="text" placeholder="Återställningskod (XXXX-XXXX-XXXX-XXXX)"></div>
-      <div class="field"><input id="newPass1" type="password" placeholder="Nytt dagbokslösen"></div>
-      <div class="field"><input id="newPass2" type="password" placeholder="Upprepa nytt dagbokslösen"></div>
+
+      <div class="field">
+        <input id="rcInput" type="text" placeholder="Återställningskod (XXXX-XXXX-XXXX-XXXX)" inputmode="latin-prose" />
+      </div>
+
+      <div class="field">
+        <input id="newPass1" type="password" placeholder="Nytt dagbokslösen" />
+      </div>
+      <div class="field">
+        <input id="newPass2" type="password" placeholder="Upprepa nytt dagbokslösen" />
+      </div>
+
       <div class="field">
         <button id="applyReset">Spara nytt</button>
         <button id="cancelReset" class="ghost">Avbryt</button>
       </div>
+
       <div class="status" id="resetStatus"></div>
     </dialog>
 
-    <!-- Ikondialog med flikar (från tidigare steg) -->
+    <!-- Återställningskod (visa/skapa) -->
+    <dialog id="recoveryDialog">
+      <h3>Återställningskod</h3>
+      <p class="hint">Spara koden säkert (offline). Med den kan du byta dagbokslösenord.</p>
+      <div class="field">
+        <input id="recoveryCode" type="text" readonly>
+        <button id="copyRecovery" class="ghost">Kopiera</button>
+      </div>
+      <div class="field">
+        <button id="regenRecovery">Generera ny</button>
+        <button id="closeRecovery" class="ghost">Stäng</button>
+      </div>
+      <p class="tiny">Ny kod ersätter den gamla.</p>
+    </dialog>
+
+    <!-- Ikondialog med flikar -->
     <dialog id="iconDialog">
       <h3>Ikoner & emojis</h3>
       <div class="tabs" id="iconTabs" role="tablist" aria-label="Ikonkategorier">
@@ -192,11 +201,12 @@
     </dialog>
   </div>
 
-<script src="app.js?v=9" defer></script>
+  <!-- Viktigt: bumpa v-numret när du deployar för att forsera ny JS -->
+  <script src="app.js?v=14" defer></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
     }
   </script>
-</body>
+</body> 
 </html>
