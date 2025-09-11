@@ -2,6 +2,7 @@
 const $ = sel => document.querySelector(sel);
 const deU8 = buf => new TextDecoder().decode(buf);
 const enU8 = str => new TextEncoder().encode(str);
+
 function toHex(u8){ return Array.from(u8).map(b=>b.toString(16).padStart(2,'0')).join(''); }
 function fromHex(str){ if(!str) return new Uint8Array(); const a=new Uint8Array(str.length/2); for(let i=0;i<a.length;i++) a[i]=parseInt(str.substr(i*2,2),16); return a; }
 function b64u(buf){ return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
@@ -10,9 +11,6 @@ function uuid(){ return crypto.randomUUID(); }
 function closeMenu(){ $('#menuDrop')?.setAttribute('hidden',''); }
 function isValidWrap(w){ return !!(w && typeof w.saltHex==='string' && w.payload && typeof w.payload.iv==='string' && typeof w.payload.cipher==='string'); }
 function normalizeRC(s){ return (s||'').toUpperCase().replace(/[^A-Z2-9]/g,''); } // återställningskod A–Z/2–9
-
-/* (valfritt) liten indikator att JS laddat – kan tas bort sen */
-(function(){ const b=document.createElement('div'); b.textContent='JS laddad ✓'; b.style.cssText='position:fixed;left:8px;bottom:8px;background:#1b3a2e;color:#dff;padding:6px 8px;border-radius:8px;z-index:99999;font:12px ui-monospace,monospace'; document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>b.remove(),1200)); document.body.appendChild(b); })();
 
 /* ========================== Supabase ========================== */
 const SUPABASE_URL = window.__env?.SUPABASE_URL;
@@ -26,7 +24,7 @@ try{
   console.log('Supabase init OK');
 }catch(err){
   console.warn('Supabase init problem:', err.message);
-  // Minimal stub så appen ändå startar
+  // Minimal stub så appen ändå fungerar offline/utan nycklar
   supabase = {
     auth:{
       async signUp(){ return { error:{ message:'Supabase ej initierat' } } },
@@ -42,6 +40,7 @@ let currentUser = null;
 const DB = (() => {
   const ENTRIES='entries', META='meta';
   let db;
+
   function open(){ return new Promise((resolve,reject)=>{
     if(!('indexedDB' in window)) return resolve(null);
     const req = indexedDB.open('retro-diary',5);
@@ -54,14 +53,20 @@ const DB = (() => {
     req.onsuccess = e=>{ db=e.target.result; resolve(db); };
     req.onerror = ()=>reject(req.error);
   });}
+
   async function put(store, value){
     if(!db) await open();
-    if(!db){ if(store==='meta') localStorage.setItem(value.k, JSON.stringify(value.v)); else localStorage.setItem(value.id, JSON.stringify(value)); return; }
+    if(!db){
+      if(store==='meta') localStorage.setItem(value.k, JSON.stringify(value.v));
+      else localStorage.setItem(value.id, JSON.stringify(value));
+      return;
+    }
     return new Promise((res,rej)=>{
       const tx=db.transaction(store,'readwrite'); tx.objectStore(store).put(value);
       tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error);
     });
   }
+
   async function get(store, key){
     if(!db) await open();
     if(!db){ const raw=localStorage.getItem(key); return raw?JSON.parse(raw):null; }
@@ -70,6 +75,7 @@ const DB = (() => {
       req.onsuccess=()=>res(req.result||null); req.onerror=()=>rej(req.error);
     });
   }
+
   async function all(){
     if(!db) await open();
     if(!db){
@@ -81,6 +87,7 @@ const DB = (() => {
       req.onsuccess=()=>res(req.result||[]); req.onerror=()=>rej(req.error);
     });
   }
+
   async function del(id){
     if(!db) await open();
     if(!db) return localStorage.removeItem(id);
@@ -89,15 +96,28 @@ const DB = (() => {
       tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error);
     });
   }
-  async function queue(op,payload){ if(!db) await open(); return new Promise((res,rej)=>{
-    const tx=db.transaction('outbox','readwrite'); tx.objectStore('outbox').put({op,payload,ts:Date.now()});
-    tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error);
-  });}
-  async function drainOutbox(handler){ if(!db) await open(); return new Promise((res,rej)=>{
-    const tx=db.transaction('outbox','readwrite'); const st=tx.objectStore('outbox'); const getAll=st.getAll();
-    getAll.onsuccess=async ()=>{ const rows=getAll.result||[]; for(const r of rows){ try{ await handler(r.op,r.payload); st.delete(r.id);}catch(e){} } res(); };
-    getAll.onerror=()=>rej(getAll.error);
-  });}
+
+  async function queue(op,payload){
+    if(!db) await open();
+    return new Promise((res,rej)=>{
+      const tx=db.transaction('outbox','readwrite'); tx.objectStore('outbox').put({op,payload,ts:Date.now()});
+      tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error);
+    });
+  }
+
+  async function drainOutbox(handler){
+    if(!db) await open();
+    return new Promise((res,rej)=>{
+      const tx=db.transaction('outbox','readwrite'); const st=tx.objectStore('outbox'); const getAll=st.getAll();
+      getAll.onsuccess=async ()=>{
+        const rows=getAll.result||[];
+        for(const r of rows){ try{ await handler(r.op,r.payload); st.delete(r.id);}catch(e){} }
+        res();
+      };
+      getAll.onerror=()=>rej(getAll.error);
+    });
+  }
+
   return {open, put, get, all, del, putMeta:(k,v)=>put('meta',{k,v}), getMeta:(k)=>get('meta',k), queue, drainOutbox};
 })();
 
@@ -105,28 +125,52 @@ const DB = (() => {
 const CryptoBox = (() => {
   async function pbkdf2(pass, salt, iter=150000){
     const base = await crypto.subtle.importKey('raw', enU8(pass), 'PBKDF2', false, ['deriveKey']);
-    return crypto.subtle.deriveKey({name:'PBKDF2', salt, iterations:iter, hash:'SHA-256'}, base, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']);
+    return crypto.subtle.deriveKey(
+      {name:'PBKDF2', salt, iterations:iter, hash:'SHA-256'},
+      base,
+      {name:'AES-GCM', length:256},
+      false,
+      ['encrypt','decrypt']
+    );
   }
-  async function aesEncryptRaw(key, bytes){ const iv=randBytes(12); const cipher=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},key,bytes)); return {iv:toHex(iv), cipher:toHex(cipher)}; }
-  async function aesDecryptRaw(key, payload){ const iv=fromHex(payload.iv); const data=fromHex(payload.cipher); const buf=await crypto.subtle.decrypt({name:'AES-GCM',iv},key,data); return new Uint8Array(buf); }
+  async function aesEncryptRaw(key, bytes){
+    const iv=randBytes(12);
+    const cipher=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},key,bytes));
+    return {iv:toHex(iv), cipher:toHex(cipher)};
+  }
+  async function aesDecryptRaw(key, payload){
+    const iv=fromHex(payload.iv);
+    const data=fromHex(payload.cipher);
+    const buf=await crypto.subtle.decrypt({name:'AES-GCM',iv},key,data);
+    return new Uint8Array(buf);
+  }
   return {pbkdf2, aesEncryptRaw, aesDecryptRaw};
 })();
 
-/* ========================== State & UI refs ========================== */
-const state = { pass:null, dek:null, currentId:null, entries:[], bio:{}, syncing:false };
+/* ========================== State & UI-refs ========================== */
+const state = { pass:null, dek:null, currentId:null, entries:[], syncing:false };
 const listEl = $('#list'), editor = $('#editor'), dateLine = $('#dateLine'), stamp = $('#stamp'), lockscreen = $('#lockscreen'), statusEl = $('#status');
 
 /* ========================== Render helpers ========================== */
 function fmtDate(d){ return d.toLocaleString('sv-SE',{dateStyle:'full',timeStyle:'short'}); }
-function firstLineAsTitle(html){ const tmp=document.createElement('div'); tmp.innerHTML=html||''; const text=(tmp.textContent||'').trim(); return (text.split(/\n/)[0]||'Omdirigerad tanke').slice(0,80); }
+function firstLineAsTitle(html){
+  const tmp=document.createElement('div'); tmp.innerHTML=html||'';
+  const text=(tmp.textContent||'').trim();
+  return (text.split(/\n/)[0]||'Omdirigerad tanke').slice(0,80);
+}
 function renderList(){
-  listEl.innerHTML=''; [...state.entries].sort((a,b)=>(b.updated||0)-(a.updated||0)).forEach(e=>{
+  listEl.innerHTML='';
+  [...state.entries].sort((a,b)=>(b.updated||0)-(a.updated||0)).forEach(e=>{
     const div=document.createElement('div'); div.className='entry-item';
     div.innerHTML=`<div><div>${e.title||'Omdirigerad tanke'}</div><small>${new Date(e.updated||e.created).toLocaleString('sv-SE')}</small></div><button data-id="${e.id}" class="ghost">Öppna</button>`;
-    div.querySelector('button').onclick=()=>openEntry(e.id); listEl.appendChild(div);
+    div.querySelector('button').onclick=()=>openEntry(e.id);
+    listEl.appendChild(div);
   });
 }
-function setCurrentMeta({title,created,updated}){ dateLine.textContent=title||''; stamp.textContent=`${created?'Skapad: '+fmtDate(new Date(created)):''}${updated?' · Senast sparad: '+fmtDate(new Date(updated)):''}`; }
+function setCurrentMeta({title,created,updated}){
+  dateLine.textContent=title||'';
+  stamp.textContent=`${created?'Skapad: '+fmtDate(new Date(created)):''}${updated?' · Senast sparad: '+fmtDate(new Date(updated)):''}`;
+}
 
 /* ========================== DEK & recovery wraps ========================== */
 async function ensureDEKInitialized(pass){
@@ -146,9 +190,9 @@ async function ensureDEKInitialized(pass){
   const encP = await CryptoBox.aesEncryptRaw(kP, dek);
   await DB.putMeta('wrap_pass', { saltHex: toHex(saltP), payload: encP });
 
-  // recovery-kod: skapa pretty + normaliserad, wrappa DEK med PBKDF2(normaliserad)
-  const rcPretty = makeRecoveryCode();        // t.ex. "ABCD-EFGH-...."
-  const rcNorm   = normalizeRC(rcPretty);     // "ABCDEFGH...."
+  // recovery: pretty visas, normaliserad används i härledningen
+  const rcPretty = makeRecoveryCode();
+  const rcNorm   = normalizeRC(rcPretty);
   const saltR = randBytes(16);
   const kR = await CryptoBox.pbkdf2(rcNorm, saltR);
   const encR = await CryptoBox.aesEncryptRaw(kR, dek);
@@ -162,14 +206,45 @@ async function ensureDEKInitialized(pass){
       wrap_recovery:{saltHex:toHex(saltR),payload:encR}
     });
   }
-  showRecovery(rcPretty);
+  showRecovery(rcPretty); // visa koden direkt första gången
 }
 
 function makeRecoveryCode(){
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // utan I,O,1,0
   let s=''; for(let i=0;i<16;i++) s += alphabet[Math.floor(Math.random()*alphabet.length)];
   return `${s.slice(0,4)}-${s.slice(4,8)}-${s.slice(8,12)}-${s.slice(12,16)}`;
-      }
+}
+
+async function loadDEK_withPass(pass){
+  const wrap=await DB.getMeta('wrap_pass');
+  if(!isValidWrap(wrap)) throw new Error('Skadad nyckelmetadata (wrap_pass)');
+  const k=await CryptoBox.pbkdf2(pass, fromHex(wrap.saltHex));
+  return CryptoBox.aesDecryptRaw(k, wrap.payload);
+}
+
+async function rewrapPass(newPass, dek){
+  const salt=randBytes(16);
+  const k=await CryptoBox.pbkdf2(newPass,salt);
+  const enc=await CryptoBox.aesEncryptRaw(k,dek);
+  await DB.putMeta('wrap_pass',{saltHex:toHex(salt),payload:enc});
+  if(currentUser){
+    await supabase.from('meta').upsert({ user_id: currentUser.id, wrap_pass:{saltHex:toHex(salt),payload:enc} });
+  }
+}
+
+async function regenRecoveryWrap(dek){
+  const rcPretty = makeRecoveryCode();
+  const rcNorm   = normalizeRC(rcPretty);
+  const salt=randBytes(16);
+  const k=await CryptoBox.pbkdf2(rcNorm,salt);
+  const enc=await CryptoBox.aesEncryptRaw(k,dek);
+  await DB.putMeta('wrap_recovery',{saltHex:toHex(salt),payload:enc});
+  await DB.putMeta('recovery_code', rcPretty);
+  if(currentUser){
+    await supabase.from('meta').upsert({ user_id: currentUser.id, wrap_recovery:{saltHex:toHex(salt),payload:enc} });
+  }
+  return rcPretty;
+  }
 /* ========================== Entry crypto ========================== */
 async function encryptWithDEK(plainU8){
   const key = await crypto.subtle.importKey('raw', state.dek, 'AES-GCM', false, ['encrypt']);
@@ -268,17 +343,17 @@ async function lock(){
 async function unlockWithPass(pass){
   statusEl.textContent = 'Låser upp...';
   try{
-    // skapa nyckel-wraps första gången
+    // Skapa wraps första gången (om de saknas)
     await ensureDEKInitialized(pass);
 
-    // ladda DEK med lösenordet
+    // Ladda DEK via wrap_pass
     state.dek  = await loadDEK_withPass(pass);
     state.pass = pass;
 
-    // lokala poster
+    // Lokala poster
     state.entries = await DB.all();
 
-    // hämta och slå ihop med server om inloggad
+    // Hämta + slå ihop med server
     if(currentUser){
       const {data} = await supabase.from('entries').select('*').eq('user_id', currentUser.id);
       if(Array.isArray(data)){
@@ -314,7 +389,7 @@ function newEntry(){
   dateLine.textContent = now.toLocaleDateString('sv-SE',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   stamp.textContent = 'Ej sparad';
   editor.focus();
-}
+        }
 /* ========================== Export / Import ========================== */
 async function exportAll(){
   if(!state.dek){ alert('Lås upp först.'); return; }
@@ -471,7 +546,7 @@ async function bioUnlock(){
     }];
     await navigator.credentials.get({ publicKey:{ challenge: randBytes(32), allowCredentials: allow, userVerification:'required', timeout:30000 } });
 
-    const cap = localStorage.getItem('bio_capsule');
+    const cap  = localStorage.getItem('bio_capsule');
     const khex = localStorage.getItem('bio_key');
     if(!cap || !khex) return alert('Ingen lokal bio-kapsel. Lås upp med lösenord och aktivera igen.');
 
@@ -564,7 +639,20 @@ async function signOut(){
 /* ========================== Event wiring ========================== */
 window.addEventListener('load', async ()=>{
   // Unlock/lock
-  $('#unlockBtn').onclick = ()=>unlockWithPass($('#pass').value);
+  $('#unlockBtn').onclick = async () => {
+    const pwd = ($('#pass')?.value || '').trim();
+    if(!pwd){ statusEl.textContent='Skriv ditt dagbokslösen.'; return; }
+    try{
+      $('#unlockBtn').disabled = true;
+      statusEl.textContent = 'Låser upp...';
+      await unlockWithPass(pwd);
+      statusEl.textContent = '';
+    }catch(e){
+      statusEl.textContent = (e && e.message) || 'Fel lösenord eller metadata.';
+    }finally{
+      $('#unlockBtn').disabled = false;
+    }
+  };
   $('#bioUnlockBtn').onclick = bioUnlock;
   $('#lockBtn').onclick = lock;
 
@@ -584,9 +672,7 @@ window.addEventListener('load', async ()=>{
   $('#importFile')?.addEventListener('change', e=>{ if(!requireUnlocked()) return; importAll(e.target.files[0]); });
   $('#showRecoveryBtn')?.addEventListener('click', ()=>{ if(!requireUnlocked()) return; getOrCreateRecovery(); });
   $('#resetPasswordBtn')?.addEventListener('click', ()=>{ if(!requireUnlocked()) return; openReset(); });
-
-  // Länk på låsskärmen
-  $('#useRecoveryBtn')?.addEventListener('click', openReset);
+  $('#useRecoveryBtn')?.addEventListener('click', openReset); // länken på låsskärmen
 
   // Återställningsdialogens knappar
   $('#applyReset')?.addEventListener('click', applyReset);
