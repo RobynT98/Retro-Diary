@@ -140,12 +140,25 @@
       <div class="status" id="resetStatus"></div>
     </dialog>
 
-    <!-- Enkel emoji/ikon-palett -->
-    <dialog id="iconDialog">
-      <h3>Ikoner & emojis</h3>
-      <div id="iconGrid" class="icon-grid" aria-label="Emoji palette"></div>
-      <div class="field"><button id="closeIconDlg" class="ghost">Stäng</button></div>
-    </dialog>
+<!-- Emoji/ikon-palett med flikar -->
+<dialog id="iconDialog">
+  <h3>Ikoner & emojis</h3>
+
+  <div class="tabs" id="iconTabs" role="tablist" aria-label="Ikonkategorier">
+    <button class="tab active" data-tab="Symboler" role="tab" aria-selected="true">Symboler</button>
+    <button class="tab" data-tab="Status" role="tab">Status</button>
+    <button class="tab" data-tab="Element" role="tab">Element</button>
+    <button class="tab" data-tab="Himmel" role="tab">Himmel</button>
+    <button class="tab" data-tab="Objekt" role="tab">Objekt</button>
+    <button class="tab" data-tab="Ansikten" role="tab">Ansikten</button>
+    <button class="tab" data-tab="Kärlek" role="tab">Kärlek</button>
+  </div>
+
+  <div id="iconGrid" class="icon-grid" aria-label="Emoji palette"></div>
+
+  <div class="field"><button id="closeIconDlg" class="ghost">Stäng</button></div>
+</dialog>
+    
   </div>
 
   <script src="app.js" defer></script>
