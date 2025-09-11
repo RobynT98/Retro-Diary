@@ -178,3 +178,11 @@ body.locked .titlebar .actions #lockBtn {
 /* Konto-fält på låsskärmen */
 fieldset { border:1px solid #3b2a22; border-radius:12px; padding:12px; margin:10px 0; }
 legend { padding:0 6px; color:var(--muted); }
+
+#menuWrap {
+  top: 3.5rem; /* lite längre ner */
+}
+#menuWrap {
+  max-height: 70vh;  /* tar max 70% av höjden */
+  overflow-y: auto;  /* så man kan scrolla */
+}
