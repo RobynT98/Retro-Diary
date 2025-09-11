@@ -1,4 +1,4 @@
-const CACHE = 'retro-diary-v11'; // bumpa!
+const CACHE = 'retro-diary-v12'; // bumpa!
 
 self.addEventListener('fetch', e => {
   const dest = e.request.destination;
