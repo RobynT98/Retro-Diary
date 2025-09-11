@@ -135,26 +135,33 @@
             <button id="bioUnlockBtn" class="ghost">Biometrisk upplåsning</button>
           </div>
           <div class="status" id="status"></div>
-          <div class="tiny"><button id="useRecoveryBtn" class="linklike">Har återställningskod?</button></div>
-        </fieldset>
+          <div class="tiny">
+  <button id="useRecoveryBtn" class="linklike">Har återställningskod?</button>
+</div>
       </div>
     </div>
+<!-- Återställ/byt dagbokslösen med återställningskod -->
+<dialog id="resetDialog">
+  <h3>Byt/Återställ dagbokslösen</h3>
 
-    <!-- Återställningsmodal -->
-    <dialog id="recoveryDialog">
-      <h3>Återställningskod</h3>
-      <p class="hint">Spara koden säkert (offline). Med den kan du byta dagbokslösenord.</p>
-      <div class="field">
-        <input id="recoveryCode" type="text" readonly>
-        <button id="copyRecovery" class="ghost">Kopiera</button>
-      </div>
-      <div class="field">
-        <button id="regenRecovery">Generera ny</button>
-        <button id="closeRecovery" class="ghost">Stäng</button>
-      </div>
-      <p class="tiny">Ny kod ersätter den gamla.</p>
-    </dialog>
+  <div class="field">
+    <input id="rcInput" type="text" placeholder="Återställningskod (XXXX-XXXX-XXXX-XXXX)" inputmode="latin-prose" />
+  </div>
 
+  <div class="field">
+    <input id="newPass1" type="password" placeholder="Nytt dagbokslösen" />
+  </div>
+  <div class="field">
+    <input id="newPass2" type="password" placeholder="Upprepa nytt dagbokslösen" />
+  </div>
+
+  <div class="field">
+    <button id="applyReset">Spara nytt</button>
+    <button id="cancelReset" class="ghost">Avbryt</button>
+  </div>
+
+  <div class="status" id="resetStatus"></div>
+            </dialog>
     <!-- Byt/återställ lösenord -->
     <dialog id="resetDialog">
       <h3>Byt/Återställ dagbokslösen</h3>
