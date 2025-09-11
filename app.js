@@ -1,3 +1,14 @@
+// --- Mini diagnostics ---
+(function () {
+  window.addEventListener('error', (e) => {
+    const box = document.createElement('div');
+    box.style.cssText = 'position:fixed;left:6px;right:6px;bottom:6px;background:#4a2222;color:#ffe;padding:8px;border-radius:8px;z-index:99999;font:12px/1.3 ui-monospace,monospace';
+    box.textContent = 'JS-fel: ' + (e.message || e.error?.message || e.filename || 'okänt');
+    document.body.appendChild(box);
+  });
+  console.log('Retro Diary JS laddad');
+})();
+
 // ===== Helpers =====
 const $ = sel => document.querySelector(sel);
 const deU8 = buf => new TextDecoder().decode(buf);
@@ -13,7 +24,26 @@ function isValidWrap(w){ return !!(w && typeof w.saltHex==='string' && w.payload
 // ===== Supabase =====
 const SUPABASE_URL = window.__env?.SUPABASE_URL;
 const SUPABASE_ANON_KEY = window.__env?.SUPABASE_ANON_KEY;
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let supabase;
+try {
+  if (!window.supabase) throw new Error('supabase-js saknas (CDN?');
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) throw new Error('Saknar SUPABASE_URL/ANON_KEY');
+  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  console.log('Supabase init OK');
+} catch (err) {
+  console.warn('Supabase init problem:', err.message);
+  // fallback så resten av appen funkar lokalt
+  supabase = {
+    auth: {
+      async signUp(){ return { error: { message: 'Supabase ej initierat' } } },
+      async signInWithPassword(){ return { error: { message: 'Supabase ej initierat' } } },
+      async signOut(){},
+      getSession: async ()=>({ data:{ session:null } })
+    },
+    from(){ return { select: async()=>({ data:[], error:null }), upsert: async()=>({}), delete: async()=>({}) }; }
+  };
+}
 // ===== IndexedDB (entries/meta) =====
 const DB = (() => {
   const ENTRIES='entries', META='meta';
