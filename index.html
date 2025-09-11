@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Retro Diary</title>
+
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#2b1f1a">
+  <link rel="icon" href="icon-192.png" sizes="192x192">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="frame">
+    <div class="titlebar">
+      <div class="brand">
+        <div class="badge"></div>
+        <div>Retro Diary</div>
+      </div>
+      <div class="actions">
+        <button id="newEntryBtn">Ny sida</button>
+
+        <div class="menu">
+          <button id="menuBtn" class="ghost">⋮</button>
+          <div id="menuDrop" class="dropdown" hidden>
+            <button id="exportBtn">Exportera (krypterad .json)</button>
+            <label class="filebtn">
+              Importera (krypterad .json)
+              <input id="importFile" type="file" accept="application/json" hidden>
+            </label>
+            <hr>
+            <button id="enableBioBtn">Aktivera biometrisk upplåsning</button>
+            <button id="disableBioBtn">Stäng av biometrisk upplåsning</button>
+            <hr>
+            <button id="showRecoveryBtn">Visa/Skapa återställningskod</button>
+            <button id="resetPasswordBtn">Byt/Återställ lösenord</button>
+          </div>
+        </div>
+
+        <button id="lockBtn" class="ghost">Lås</button>
+      </div>
+    </div>
+
+    <div class="wrap">
+      <aside class="sidebar">
+        <div class="entry-list" id="list"></div>
+      </aside>
+      <main class="content">
+        <div class="date-line" id="dateLine"></div>
+        <textarea id="editor" placeholder="Skriv fritt. Allt krypteras på enheten."></textarea>
+        <div class="toolbar">
+          <button id="saveBtn">Spara</button>
+          <button id="deleteBtn" class="danger">Radera</button>
+        </div>
+        <div class="stamp" id="stamp"></div>
+      </main>
+    </div>
+
+    <!-- Låsskärm -->
+    <div class="lockscreen" id="lockscreen" hidden>
+      <div class="lockcard">
+        <h2>🔒 Lås upp dagboken</h2>
+        <p class="hint">Första gången du anger ett lösenord skapas din nyckel. Glömmer du det är innehållet oåtkomligt utan din återställningskod.</p>
+        <div class="field">
+          <input id="pass" type="password" autocomplete="current-password" placeholder="Lösenord">
+        </div>
+        <div class="field">
+          <button id="unlockBtn">Lås upp</button>
+          <button id="bioUnlockBtn" class="ghost">Biometrisk upplåsning</button>
+        </div>
+        <div class="status" id="status"></div>
+        <div class="tiny"><button id="useRecoveryBtn" class="linklike">Har återställningskod?</button></div>
+      </div>
+    </div>
+
+    <!-- Återställningsmodal -->
+    <dialog id="recoveryDialog">
+      <h3>Återställningskod</h3>
+      <p class="hint">Spara koden säkert (offline). Med den kan du byta lösenord om du glömmer det.</p>
+      <div class="field">
+        <input id="recoveryCode" type="text" readonly>
+        <button id="copyRecovery" class="ghost">Kopiera</button>
+      </div>
+      <div class="field">
+        <button id="regenRecovery">Generera ny</button>
+        <button id="closeRecovery" class="ghost">Stäng</button>
+      </div>
+      <p class="tiny">Obs! Ny återställningskod ersätter den gamla.</p>
+    </dialog>
+
+    <!-- Byt/återställ lösenord -->
+    <dialog id="resetDialog">
+      <h3>Byt/Återställ lösenord</h3>
+      <p class="hint">Ange din återställningskod för att låsa upp nyckeln och sätt nytt lösenord.</p>
+      <div class="field"><input id="rcInput" type="text" placeholder="Återställningskod (t.ex. XXXX-XXXX-XXXX-XXXX)"></div>
+      <div class="field"><input id="newPass1" type="password" placeholder="Nytt lösenord"></div>
+      <div class="field"><input id="newPass2" type="password" placeholder="Upprepa nytt lösenord"></div>
+      <div class="field">
+        <button id="applyReset">Spara nytt lösenord</button>
+        <button id="cancelReset" class="ghost">Avbryt</button>
+      </div>
+      <div class="status" id="resetStatus"></div>
+    </dialog>
+  </div>
+
+  <script src="app.js" defer></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
+    }
+  </script>
+</body>
+              </html>
