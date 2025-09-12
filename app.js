@@ -1,6 +1,6 @@
 // ================= Retro Diary - app.js (Pages/Mobile Safe) =================
 
-// ---------- Helpers ----------
+// ---------- Små helpers ----------
 const $ = s => document.querySelector(s);
 const byId = s => document.getElementById(s);
 const enc = new TextEncoder();
@@ -17,7 +17,24 @@ function hideLock(){ byId('lockscreen')?.classList.remove('lock'); document.body
 function buf2hex(buf){ return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join(''); }
 function hex2u8(hex){ const a=new Uint8Array(hex.length/2); for(let i=0;i<a.length;i++) a[i]=parseInt(hex.substr(i*2,2),16); return a; }
 
-// ---------- IndexedDB (med enkel API) ----------
+// Debugbanderoll + timeout
+function debugBanner(msg){
+  let el = document.getElementById('rd-debug');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'rd-debug';
+    el.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:99999;background:#300;color:#fdd;padding:.4rem .6rem;font:12px monospace';
+    document.body.appendChild(el);
+  }
+  el.textContent = 'DEBUG: ' + msg;
+}
+function withTimeout(promise, ms, label='op'){
+  let t; const timeout = new Promise((_,rej)=> t=setTimeout(()=>rej(new Error(label+' timeout')), ms));
+  return Promise.race([promise.finally(()=>clearTimeout(t)), timeout]);
+}
+function isHex(str){ return typeof str==='string' && /^[0-9a-fA-F]+$/.test(str); }
+
+// ---------- IndexedDB ----------
 let _db;
 function openDB(){
   if(_db) return Promise.resolve(_db);
@@ -88,13 +105,14 @@ async function encObj(key, obj){
 }
 // Viktigt för mobil/webviews: skicka ArrayBuffer till decrypt
 async function decObj(key, wrap){
+  if(!wrap || !wrap.iv || !wrap.ct) throw new Error('Ogiltig wrap');
   const ivU8 = hex2u8(wrap.iv);
   const ctU8 = hex2u8(wrap.ct);
   const pt   = await crypto.subtle.decrypt({name:'AES-GCM', iv: ivU8}, key, ctU8.buffer);
   return JSON.parse(dec.decode(pt));
 }
 
-// ---------- Wrap/Meta (med localStorage-fallback) ----------
+// ---------- Wrap/Meta (fallback) ----------
 async function setWrapMeta(obj){
   try { await dbPut('meta', { k:'wrap', salt: obj.salt, test: obj.test }); }
   catch { localStorage.setItem('wrap', JSON.stringify({ k:'wrap', salt: obj.salt, test: obj.test })); }
@@ -103,6 +121,17 @@ async function getWrapMeta(){
   try{ const m = await dbGet('meta','wrap'); if(m && m.salt && m.test) return m; }catch{}
   const raw = localStorage.getItem('wrap'); if(!raw) return null;
   try{ const m = JSON.parse(raw); return (m && m.salt && m.test) ? m : null; }catch{ return null; }
+}
+function normalizeWrap(meta){
+  if(!meta) return null;
+  if(meta.test && meta.test.cipher && !meta.test.ct){ meta.test.ct = meta.test.cipher; delete meta.test.cipher; }
+  return meta;
+}
+function validateWrap(meta){
+  if(!meta) return 'saknar wrap';
+  if(!meta.salt || !isHex(meta.salt) || meta.salt.length < 16) return 'felaktig salt';
+  if(!meta.test || !isHex(meta.test.iv||'') || !isHex(meta.test.ct||'')) return 'felaktigt test';
+  return null;
 }
 
 // ---------- State ----------
@@ -115,14 +144,14 @@ async function setInitialPass(passRaw){
     if(!pass){ setStatus('Skriv ett lösenord.'); return; }
     const salt = buf2hex(crypto.getRandomValues(new Uint8Array(16)));
     const key  = await deriveKey(pass, salt);
-    const test = await encObj(key, { ok:true, v:'book10' }); // liten “canary”
+    const test = await encObj(key, { ok:true, v:'book11' });
     await setWrapMeta({ salt, test });
     state.key = key;
-    setStatus('Lösen satt ✔');
-    hideLock();
-    await renderList();
+    setStatus('Lösen satt ✔'); hideLock(); await renderList();
+    debugBanner(`wrap sparad: salt=${salt.length} iv=${test.iv.length} ct=${test.ct.length}`);
   }catch(e){
     setStatus('Kunde inte sätta lösen. ' + (e?.message||e));
+    debugBanner('setInitialPass ERROR: '+(e?.message||e));
     console.error('setInitialPass', e);
   }
 }
@@ -131,21 +160,26 @@ async function unlock(passRaw){
   try{
     const pass = String(passRaw||'').trim();
     if(!pass){ setStatus('Skriv ditt lösenord.'); return; }
-    const meta = await getWrapMeta();
-    if(!meta){ setStatus('Välj “Sätt nytt lösen” först.'); return; }
 
-    setStatus('Kontrollerar…');
-    const key   = await deriveKey(pass, meta.salt);
-    const probe = await decObj(key, meta.test); // verifiera nyckeln
+    let meta = await getWrapMeta();
+    meta = normalizeWrap(meta);
+    const vErr = validateWrap(meta);
+    if(vErr){ setStatus('Välj “Sätt nytt lösen” först.'); debugBanner('wrap problem: '+vErr); return; }
 
-    if(!probe || probe.ok !== true){ throw new Error('Test-decrypt misslyckades'); }
+    setStatus('Kontrollerar…'); debugBanner('deriveKey start');
+    const key = await withTimeout(deriveKey(pass, meta.salt), 8000, 'deriveKey');
+
+    debugBanner('decObj test start');
+    const probe = await withTimeout(decObj(key, meta.test), 8000, 'decrypt');
+    if(!probe || probe.ok!==true) throw new Error('Test-decrypt misslyckades');
 
     state.key = key;
-    setStatus('');
-    hideLock();
-    await renderList();
+    setStatus(''); hideLock(); await renderList();
+    debugBanner('unlock OK');
   }catch(e){
-    setStatus('Upplåsning misslyckades: ' + (e?.message||e));
+    const msg = (e && e.message) ? e.message : String(e);
+    setStatus('Upplåsning misslyckades: ' + msg);
+    debugBanner('unlock ERROR: ' + msg);
     console.error('unlock', e);
   }
 }
@@ -181,7 +215,6 @@ async function renderList(){
   const all = (await dbAll('entries')).sort((a,b)=> (b.updated||b.id)-(a.updated||a.id));
   for(const e of all){
     const li=document.createElement('li');
-    // visa datum + titel (utan att dekryptera om vi är låsta)
     try{
       if(state.key){
         const peek = await decObj(state.key, e.wrap);
@@ -273,7 +306,9 @@ window.addEventListener('load', ()=>{
   byId('wipeLocalOnLock')?.addEventListener('click', wipeAll);
 
   // CRUD
-  byId('newBtn')   ?.addEventListener('click', ()=>{ state.currentId=null; byId('editor').innerHTML=''; byId('dateLine').textContent=''; byId('editor').focus(); });
+  byId('newBtn')   ?.addEventListener('click', ()=>{
+    state.currentId=null; byId('editor').innerHTML=''; byId('dateLine').textContent=''; byId('editor').focus();
+  });
   byId('saveBtn')  ?.addEventListener('click', saveEntry);
   byId('deleteBtn')?.addEventListener('click', delEntry);
   byId('lockBtn')  ?.addEventListener('click', lock);
