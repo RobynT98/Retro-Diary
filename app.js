@@ -259,98 +259,252 @@ function wireToolbar(){
     }
   };
 }
-
 /* ---------- Image/audio helpers ---------- */
-function fileToDataURL(file){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file); }); }
-function insertImage(src){
-  execCmd('insertImage', src);
-  // gör alla nya bilder resizable och markerbara
-  Array.from($('editor').querySelectorAll('img')).forEach(img=>img.classList.add('resizable'));
-  scheduleAutosave();
+
+// Skala bild → DataURL (JPEG) för mindre lagring
+function fileToScaledDataURL(file, maxW=1600, maxH=1600, quality=0.88){
+  return new Promise((resolve, reject)=>{
+    const fr = new FileReader();
+    fr.onerror = () => reject(fr.error);
+    fr.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        let { width:w, height:h } = img;
+        const scale = Math.min(1, maxW/w, maxH/h);
+        const cw = Math.round(w*scale), ch = Math.round(h*scale);
+
+        const cv = document.createElement('canvas');
+        cv.width = cw; cv.height = ch;
+        const ctx = cv.getContext('2d');
+        ctx.drawImage(img, 0, 0, cw, ch);
+        resolve(cv.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = () => reject(new Error('Ogiltig bild'));
+      img.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
 }
-function insertAudio(src){
-  const html=`<audio controls src="${src}"></audio>`;
+
+// Infoga figure+img+figcaption och markera bilden
+function insertImageFigure(src, captionText=''){
+  const fig = document.createElement('figure');
+  const im  = document.createElement('img');
+  im.src = src; im.alt = captionText || '';
+  im.classList.add('resizable', 'selected');
+  const cap = document.createElement('figcaption');
+  cap.textContent = captionText;
+
+  fig.appendChild(im); fig.appendChild(cap);
+
+  const sel = window.getSelection();
+  if (sel && sel.rangeCount) {
+    const range = sel.getRangeAt(0);
+    range.deleteContents();
+    range.insertNode(fig);
+    range.setStartAfter(fig); range.setEndAfter(fig);
+    sel.removeAllRanges(); sel.addRange(range);
+  } else {
+    $('editor').appendChild(fig);
+  }
+
+  if(state.selectedImg) state.selectedImg.classList.remove('selected');
+  state.selectedImg = im;
+  scheduleAutosave?.();
+}
+
+// Öppna filväljare → skala → infoga
+async function pickAndInsertImage(){
+  const input = document.getElementById('imgFile');
+  if(!input) return alert('imgFile saknas i HTML');
+
+  input.click();
+  input.onchange = async (e)=>{
+    const file = e.target.files && e.target.files[0];
+    input.value = ''; // tillåt samma fil igen
+    if(!file) return;
+    try{
+      const dataUrl = await fileToScaledDataURL(file, 1600, 1600, 0.88);
+      insertImageFigure(dataUrl, '');
+      setTimeout(()=>scheduleAutosave?.(), 300);
+    }catch(err){
+      console.error(err);
+      alert('Kunde inte läsa bilden: ' + (err?.message || err));
+    }
+  };
+}
+
+// Ljud: använd ObjectURL (snålar minne)
+function insertAudioObjectURL(file){
+  const url = URL.createObjectURL(file);
+  const html = `<audio controls src="${url}"></audio>`;
   document.execCommand('insertHTML', false, html);
-  scheduleAutosave();
+  scheduleAutosave?.();
 }
+function pickAndInsertAudio(){
+  const input = document.getElementById('audioFile');
+  if(!input) return alert('audioFile saknas i HTML');
+
+  input.click();
+  input.onchange = (e)=>{
+    const file = e.target.files && e.target.files[0];
+    input.value = '';
+    if(!file) return;
+    insertAudioObjectURL(file);
+    setTimeout(()=>scheduleAutosave?.(), 300);
+  };
+}
+
+// Markering/resize på klick i editorn
 $('editor')?.addEventListener('click', (e)=>{
   if(state.selectedImg) state.selectedImg.classList.remove('selected');
   state.selectedImg = (e.target && e.target.tagName==='IMG') ? e.target : null;
   if(state.selectedImg){ state.selectedImg.classList.add('selected'); }
 });
 function resizeSelectedImg(delta){
-  const img=state.selectedImg; if(!img) return alert('Markera en bild först.');
-  const w = img.style.width ? parseInt(img.style.width) : Math.round((img.width / img.naturalWidth)*100);
-  let n = Math.max(10, Math.min(100, (isNaN(w)?100:w) + delta));
-  img.style.width = n + '%';
-  scheduleAutosave();
+  const img = state.selectedImg; 
+  if(!img) return alert('Markera en bild först.');
+  const cur = parseInt(img.style.width || '100', 10);
+  const next = Math.max(10, Math.min(200, (isNaN(cur)?100:cur) + delta));
+  img.style.width = next + '%';
+  scheduleAutosave?.();
 }
 
 /* ---------- Galleri modal ---------- */
 function openGallery(){
-  const modal=$('galleryModal'); modal.classList.add('show'); modal.setAttribute('aria-hidden','false');
+  const modal = $('galleryModal');
+  if(!modal) return;
+  modal.classList.add('show');
+  modal.setAttribute('aria-hidden','false');
   renderGallery();
 }
-$('closeGallery').onclick=()=>{ const m=$('galleryModal'); m.classList.remove('show'); m.setAttribute('aria-hidden','true'); };
+$('closeGallery')?.addEventListener('click', ()=>{
+  const m=$('galleryModal'); if(!m) return;
+  m.classList.remove('show');
+  m.setAttribute('aria-hidden','true');
+});
 
 async function renderGallery(){
-  const grid=$('galleryGrid'); grid.innerHTML='Laddar…';
-  const items=await listAssets(); grid.innerHTML='';
-  if(!items.length){ grid.innerHTML='<p class="meta">Inga uppladdade filer än.</p>'; return; }
+  const grid = $('galleryGrid'); if(!grid) return;
+  grid.innerHTML = 'Laddar…';
+  const items = await listAssets(); // förutsätter att du har assets-lagring
+  grid.innerHTML = '';
+  if(!items.length){
+    grid.innerHTML = '<p class="meta">Inga uppladdade filer än.</p>';
+    return;
+  }
   for(const a of items){
-    const d=document.createElement('div'); d.className='thumb';
+    const d = document.createElement('div'); 
+    d.className = 'thumb';
+
     if(a.type==='image'){
-      const img=document.createElement('img'); img.src=a.dataUrl; d.appendChild(img);
+      const img = document.createElement('img'); 
+      img.src = a.dataUrl; 
+      d.appendChild(img);
     }else{
-      const place=document.createElement('div'); place.style.height='100px'; place.style.display='grid'; place.style.placeItems='center'; place.textContent='🎵';
+      const place = document.createElement('div'); 
+      place.style.height='100px';
+      place.style.display='grid';
+      place.style.placeItems='center';
+      place.textContent='🎵';
       d.appendChild(place);
     }
-    const meta=document.createElement('div'); meta.className='meta'; meta.textContent=a.name||a.type;
-    const row=document.createElement('div'); row.style.display='flex'; row.style.gap='6px';
-    const ins=document.createElement('button'); ins.textContent='Infoga'; ins.onclick=()=>{
-      if(a.type==='image') insertImage(a.dataUrl); else insertAudio(a.dataUrl);
+
+    const meta = document.createElement('div'); 
+    meta.className='meta'; 
+    meta.textContent = a.name || a.type;
+
+    const row = document.createElement('div'); 
+    row.style.display='flex'; 
+    row.style.gap='6px';
+
+    const ins = document.createElement('button'); 
+    ins.textContent='Infoga'; 
+    ins.onclick = ()=>{
+      if(a.type==='image') insertImageFigure(a.dataUrl);
+      else document.execCommand('insertHTML', false, `<audio controls src="${a.dataUrl}"></audio>`);
+      scheduleAutosave?.();
     };
-    const del=document.createElement('button'); del.textContent='Radera'; del.onclick=async()=>{ await dbDel('assets', a.id); renderGallery(); };
-    row.appendChild(ins); row.appendChild(del);
-    d.appendChild(meta); d.appendChild(row);
+
+    const del = document.createElement('button'); 
+    del.textContent='Radera'; 
+    del.onclick = async ()=>{ await dbDel('assets', a.id); renderGallery(); };
+
+    row.appendChild(ins); 
+    row.appendChild(del);
+
+    d.appendChild(meta); 
+    d.appendChild(row);
     grid.appendChild(d);
   }
 }
 
 /* ---------- Bind och init ---------- */
 document.addEventListener('DOMContentLoaded', async ()=>{
-  await idbReady();
-  // vänta en tick på fonts_db.json
-  setTimeout(populateFonts, 100);
+  await idbReady?.();                 // öppna DB (eller fallback)
+  setTimeout(populateFonts?.bind(window), 100); // vänta in fonts_db
 
-  // editor input -> autosave
-  $('editor').addEventListener('input', scheduleAutosave);
-  $('titleInput').addEventListener('input', scheduleAutosave);
+  // Editor input → autosave
+  $('editor')?.addEventListener('input', scheduleAutosave);
+  $('titleInput')?.addEventListener('input', scheduleAutosave);
 
-  wireToolbar();
+  // Toolbar
+  wireToolbar?.();
 
   // CRUD
-  $('newBtn').onclick =()=>{ state.currentId=null; $('editor').innerHTML=''; applyTitle(''); $('dateLine').textContent=''; $('editor').focus(); };
-  $('saveBtn').onclick =saveEntry;
-  $('deleteBtn').onclick=delEntry;
-  $('lockBtn').onclick  =lock;
+  $('newBtn')   ?.addEventListener('click', ()=>{
+    state.currentId=null; 
+    $('editor').innerHTML=''; 
+    applyTitle?.(''); 
+    $('dateLine').textContent='';
+    $('editor').focus();
+  });
+  $('saveBtn')  ?.addEventListener('click', saveEntry);
+  $('deleteBtn')?.addEventListener('click', delEntry);
+
+  // Lås / upplås
+  $('lockBtn')      ?.addEventListener('click', lock);
+  $('unlockBtn')    ?.addEventListener('click', ()=>unlock($('passInput')?.value||''));
+  $('setPassBtn')   ?.addEventListener('click', ()=>setInitialPass($('passInput')?.value||''));
+  $('wipeLocalOnLock')?.addEventListener('click', wipeAll);
 
   // Meny
-  $('menuToggle').onclick=toggleMenu;
-  $('exportBtn').onclick =exportAll;
-  $('importBtn').onclick =()=>$('importInput').click();
-  $('importInput').addEventListener('change', e=>{ if(e.target.files?.[0]) importAll(e.target.files[0]); });
-  $('wipeBtn').onclick   =wipeAll;
-  $('memorialNote').addEventListener('input', ()=>localStorage.setItem('memorialNote',$('memorialNote').value));
-  $('memorialNote').value=localStorage.getItem('memorialNote')||'';
+  $('menuToggle')?.addEventListener('click', toggleMenu);
+  $('exportBtn') ?.addEventListener('click', exportAll);
+  $('importBtn') ?.addEventListener('click', ()=>$('importInput')?.click());
+  $('importInput')?.addEventListener('change', e=>{
+    const f=e.target.files?.[0]; if(f) importAll(f);
+  });
+  $('wipeBtn')   ?.addEventListener('click', wipeAll);
 
-  // Lås
-  const p=$('passInput');
-  $('setPassBtn').onclick   =()=>setInitialPass(p.value);
-  $('unlockBtn').onclick    =()=>unlock(p.value);
-  $('wipeLocalOnLock').onclick=wipeAll;
+  // Bild/ljud
+  $('btnImage')      ?.addEventListener('click', pickAndInsertImage);
+  $('btnAudio')      ?.addEventListener('click', pickAndInsertAudio);
+  $('btnImgSmaller') ?.addEventListener('click', ()=>resizeSelectedImg(-10));
+  $('btnImgBigger')  ?.addEventListener('click', ()=>resizeSelectedImg(10));
 
-  $('forceUpdateBtn').onclick=forceUpdate;
+  // Galleri
+  $('openGalleryBtn')?.addEventListener('click', openGallery);
 
-  showLock(); setTimeout(()=>p?.focus(),60);
+  // Force update (fungerar även låst)
+  $('forceUpdateBtn')?.addEventListener('click', async ()=>{
+    try{
+      if('serviceWorker' in navigator){
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r=>r.unregister()));
+      }
+      if('caches' in window){
+        const names = await caches.keys();
+        await Promise.all(names.map(n=>caches.delete(n)));
+      }
+      alert('Appen uppdateras – laddar om…');
+      location.reload(true);
+    }catch(e){ alert('Kunde inte uppdatera: ' + (e?.message||e)); }
+  });
+
+  // Start i låst läge
+  showLock?.();
+  setTimeout(()=>$('passInput')?.focus(), 50);
+  console.log('✅ app.js – helpers & wiring klara');
 });
+```0
