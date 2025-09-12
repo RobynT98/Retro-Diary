@@ -180,79 +180,7 @@ function setCurrentMeta({title,created,updated}){
   stamp.textContent=`${created?'Skapad: '+fmtDate(new Date(created)):''}${updated?' · Senast sparad: '+fmtDate(new Date(updated)):''}`;
 }
 
-/* ========================== DEK & recovery wraps ========================== */
-async function ensureDEKInitialized(pass){
-  let wrap = await DB.getMeta('wrap_pass');
-  if (!isValidWrap(wrap) && currentUser){
-    const {data} = await supabase.from('meta').select('*').eq('user_id', currentUser.id).maybeSingle();
-    if(data && data.wrap_pass){ await DB.putMeta('wrap_pass', data.wrap_pass); wrap = data.wrap_pass; }
-    if(data && data.wrap_recovery){ await DB.putMeta('wrap_recovery', data.wrap_recovery); }
-  }
-  if (isValidWrap(wrap)) return;
 
-  const dek = randBytes(32);
-
-  // wrap_pass från användarens dagbokslösen
-  const saltP = randBytes(16);
-  const kP = await CryptoBox.pbkdf2(pass, saltP);
-  const encP = await CryptoBox.aesEncryptRaw(kP, dek);
-  await DB.putMeta('wrap_pass', { saltHex: toHex(saltP), payload: encP });
-
-  // recovery: pretty visas, normaliserad används i härledningen
-  const rcPretty = makeRecoveryCode();
-  const rcNorm   = normalizeRC(rcPretty);
-  const saltR = randBytes(16);
-  const kR = await CryptoBox.pbkdf2(rcNorm, saltR);
-  const encR = await CryptoBox.aesEncryptRaw(kR, dek);
-  await DB.putMeta('wrap_recovery', { saltHex: toHex(saltR), payload: encR });
-  await DB.putMeta('recovery_code', rcPretty);
-
-  if(currentUser){
-    await supabase.from('meta').upsert({
-      user_id: currentUser.id,
-      wrap_pass:{saltHex:toHex(saltP),payload:encP},
-      wrap_recovery:{saltHex:toHex(saltR),payload:encR}
-    });
-  }
-  showRecovery(rcPretty); // visa koden direkt första gången
-}
-
-function makeRecoveryCode(){
-  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // utan I,O,1,0
-  let s=''; for(let i=0;i<16;i++) s += alphabet[Math.floor(Math.random()*alphabet.length)];
-  return `${s.slice(0,4)}-${s.slice(4,8)}-${s.slice(8,12)}-${s.slice(12,16)}`;
-}
-
-async function loadDEK_withPass(pass){
-  const wrap=await DB.getMeta('wrap_pass');
-  if(!isValidWrap(wrap)) throw new Error('Skadad nyckelmetadata (wrap_pass)');
-  const k=await CryptoBox.pbkdf2(pass, fromHex(wrap.saltHex));
-  return CryptoBox.aesDecryptRaw(k, wrap.payload);
-}
-
-async function rewrapPass(newPass, dek){
-  const salt=randBytes(16);
-  const k=await CryptoBox.pbkdf2(newPass,salt);
-  const enc=await CryptoBox.aesEncryptRaw(k,dek);
-  await DB.putMeta('wrap_pass',{saltHex:toHex(salt),payload:enc});
-  if(currentUser){
-    await supabase.from('meta').upsert({ user_id: currentUser.id, wrap_pass:{saltHex:toHex(salt),payload:enc} });
-  }
-}
-
-async function regenRecoveryWrap(dek){
-  const rcPretty = makeRecoveryCode();
-  const rcNorm   = normalizeRC(rcPretty);
-  const salt=randBytes(16);
-  const k=await CryptoBox.pbkdf2(rcNorm,salt);
-  const enc=await CryptoBox.aesEncryptRaw(k,dek);
-  await DB.putMeta('wrap_recovery',{saltHex:toHex(salt),payload:enc});
-  await DB.putMeta('recovery_code', rcPretty);
-  if(currentUser){
-    await supabase.from('meta').upsert({ user_id: currentUser.id, wrap_recovery:{saltHex:toHex(salt),payload:enc} });
-  }
-  return rcPretty;
-}
 /* ========================== Entry crypto ========================== */
 async function encryptWithDEK(plainU8){
   const key = await crypto.subtle.importKey('raw', state.dek, 'AES-GCM', false, ['encrypt']);
@@ -266,7 +194,200 @@ async function decryptWithDEK(payload){
   const data = fromHex(payload.cipher);
   const buf = await crypto.subtle.decrypt({ name:'AES-GCM', iv }, key, data);
   return new Uint8Array(buf);
+}/* ========================== DEK & recovery wraps ========================== */
+async function ensureDEKInitialized(pass){
+  // 1) Försök läsa lokalt; hämta från Supabase om inloggad
+  let wrap = await DB.getMeta('wrap_pass');
+  if (!isValidWrap(wrap) && currentUser){
+    const { data } = await supabase
+      .from('meta').select('*')
+      .eq('user_id', currentUser.id)
+      .maybeSingle();
+
+    if (data && data.wrap_pass){
+      await DB.putMeta('wrap_pass', data.wrap_pass);
+      wrap = data.wrap_pass;
+    }
+    if (data && data.wrap_recovery){
+      await DB.putMeta('wrap_recovery', data.wrap_recovery);
+    }
+  }
+
+  // Redan init? klart.
+  if (isValidWrap(wrap)) return;
+
+  // 2) Skapa ny DEK och wrappa både med lösenord och recovery
+  const dek = randBytes(32);
+
+  // wrap_pass (dagbokslösen)
+  const saltP = randBytes(16);
+  const kP    = await CryptoBox.pbkdf2(pass, saltP);
+  const encP  = await CryptoBox.aesEncryptRaw(kP, dek);
+  await DB.putMeta('wrap_pass', { saltHex: toHex(saltP), payload: encP });
+
+  // wrap_recovery (återställningskod)
+  const rcPretty = makeRecoveryCode();       // visas för användaren
+  const rcNorm   = normalizeRC(rcPretty);    // används för härledning
+  const saltR = randBytes(16);
+  const kR    = await CryptoBox.pbkdf2(rcNorm, saltR);
+  const encR  = await CryptoBox.aesEncryptRaw(kR, dek);
+  await DB.putMeta('wrap_recovery', { saltHex: toHex(saltR), payload: encR });
+  await DB.putMeta('recovery_code', rcPretty);
+
+  if(currentUser){
+    await supabase.from('meta').upsert({
+      user_id: currentUser.id,
+      wrap_pass:     { saltHex: toHex(saltP), payload: encP },
+      wrap_recovery: { saltHex: toHex(saltR), payload: encR }
+    });
+  }
+
+  // 3) Visa återställningskod EN gång per enhet
+  if (!localStorage.getItem('rd_recovery_shown')) {
+    showRecovery(rcPretty);
+    localStorage.setItem('rd_recovery_shown', '1');
+  }
 }
+
+function makeRecoveryCode(){
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // utan I,O,1,0
+  let s=''; for(let i=0;i<16;i++) s += alphabet[Math.floor(Math.random()*alphabet.length)];
+  return `${s.slice(0,4)}-${s.slice(4,8)}-${s.slice(8,12)}-${s.slice(12,16)}`;
+}
+
+async function loadDEK_withPass(pass){
+  const wrap = await DB.getMeta('wrap_pass');
+  if(!isValidWrap(wrap)) throw new Error('Skadad nyckelmetadata (wrap_pass)');
+  const k = await CryptoBox.pbkdf2(pass, fromHex(wrap.saltHex));
+  return CryptoBox.aesDecryptRaw(k, wrap.payload);
+}
+
+async function rewrapPass(newPass, dek){
+  const salt = randBytes(16);
+  const k = await CryptoBox.pbkdf2(newPass, salt);
+  const enc = await CryptoBox.aesEncryptRaw(k, dek);
+  await DB.putMeta('wrap_pass', { saltHex: toHex(salt), payload: enc });
+  if(currentUser){
+    await supabase.from('meta').upsert({
+      user_id: currentUser.id,
+      wrap_pass: { saltHex: toHex(salt), payload: enc }
+    });
+  }
+}
+
+async function regenRecoveryWrap(dek){
+  const rcPretty = makeRecoveryCode();
+  const rcNorm   = normalizeRC(rcPretty);
+  const salt = randBytes(16);
+  const k = await CryptoBox.pbkdf2(rcNorm, salt);
+  const enc = await CryptoBox.aesEncryptRaw(k, dek);
+  await DB.putMeta('wrap_recovery', { saltHex: toHex(salt), payload: enc });
+  await DB.putMeta('recovery_code', rcPretty);
+  if(currentUser){
+    await supabase.from('meta').upsert({
+      user_id: currentUser.id,
+      wrap_recovery: { saltHex: toHex(salt), payload: enc }
+    });
+  }
+  return rcPretty;
+}
+/* ========================== DEK & recovery wraps ========================== */
+async function ensureDEKInitialized(pass){
+  // 1) Försök läsa lokalt; hämta från Supabase om inloggad
+  let wrap = await DB.getMeta('wrap_pass');
+  if (!isValidWrap(wrap) && currentUser){
+    const { data } = await supabase
+      .from('meta').select('*')
+      .eq('user_id', currentUser.id)
+      .maybeSingle();
+
+    if (data && data.wrap_pass){
+      await DB.putMeta('wrap_pass', data.wrap_pass);
+      wrap = data.wrap_pass;
+    }
+    if (data && data.wrap_recovery){
+      await DB.putMeta('wrap_recovery', data.wrap_recovery);
+    }
+  }
+
+  // Redan init? klart.
+  if (isValidWrap(wrap)) return;
+
+  // 2) Skapa ny DEK och wrappa både med lösenord och recovery
+  const dek = randBytes(32);
+
+  // wrap_pass (dagbokslösen)
+  const saltP = randBytes(16);
+  const kP    = await CryptoBox.pbkdf2(pass, saltP);
+  const encP  = await CryptoBox.aesEncryptRaw(kP, dek);
+  await DB.putMeta('wrap_pass', { saltHex: toHex(saltP), payload: encP });
+
+  // wrap_recovery (återställningskod)
+  const rcPretty = makeRecoveryCode();       // visas för användaren
+  const rcNorm   = normalizeRC(rcPretty);    // används för härledning
+  const saltR = randBytes(16);
+  const kR    = await CryptoBox.pbkdf2(rcNorm, saltR);
+  const encR  = await CryptoBox.aesEncryptRaw(kR, dek);
+  await DB.putMeta('wrap_recovery', { saltHex: toHex(saltR), payload: encR });
+  await DB.putMeta('recovery_code', rcPretty);
+
+  if(currentUser){
+    await supabase.from('meta').upsert({
+      user_id: currentUser.id,
+      wrap_pass:     { saltHex: toHex(saltP), payload: encP },
+      wrap_recovery: { saltHex: toHex(saltR), payload: encR }
+    });
+  }
+
+  // 3) Visa återställningskod EN gång per enhet
+  if (!localStorage.getItem('rd_recovery_shown')) {
+    showRecovery(rcPretty);
+    localStorage.setItem('rd_recovery_shown', '1');
+  }
+}
+
+function makeRecoveryCode(){
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // utan I,O,1,0
+  let s=''; for(let i=0;i<16;i++) s += alphabet[Math.floor(Math.random()*alphabet.length)];
+  return `${s.slice(0,4)}-${s.slice(4,8)}-${s.slice(8,12)}-${s.slice(12,16)}`;
+}
+
+async function loadDEK_withPass(pass){
+  const wrap = await DB.getMeta('wrap_pass');
+  if(!isValidWrap(wrap)) throw new Error('Skadad nyckelmetadata (wrap_pass)');
+  const k = await CryptoBox.pbkdf2(pass, fromHex(wrap.saltHex));
+  return CryptoBox.aesDecryptRaw(k, wrap.payload);
+}
+
+async function rewrapPass(newPass, dek){
+  const salt = randBytes(16);
+  const k = await CryptoBox.pbkdf2(newPass, salt);
+  const enc = await CryptoBox.aesEncryptRaw(k, dek);
+  await DB.putMeta('wrap_pass', { saltHex: toHex(salt), payload: enc });
+  if(currentUser){
+    await supabase.from('meta').upsert({
+      user_id: currentUser.id,
+      wrap_pass: { saltHex: toHex(salt), payload: enc }
+    });
+  }
+}
+
+async function regenRecoveryWrap(dek){
+  const rcPretty = makeRecoveryCode();
+  const rcNorm   = normalizeRC(rcPretty);
+  const salt = randBytes(16);
+  const k = await CryptoBox.pbkdf2(rcNorm, salt);
+  const enc = await CryptoBox.aesEncryptRaw(k, dek);
+  await DB.putMeta('wrap_recovery', { saltHex: toHex(salt), payload: enc });
+  await DB.putMeta('recovery_code', rcPretty);
+  if(currentUser){
+    await supabase.from('meta').upsert({
+      user_id: currentUser.id,
+      wrap_recovery: { saltHex: toHex(salt), payload: enc }
+    });
+  }
+  return rcPretty;
+    }
 
 /* ========================== CRUD & sync ========================== */
 async function openEntry(id){
