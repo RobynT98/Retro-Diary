@@ -76,7 +76,12 @@
       <p id="status"></p>
     </div>
   </div>
-
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/sw.js")
+    .catch(err => console.error("SW fel:", err));
+}
+</script>
   <script src="app.js?v=book1"></script>
 </body>
                                             </html>
