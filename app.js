@@ -1,138 +1,110 @@
-// ============================================================
-// Retro Diary - “book13” – säker lokal dagbok med Word-verktyg
-// ============================================================
+// ================= Helpers =================
+const $ = s => document.querySelector(s);
 
-/* ---------- Helpers ---------- */
-const $ = sel => document.querySelector(sel);
-const byId = id => document.getElementById(id);
-
-const enc = new TextEncoder();
-const dec = new TextDecoder();
-
-function buf2hex(buf){
-  return Array.prototype.map.call(new Uint8Array(buf), x=>x.toString(16).padStart(2,"0")).join('');
+// tiny debug banner (bottom)
+function debug(msg){ 
+  const id='__dbg'; let n=document.getElementById(id);
+  if(!n){ n=document.createElement('div'); n.id=id; n.style.cssText='position:fixed;left:0;right:0;bottom:0;background:#400;color:#fff;padding:3px 6px;font:12px monospace;z-index:99999'; document.body.appendChild(n); }
+  n.textContent = 'DEBUG: ' + msg;
 }
-function hex2buf(hex){
-  const bytes = new Uint8Array(hex.length/2);
-  for(let i=0;i<bytes.length;i++) bytes[i]=parseInt(hex.substr(i*2,2),16);
-  return bytes.buffer;
-}
-const sleep = ms => new Promise(r=>setTimeout(r,ms));
 
-/* ---------- IndexedDB (fail-safe till localStorage) ---------- */
+// Hex/buffer
+function buf2hex(buf){ return [...new Uint8Array(buf)].map(x=>x.toString(16).padStart(2,'0')).join(''); }
+function hex2buf(hex){ const b=new Uint8Array(hex.length/2); for(let i=0;i<b.length;i++) b[i]=parseInt(hex.substr(i*2,2),16); return b.buffer; }
+
+// IndexedDB (entries + meta)
 let _db;
-function idb(){
-  if(_db) return Promise.resolve(_db);
-  return new Promise((resolve,reject)=>{
-    const req = indexedDB.open("retro-diary",1);
-    req.onupgradeneeded = e=>{
-      const d = e.target.result;
-      d.createObjectStore("entries",{keyPath:"id"});
-      d.createObjectStore("meta",{keyPath:"k"});
-    };
-    req.onsuccess = e=>{ _db = e.target.result; resolve(_db); };
-    req.onerror = e=>reject(e);
-  });
-}
-async function dbPut(store,obj){
-  try{
-    const d = await idb();
-    await new Promise((res,rej)=>{
-      const tx=d.transaction(store,"readwrite");
-      tx.objectStore(store).put(obj);
-      tx.oncomplete=()=>res(); tx.onerror=e=>rej(e);
-    });
-  }catch{ /* no-op */ }
-}
-async function dbGet(store,key){
-  try{
-    const d=await idb();
-    return await new Promise((res,rej)=>{
-      const tx=d.transaction(store);
-      const rq=tx.objectStore(store).get(key);
-      rq.onsuccess=()=>res(rq.result);
-      rq.onerror=e=>rej(e);
-    });
-  }catch{ return null; }
-}
-async function dbAll(store){
-  try{
-    const d=await idb();
-    return await new Promise((res,rej)=>{
-      const tx=d.transaction(store);
-      const rq=tx.objectStore(store).getAll();
-      rq.onsuccess=()=>res(rq.result||[]);
-      rq.onerror=e=>rej(e);
-    });
-  }catch{ return []; }
-}
-async function dbDel(store,key){
-  try{
-    const d=await idb();
-    await new Promise((res,rej)=>{
-      const tx=d.transaction(store,"readwrite");
-      tx.objectStore(store).delete(key);
-      tx.oncomplete=()=>res(); tx.onerror=e=>rej(e);
-    });
-  }catch{}
-}
-async function dbClearAll(){
-  try{
-    const d=await idb();
-    await new Promise((res,rej)=>{
-      const tx=d.transaction(["entries","meta"],"readwrite");
-      tx.objectStore("entries").clear();
-      tx.objectStore("meta").clear();
-      tx.oncomplete=()=>res(); tx.onerror=e=>rej(e);
-    });
-  }catch{}
-}
+function idb(){ return new Promise((res,rej)=>{
+  if(_db) return res(_db);
+  const r = indexedDB.open('retro-diary', 1);
+  r.onupgradeneeded = e=>{
+    const d = e.target.result;
+    if(!d.objectStoreNames.contains('entries')) d.createObjectStore('entries',{keyPath:'id'});
+    if(!d.objectStoreNames.contains('meta'))    d.createObjectStore('meta',{keyPath:'k'});
+  };
+  r.onsuccess = e=>{ _db=e.target.result; res(_db); };
+  r.onerror   = e=>rej(e);
+});}
+async function dbPut(store,obj){ const d=await idb(); return new Promise((res,rej)=>{ const tx=d.transaction(store,'readwrite'); tx.objectStore(store).put(obj); tx.oncomplete=res; tx.onerror=rej; });}
+async function dbGet(store,key){ const d=await idb(); return new Promise((res,rej)=>{ const tx=d.transaction(store); const q=tx.objectStore(store).get(key); q.onsuccess=()=>res(q.result||null); q.onerror=rej; });}
+async function dbAll(store){ const d=await idb(); return new Promise((res,rej)=>{ const tx=d.transaction(store); const q=tx.objectStore(store).getAll(); q.onsuccess=()=>res(q.result||[]); q.onerror=rej; });}
+async function dbDel(store,key){ const d=await idb(); return new Promise((res,rej)=>{ const tx=d.transaction(store,'readwrite'); tx.objectStore(store).delete(key); tx.oncomplete=res; tx.onerror=rej; });}
+async function dbClear(){ const d=await idb(); return new Promise((res,rej)=>{ const tx=d.transaction(['entries','meta'],'readwrite'); tx.objectStore('entries').clear(); tx.objectStore('meta').clear(); tx.oncomplete=res; tx.onerror=rej; });}
 
-/* ---------- Crypto ---------- */
+// ================= Crypto (AES-GCM via PBKDF2) =================
 async function deriveKey(pass, saltHex){
-  const keyMat=await crypto.subtle.importKey("raw", enc.encode(pass), {name:"PBKDF2"}, false, ["deriveKey"]);
+  const enc=new TextEncoder();
+  const keyMat=await crypto.subtle.importKey('raw', enc.encode(pass), {name:'PBKDF2'}, false, ['deriveKey']);
   return crypto.subtle.deriveKey(
-    {name:"PBKDF2", salt:hex2buf(saltHex), iterations:200000, hash:"SHA-256"},
-    keyMat,
-    {name:"AES-GCM", length:256},
-    false,
-    ["encrypt","decrypt"]
+    {name:'PBKDF2', salt: hex2buf(saltHex), iterations:200000, hash:'SHA-256'},
+    keyMat, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']
   );
 }
 async function encObj(key,obj){
   const iv=crypto.getRandomValues(new Uint8Array(12));
-  const ct=await crypto.subtle.encrypt({name:"AES-GCM", iv}, key, enc.encode(JSON.stringify(obj)));
-  return { iv:buf2hex(iv), ct:buf2hex(ct) };
+  const data=new TextEncoder().encode(JSON.stringify(obj));
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,data);
+  return {iv:buf2hex(iv), ct:buf2hex(ct)};
 }
 async function decObj(key,wrap){
-  const pt=await crypto.subtle.decrypt({name:"AES-GCM", iv:hex2buf(wrap.iv)}, key, hex2buf(wrap.ct));
-  return JSON.parse(dec.decode(pt));
+  const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:hex2buf(wrap.iv)}, key, hex2buf(wrap.ct));
+  return JSON.parse(new TextDecoder().decode(pt));
 }
 
-/* ---------- Wrap-meta (fail-safe i localStorage) ---------- */
-async function setWrapMeta(w){
-  await dbPut('meta', {k:'wrap', salt:w.salt, test:w.test});
-  localStorage.setItem('wrap', JSON.stringify(w));
+// ================= Fonts DB (laddas dynamiskt) =================
+/** Lätt att utöka – lägg till fler familjer här. */
+const FONT_DB = [
+  {label:'Special Elite (skrivmaskin)', value:"'Special Elite', cursive", google:'Special+Elite'},
+  {label:'IM Fell English',           value:"'IM Fell English', serif",   google:'IM+Fell+English'},
+  {label:'Dancing Script',            value:"'Dancing Script', cursive",  google:'Dancing+Script'},
+  {label:'Merriweather',              value:"'Merriweather', serif",      google:'Merriweather'},
+  {label:'Roboto Slab',               value:"'Roboto Slab', serif",       google:'Roboto+Slab'},
+  {label:'Cinzel',                    value:"'Cinzel', serif",            google:'Cinzel'},
+  {label:'Cormorant Garamond',        value:"'Cormorant Garamond', serif",google:'Cormorant+Garamond'},
+  {label:'Libre Baskerville',         value:"'Libre Baskerville', serif", google:'Libre+Baskerville'},
+  {label:'Playfair Display',          value:"'Playfair Display', serif",  google:'Playfair+Display'},
+  {label:'Lora',                      value:"'Lora', serif",              google:'Lora'},
+  {label:'Crimson Pro',               value:"'Crimson Pro', serif",       google:'Crimson+Pro'},
+  {label:'Spectral',                  value:"'Spectral', serif",          google:'Spectral'},
+  {label:'PT Serif',                  value:"'PT Serif', serif",          google:'PT+Serif'},
+  {label:'Noto Serif',                value:"'Noto Serif', serif",        google:'Noto+Serif'},
+  {label:'Alegreya',                  value:"'Alegreya', serif",          google:'Alegreya'},
+  {label:'EB Garamond',               value:"'EB Garamond', serif",       google:'EB+Garamond'}
+];
+
+function populateFontSelect(){
+  const sel = $('#fontSelect');
+  sel.innerHTML = FONT_DB.map(f=>`<option value="${f.value}" data-google="${f.google}">${f.label}</option>`).join('');
+  const saved = localStorage.getItem('rd_font');
+  if(saved){ sel.value = saved; applyFont(saved); }
 }
+
+function ensureGoogleFont(googleName){
+  const id = 'gfont_'+googleName;
+  if(document.getElementById(id)) return;
+  const link = document.createElement('link');
+  link.id = id;
+  link.rel = 'stylesheet';
+  link.href = `https://fonts.googleapis.com/css2?family=${googleName}&display=swap`;
+  document.head.appendChild(link);
+}
+function applyFont(value){
+  $('#editor').style.fontFamily = value;
+  $('#titleInput').style.fontFamily = value;
+}
+
+// ================= State =================
+const state = { key:null, currentId:null };
+const passEl = ()=>$('#passInput');
+
+// ================= Lock / Unlock =================
+async function setWrapMeta(w){ await dbPut('meta',{k:'wrap',salt:w.salt,test:w.test}); localStorage.setItem('wrap',JSON.stringify(w)); }
 async function getWrapMeta(){
-  const m = await dbGet('meta','wrap');
-  if(m) return m;
-  const raw = localStorage.getItem('wrap');
-  return raw ? JSON.parse(raw) : null;
-}
-async function clearWrapMeta(){
-  await dbClearAll();
-  localStorage.removeItem('wrap');
+  const m = await dbGet('meta','wrap'); if(m) return m;
+  const raw = localStorage.getItem('wrap'); return raw?JSON.parse(raw):null;
 }
 
-/* ---------- State ---------- */
-const state={ key:null, currentId:null, dirty:false, saveTimer:null };
-const editor   = byId('editor');
-const dateLine = byId('dateLine');
-const saveOkEl = byId('saveStatus');
-
-/* ---------- Lock/Unlock ---------- */
-function setStatus(msg){ byId('status').textContent = msg || ''; }
+function setStatus(t){ $('#status').textContent=t||''; }
 function showLock(){ document.body.classList.add('locked'); }
 function hideLock(){ document.body.classList.remove('locked'); }
 
@@ -144,211 +116,195 @@ async function setInitialPass(passRaw){
     const key  = await deriveKey(pass, salt);
     const test = await encObj(key, {ok:true});
     await setWrapMeta({salt,test});
-    state.key = key;
-    setStatus('Lösen satt ✓'); hideLock(); renderList();
-  }catch(e){
-    setStatus('Kunde inte sätta lösen.');
-  }
+    state.key = key; setStatus('Lösen satt ✔'); hideLock(); await renderList();
+  }catch(e){ setStatus('Kunde inte sätta lösen.'); }
 }
 async function unlock(passRaw){
   try{
     const pass = String(passRaw||'').trim();
     if(!pass){ setStatus('Skriv ditt lösenord.'); return; }
     const meta = await getWrapMeta();
-    if(!meta || !meta.salt || !meta.test){ setStatus('Välj “Sätt nytt lösen” först.'); return; }
-    setStatus('Kontrollerar…');
+    if(!meta){ setStatus('Välj “Sätt nytt lösen” först.'); return; }
     const key = await deriveKey(pass, meta.salt);
-    const probe = await decObj(key, meta.test);
-    if(!probe || probe.ok!==true) throw new Error('fel');
-    state.key = key; setStatus(''); hideLock(); renderList();
-  }catch{ setStatus('Fel lösenord.'); }
+    await decObj(key, meta.test);
+    state.key = key; setStatus(''); hideLock(); await renderList();
+  }catch(e){ setStatus('Fel lösenord.'); }
 }
 function lock(){
-  state.key=null; state.currentId=null; state.dirty=false;
-  editor.innerHTML=''; dateLine.textContent='';
-  showLock(); setStatus(''); byId('passInput')?.focus();
+  state.key=null; state.currentId=null;
+  $('#editor').innerHTML=''; $('#titleInput').value=''; $('#dateLine').textContent='';
+  showLock(); setStatus('');
+  setTimeout(()=>passEl()?.focus(), 30);
 }
 
-/* ---------- Entries ---------- */
-function titleFrom(html){
-  const tmp=document.createElement('div'); tmp.innerHTML=html||'';
-  return (tmp.textContent||'').trim().split(/\n/)[0].slice(0,80) || 'Anteckning';
+// ================= Entries =================
+function makeTitle(){
+  const t = $('#titleInput').value.trim();
+  if(t) return t;
+  // Fallback: första raden i editor
+  const tmp=document.createElement('div'); tmp.innerHTML=$('#editor').innerHTML;
+  const first = (tmp.textContent||'').trim().split(/\n/)[0];
+  return first.slice(0,80) || new Date().toISOString().replace('T',' ').slice(0,19);
 }
+
 async function saveEntry(){
   if(!state.key){ alert('Lås upp först.'); return; }
-  const id  = state.currentId || Date.now();
-  const obj = { id, html:editor.innerHTML, date:new Date().toLocaleString(), title:titleFrom(editor.innerHTML) };
+  const id = state.currentId || Date.now();
+  const obj = {
+    id,
+    title: makeTitle(),
+    html: $('#editor').innerHTML,
+    date: new Date().toISOString().replace('T',' ').slice(0,19),
+    updated: Date.now()
+  };
   const wrap = await encObj(state.key, obj);
-  await dbPut('entries', { id, wrap, updated:Date.now() });
-  state.currentId = id; state.dirty=false;
-  showSaved(); renderList();
+  await dbPut('entries',{id,wrap,updated:obj.updated});
+  state.currentId = id;
+  await renderList();
 }
-async function renderList(){
-  const list=$('#entries'); if(!list) return;
-  list.innerHTML='';
-  const all=(await dbAll('entries')).sort((a,b)=> (b.updated||b.id)-(a.updated||a.id));
+
+async function renderList(filter=''){
+  const list = $('#entries'); list.innerHTML='';
+  const all = (await dbAll('entries')).sort((a,b)=>(b.updated||b.id)-(a.updated||a.id));
   for(const e of all){
-    const li=document.createElement('li');
-    li.textContent=new Date(e.updated||e.id).toLocaleString();
-    li.onclick = async ()=>{
-      const decd=await decObj(state.key, e.wrap);
-      state.currentId=decd.id;
-      editor.innerHTML=decd.html;
-      dateLine.textContent=decd.date;
-      editor.focus(); state.dirty=false;
-    };
-    list.appendChild(li);
+    // ev. filtera via decrypt title snabbsteg
+    let match = true, title = '', dateStr='';
+    try{
+      const dec = await decObj(state.key, e.wrap);
+      title = dec.title || '(utan titel)';
+      dateStr = dec.date || '';
+      if(filter){
+        const hay = (title + ' ' + (dec.html||'')).toLowerCase();
+        match = hay.includes(filter.toLowerCase());
+      }
+      if(!match) continue;
+
+      const li = document.createElement('li');
+      li.innerHTML = `<span class="t">${escapeHtml(title)}</span><span class="d">${escapeHtml(dateStr)}</span>`;
+      li.addEventListener('click', async ()=>{
+        const d = await decObj(state.key, e.wrap);
+        state.currentId = d.id;
+        $('#editor').innerHTML = d.html;
+        $('#titleInput').value = d.title || '';
+        $('#dateLine').textContent = d.date || '';
+        closeMenu();
+        // säkra fokus
+        $('#editor').focus({preventScroll:false});
+        $('#editor').scrollIntoView({block:'nearest'});
+      });
+      // long-press för att byta namn
+      li.addEventListener('contextmenu', ev=>{
+        ev.preventDefault();
+        const nt = prompt('Ny titel:', title);
+        if(nt!==null){ $('#titleInput').value = nt; saveEntry(); }
+      });
+      list.appendChild(li);
+    }catch(_){}
   }
 }
+function escapeHtml(s){ return (s||'').replace(/[&<>"']/g,m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+
 async function delEntry(){
   if(!state.key || !state.currentId) return;
   if(!confirm('Radera den här sidan?')) return;
   await dbDel('entries', state.currentId);
-  state.currentId=null; editor.innerHTML=''; dateLine.textContent='';
-  renderList();
+  state.currentId=null; $('#editor').innerHTML=''; $('#titleInput').value=''; $('#dateLine').textContent='';
+  await renderList();
 }
 
-/* ---------- Export/Import/Wipe ---------- */
+// ================= Export / Import / Wipe =================
 async function exportAll(){
   const entries = await dbAll('entries');
   const meta    = await getWrapMeta();
   const blob = new Blob([JSON.stringify({meta,entries})], {type:'application/json'});
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href=url; a.download='retro-diary.json'; a.click();
+  const a = document.createElement('a'); a.href=url; a.download='retro-diary.json'; a.click();
   URL.revokeObjectURL(url);
 }
 async function importAll(file){
-  const txt = await file.text();
-  const data = JSON.parse(txt);
+  const txt = await file.text(); const data = JSON.parse(txt);
   if(!data.meta || !data.entries) return alert('Felaktig fil.');
   await setWrapMeta(data.meta);
   for(const e of data.entries) await dbPut('entries', e);
-  alert('Importerad.'); renderList();
+  alert('Importerad.'); await renderList();
 }
 async function wipeAll(){
   if(!confirm('Rensa ALL lokal data?')) return;
-  await clearWrapMeta();
-  state.key=null; state.currentId=null; editor.innerHTML=''; dateLine.textContent='';
-  renderList(); showLock(); setStatus('Allt rensat.');
+  await dbClear(); state.key=null; state.currentId=null;
+  $('#editor').innerHTML=''; $('#titleInput').value=''; $('#dateLine').textContent='';
+  showLock(); setStatus('Allt rensat.');
 }
 
-/* ---------- Menu & Toolbar ---------- */
-function toggleMenu(){
-  const m = byId('menu'); if(!m) return;
-  if(document.body.classList.contains('locked')) return;
-  m.classList.toggle('open');
-  m.setAttribute('aria-hidden', m.classList.contains('open')?'false':'true');
-}
-function exec(cmd,val=null){ document.execCommand(cmd,false,val); }
+// ================= Meny/tema =================
+function closeMenu(){ $('#menu').classList.remove('open'); $('#menu').setAttribute('aria-hidden','true'); }
+function toggleMenu(){ $('#menu').classList.toggle('open'); $('#menu').setAttribute('aria-hidden',$('#menu').classList.contains('open')?'false':'true'); }
 
-function showSaved(){
-  saveOkEl.hidden=false;
-  clearTimeout(saveOkEl._t);
-  saveOkEl._t=setTimeout(()=>{ saveOkEl.hidden=true; }, 1500);
-}
-
-/* ---------- Autosave ---------- */
-function markDirty(){
-  if(!state.key) return;
-  state.dirty = true;
-  clearTimeout(state.saveTimer);
-  state.saveTimer = setTimeout(()=>{ if(state.dirty) saveEntry(); }, 1200);
-}
-
-/* ---------- Force Update ---------- */
-byId('forceUpdateBtn')?.addEventListener('click', async ()=>{
-  try{
-    if('serviceWorker' in navigator){
-      const regs = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(regs.map(r=>r.unregister()));
-    }
-    if ('caches' in window) {
-      const names = await caches.keys();
-      await Promise.all(names.map(n=>caches.delete(n)));
-    }
-    alert('Appen uppdateras – laddar om...');
-    location.reload(true);
-  }catch(e){ alert('Kunde inte uppdatera: '+(e?.message||e)); }
-});
-
-/* ---------- Wire up ---------- */
+// ================= Wire up =================
 window.addEventListener('load', ()=>{
-  // Lås
-  byId('setPassBtn')    ?.addEventListener('click', ()=>setInitialPass(byId('passInput').value));
-  byId('unlockBtn')     ?.addEventListener('click', ()=>unlock(byId('passInput').value));
-  byId('wipeLocalOnLock')?.addEventListener('click', wipeAll);
+  // fonts
+  populateFontSelect();
+  $('#fontSelect').addEventListener('change', e=>{
+    const val = e.target.value;
+    const google = e.target.options[e.target.selectedIndex].dataset.google;
+    if(google) ensureGoogleFont(google);
+    applyFont(val);
+    localStorage.setItem('rd_font', val);
+  });
+
+  // tema
+  const themeSel = $('#themeSelect');
+  const savedTheme = localStorage.getItem('rd_theme') || 'parchment';
+  themeSel.value = savedTheme; document.body.classList.remove('theme-parchment','theme-leather-dark'); document.body.classList.add('theme-'+savedTheme);
+  themeSel.addEventListener('change', e=>{
+    const v=e.target.value; localStorage.setItem('rd_theme', v);
+    document.body.classList.remove('theme-parchment','theme-leather-dark');
+    document.body.classList.add('theme-'+v);
+  });
+
+  // låsflöde
+  $('#setPassBtn').addEventListener('click', ()=>setInitialPass($('#passInput').value));
+  $('#unlockBtn').addEventListener('click', ()=>unlock($('#passInput').value));
+  $('#wipeLocalOnLock').addEventListener('click', wipeAll);
 
   // CRUD
-  byId('newBtn')   ?.addEventListener('click', ()=>{ state.currentId=null; editor.innerHTML=''; dateLine.textContent=''; editor.focus(); state.dirty=false; });
-  byId('saveBtn')  ?.addEventListener('click', saveEntry);
-  byId('deleteBtn')?.addEventListener('click', delEntry);
-  byId('lockBtn')  ?.addEventListener('click', lock);
+  $('#saveBtn').addEventListener('click', saveEntry);
+  $('#deleteBtn').addEventListener('click', delEntry);
+  $('#lockBtn').addEventListener('click', lock);
+  $('#newBtnSmall').addEventListener('click', ()=>{ state.currentId=null; $('#titleInput').value=''; $('#editor').innerHTML=''; $('#dateLine').textContent=''; $('#editor').focus(); });
 
-  // Menu
-  byId('menuToggle')?.addEventListener('click', toggleMenu);
-  byId('exportBtn') ?.addEventListener('click', exportAll);
-  byId('importBtn') ?.addEventListener('click', ()=>byId('importInput').click());
-  byId('importInput')?.addEventListener('change', e=>{ if(e.target.files[0]) importAll(e.target.files[0]); });
-  byId('wipeBtn')   ?.addEventListener('click', wipeAll);
+  // Toolbar
+  $('#boldBtn').addEventListener('click', ()=>document.execCommand('bold'));
+  $('#italicBtn').addEventListener('click', ()=>document.execCommand('italic'));
+  $('#underlineBtn').addEventListener('click', ()=>document.execCommand('underline'));
+  $('#colorBtn').addEventListener('input', e=>document.execCommand('foreColor',false,e.target.value));
+  $('#alignSelect').addEventListener('change', e=>document.execCommand('justify' + (e.target.value==='left'?'Left':e.target.value.charAt(0).toUpperCase()+e.target.value.slice(1))));
 
-  // Toolbar actions
-  byId('h1Btn')?.addEventListener('click', ()=>exec('formatBlock', '<h1>'));
-  byId('h2Btn')?.addEventListener('click', ()=>exec('formatBlock', '<h2>'));
-  byId('pBtn') ?.addEventListener('click', ()=>exec('formatBlock', '<p>'));
+  // meny
+  $('#menuToggle').addEventListener('click', toggleMenu);
+  $('#exportBtn').addEventListener('click', exportAll);
+  $('#importBtn').addEventListener('click', ()=>$('#importInput').click());
+  $('#importInput').addEventListener('change', e=>{ if(e.target.files[0]) importAll(e.target.files[0]); });
+  $('#wipeBtn').addEventListener('click', wipeAll);
 
-  byId('boldBtn')     ?.addEventListener('click', ()=>exec('bold'));
-  byId('italicBtn')   ?.addEventListener('click', ()=>exec('italic'));
-  byId('underlineBtn')?.addEventListener('click', ()=>exec('underline'));
-  byId('clearBtn')    ?.addEventListener('click', ()=>{ exec('removeFormat'); exec('unlink'); });
+  // sök
+  $('#searchInput').addEventListener('input', e=>renderList(e.target.value));
 
-  byId('ulBtn')   ?.addEventListener('click', ()=>exec('insertUnorderedList'));
-  byId('olBtn')   ?.addEventListener('click', ()=>exec('insertOrderedList'));
-  byId('quoteBtn')?.addEventListener('click', ()=>exec('formatBlock', '<blockquote>'));
-
-  byId('leftBtn')  ?.addEventListener('click', ()=>exec('justifyLeft'));
-  byId('centerBtn')?.addEventListener('click', ()=>exec('justifyCenter'));
-  byId('rightBtn') ?.addEventListener('click', ()=>exec('justifyRight'));
-
-  byId('colorBtn')?.addEventListener('input', e=>exec('foreColor', e.target.value));
-
-  byId('linkBtn')  ?.addEventListener('click', ()=>{
-    let url = prompt('Länkadress (https://…)');
-    if(!url) return;
-    if(!/^https?:\/\//i.test(url)) url = 'https://' + url;
-    exec('createLink', url);
+  // force update
+  $('#forceUpdateBtn').addEventListener('click', async ()=>{
+    try{
+      if('serviceWorker' in navigator){
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r=>r.unregister()));
+      }
+      if('caches' in window){
+        const names = await caches.keys();
+        await Promise.all(names.map(n=>caches.delete(n)));
+      }
+      alert('Appen uppdateras – laddar om...');
+      location.reload(true);
+    }catch(e){ alert('Kunde inte uppdatera: '+(e?.message||e)); }
   });
-  byId('unlinkBtn')?.addEventListener('click', ()=>exec('unlink'));
 
-  byId('undoBtn')?.addEventListener('click', ()=>exec('undo'));
-  byId('redoBtn')?.addEventListener('click', ()=>exec('redo'));
-
-  // Font + Tema
-  const fontSel = byId('fontSelect');
-  if (fontSel){
-    const saved = localStorage.getItem('rd_font');
-    if(saved){ editor.style.fontFamily = saved; fontSel.value = saved; }
-    fontSel.addEventListener('change', e=>{
-      const f = e.target.value;
-      editor.style.fontFamily = f;
-      localStorage.setItem('rd_font', f);
-    });
-  }
-  const themeT = byId('themeToggle');
-  if(themeT){
-    const t = localStorage.getItem('rd_theme') || 'dark';
-    document.documentElement.dataset.theme = t;
-    themeT.checked = t === 'dark';
-    themeT.addEventListener('change', ()=>{
-      const next = themeT.checked ? 'dark' : 'light';
-      document.documentElement.dataset.theme = next;
-      localStorage.setItem('rd_theme', next);
-    });
-  }
-
-  // Autosave
-  editor.addEventListener('input', markDirty);
-
-  // Start
+  // start – låsskärm
   showLock();
 });
