@@ -1,10 +1,11 @@
-  <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="sv">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Retro Diary Lite</title>
-  <link rel="stylesheet" href="styles.css?v=6">
+  <link rel="stylesheet" href="styles.css?v=7">
+  <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=IM+Fell+English&family=Merriweather&family=Roboto+Slab&family=Dancing+Script&family=Amatic+SC&family=Cinzel&family=Patrick+Hand&display=swap" rel="stylesheet">
 </head>
 <body class="locked">
@@ -57,16 +58,29 @@
       <button id="exportBtn">Exportera</button>
       <input id="importFile" type="file" accept="application/json">
       <button id="wipeLocalBtn" class="danger">Rensa allt</button>
+
+      <hr>
+      <label for="fontSelect">Font:</label>
+      <select id="fontSelect">
+        <option value="'Special Elite', cursive">Special Elite (Skrivmaskin)</option>
+        <option value="'IM Fell English', serif">IM Fell English (Gammaldags)</option>
+        <option value="'Merriweather', serif">Merriweather (Klassisk bokstil)</option>
+        <option value="'Roboto Slab', serif">Roboto Slab (Retro ren)</option>
+        <option value="'Dancing Script', cursive">Dancing Script (Elegant handstil)</option>
+        <option value="'Amatic SC', cursive">Amatic SC (Smalt handritat)</option>
+        <option value="'Cinzel', serif">Cinzel (Antikt/gotiskt)</option>
+        <option value="'Patrick Hand', cursive">Patrick Hand (Avslappnad handstil)</option>
+      </select>
     </div>
   </div>
 
   <!-- Script -->
-  <script src="app.js?v=6"></script>
+  <script src="app.js?v=7"></script>
   <script>
     // Service worker
     if('serviceWorker' in navigator){
-      navigator.serviceWorker.register('sw.js?v=6');
+      navigator.serviceWorker.register('sw.js?v=7');
     }
   </script>
 </body>
-</html>
+  </html>
