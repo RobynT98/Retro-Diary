@@ -1,26 +1,67 @@
-/* theme_memory.css – stilla minnesläge (kan kombineras med dark/light) */
+/* theme_memory.css */
+/* Minnesläge: mjukt papper + stjärnskimmer */
+
 body.memory-mode {
-  background: #0e0b12 url("stars.jpg") center/cover fixed;
-  color: #f1e8e0;
+  /* Bakgrund kombinerar papper + stjärnor */
+  background:
+    url("paper_faded.jpg") center center / cover no-repeat fixed,
+    url("stars.jpg") center center / cover no-repeat fixed;
+  background-blend-mode: soft-light; /* gör stjärnorna subtila */
+  color: #f5f2e9; /* varmvit text */
+  font-family: "IM Fell English", serif;
+  transition: background 0.6s ease, color 0.6s ease;
 }
-body.memory-mode .page{
-  background: #16141c url("paper_faded.jpg") center/cover;
-  color: #efe7df;
-  border-left-color: rgba(255,255,255,.06);
+
+/* Själva "sidan" där texten skrivs */
+body.memory-mode #editor {
+  background: rgba(10, 10, 10, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.6);
+  color: #f5f2e9;
 }
-body.memory-mode #editor{
-  background: rgba(20,18,26,.85);
-  color: #f7efe6;
-  border-color: rgba(255,255,255,.12);
+
+/* Rubriker i minnesläge */
+body.memory-mode h1,
+body.memory-mode h2,
+body.memory-mode h3 {
+  color: #fff6d9; /* varm gulvit ton */
+  text-shadow: 0 0 4px rgba(255, 255, 200, 0.4);
 }
-body.memory-mode .titleInput{
-  background:#1f1c27; color:#fff; border-color:#3a3346;
+
+/* Länkar */
+body.memory-mode a {
+  color: #a3cfff;
 }
-body.memory-mode #menu{ background:#0f0c15; }
-body.memory-mode .btn{
-  background:linear-gradient(#6a5577,#4c3b5a);
-  box-shadow:0 3px 0 #342a3c, inset 0 0 0 1px rgba(255,255,255,.08);
+body.memory-mode a:hover {
+  color: #d6e6ff;
+  text-decoration: underline;
 }
-body.memory-mode .btn.danger{
-  background:linear-gradient(#7a3c4a,#5a2934);
+
+/* Toolbar-knappar */
+body.memory-mode .toolbar button {
+  background: rgba(40, 40, 40, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #f5f2e9;
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.7);
+}
+body.memory-mode .toolbar button:hover {
+  background: rgba(60, 60, 60, 0.7);
+}
+
+/* Inputfält (titel, lösen etc.) */
+body.memory-mode input,
+body.memory-mode textarea {
+  background: rgba(20, 20, 20, 0.7);
+  color: #f5f2e9;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Minneslägets ljuseffekt runt kanterna */
+body.memory-mode::before {
+  content: "";
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: radial-gradient(circle at top left, rgba(255,255,200,0.08), transparent 70%),
+              radial-gradient(circle at bottom right, rgba(200,200,255,0.08), transparent 70%);
+  pointer-events: none;
 }
