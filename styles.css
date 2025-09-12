@@ -10,9 +10,16 @@
 html,body{height:100%}
 body{
   margin:0;
-  font-family:'Special Elite', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
   background: var(--leather) center/cover fixed #2b1a14;
   color: var(--ink);
+}
+
+body.theme-parchment{
+  background: var(--leather) center/cover fixed #2b1a14;
+}
+body.theme-leather-dark{
+  background: #111;
 }
 
 /* Bok */
@@ -44,52 +51,69 @@ body{
   margin:6px 0 10px;
   font-family:'IM Fell English',serif;
 }
+
+/* Innehållslista */
+.listbar{
+  display:flex; gap:8px; align-items:center; margin-bottom:8px;
+}
+#searchInput{
+  flex:1; padding:8px 10px; border-radius:8px; border:1px solid #bda;
+}
+#newBtnSmall{
+  padding:8px 10px; border:0; border-radius:8px; background:#2b7; color:#fff; font-weight:700;
+}
+
 #entries{
   margin:0; padding:0; list-style:none;
-  max-height: calc(72vh - 48px);
+  height: calc(72vh - 90px);
   overflow:auto;
 }
 #entries li{
-  padding:10px 12px; margin:6px 0;
+  padding:12px 12px; margin:6px 0;
   border:1px dashed rgba(0,0,0,.2);
   background: rgba(255,255,255,.35);
-  border-radius:6px; cursor:pointer; transition:.15s ease;
+  border-radius:8px; cursor:pointer; transition:.15s ease;
+  display:flex; justify-content:space-between; gap:8px;
 }
-#entries li:hover{ background: rgba(255,255,255,.55); transform:translateY(-1px); }
+#entries li:hover{ background: rgba(255,255,255,.6); transform:translateY(-1px); }
+#entries .t{ font-weight:700; max-width:66%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+#entries .d{ opacity:.7; font-size:.9em; }
 
-/* Toolbar */
-#toolbar{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px; }
-#toolbar .sep{ width:1px; height:24px; background:#c9b79b; opacity:.5; margin:0 4px; }
+/* Toolbar + editor */
+#toolbar{ display:flex; gap:8px; margin-bottom:10px; }
 #toolbar button{
   background:#222;color:#fff;border:1px solid #444;border-radius:6px;
   padding:6px 10px;font-weight:700;cursor:pointer;box-shadow:0 2px 0 rgba(0,0,0,.35);
 }
-#toolbar button:active{ transform:translateY(1px); box-shadow:none; }
-#toolbar input[type="color"]{
-  width:34px;height:32px;border:none;background:#222;border-radius:6px;cursor:pointer;
+#toolbar input[type="color"]{ width:36px;height:34px;border:none;background:#222;border-radius:6px;cursor:pointer; }
+#alignSelect{ padding:6px 8px; border-radius:6px; border:1px solid #999; }
+
+#titleInput{
+  width:100%; padding:10px 12px; border-radius:8px; border:1px solid #bda;
+  font-weight:700; margin:4px 0 6px;
 }
 
 #dateLine{ font:14px/1.2 'IM Fell English',serif; color:#6e5849; margin:2px 0 8px; }
 #editor{
-  min-height:60vh; padding:16px 18px; outline:none;
+  min-height:56vh; padding:16px 18px; outline:none;
   background:var(--paper); border:1px solid rgba(0,0,0,.15); border-radius:8px;
   box-shadow: inset 0 2px 12px rgba(0,0,0,.12), 0 1px 0 rgba(255,255,255,.35);
   font-size:17px; line-height:1.6;
 }
 
 /* Actions */
-#actions{ display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; align-items:center; }
+#actions{ display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; }
 #actions button, #menu button, #lockscreen button{
   appearance:none;border:none;border-radius:8px;padding:10px 14px;font-weight:700;
   color:#fff;background:linear-gradient(#c94141,#a02b2b);
   box-shadow:0 2px 0 #7f2222; cursor:pointer;
 }
 #actions .danger{ background:linear-gradient(#b02828,#7f1e1e); }
-.save-ok{ color:#0a0; font-weight:700; margin-left:6px; }
 
-/* Låsskärm via body.locked */
+/* Låsflöde */
 .book{ display:flex; }
 #lockscreen{ display:none; }
+
 body.locked .book{ display:none !important; }
 body.locked #lockscreen{ display:flex !important; }
 
@@ -104,18 +128,14 @@ body.locked #lockscreen{ display:flex !important; }
   padding:22px; text-align:center;
   box-shadow:0 12px 40px rgba(0,0,0,.7);
 }
-#lockscreen h2{
-  margin:0 0 14px; font-family:'Dancing Script','IM Fell English',serif;
-}
 #lockscreen input{
   width:100%; padding:12px 14px; border:1px solid #444; border-radius:8px;
   margin:10px 0 12px; background:#000; color:#fff; font-size:16px;
 }
-#lockscreen .row{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
 #status{ margin-top:8px; color:#ffd2d2; font-size:14px; }
 
-/* Meny */
-#menuToggle{
+/* Sidomeny */
+.menu-toggle{
   position:fixed; top:14px; left:14px; z-index:1200;
   background:#1d1d1d; color:#fff; border:1px solid #444; border-radius:8px;
   padding:8px 10px; cursor:pointer;
@@ -141,18 +161,13 @@ body.locked #lockscreen{ display:flex !important; }
 }
 #forceUpdateBtn:hover{ opacity:1; }
 
-/* Scrollbar */
+/* Scrollbars */
 ::-webkit-scrollbar{ width:10px; }
 ::-webkit-scrollbar-thumb{ background:#6c4f3d; border-radius:6px; }
 ::-webkit-scrollbar-thumb:hover{ background:#874; }
 
 @media (max-width:860px){
   .book{ flex-direction:column; }
-  #entries{ max-height:260px; }
+  #entries{ height: 260px; }
   #editor{ min-height:46vh; }
-}
-
-/* Light-theme justerar UI (pergament behålls) */
-html[data-theme="light"] body{ background:#d6c3ac var(--leather) center/cover fixed; }
-html[data-theme="light"] #menuToggle,
-html[data-theme="light"] #toolbar button{ background:#333; }
+  }
