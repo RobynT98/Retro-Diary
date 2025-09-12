@@ -1,5 +1,7 @@
 # Retro Diary
 
+👉 [Testa Retro Diary här](https://robynT98.github.io/Retro-Diary)
+
 En **krypterad retro-dagbok (PWA)** med pergament/läderkänsla.  
 All text sparas **lokalt** i din webbläsare och krypteras med **AES-GCM** (nyckel från ditt lösenord via PBKDF2).  
 Fungerar offline, kan installeras som app, och låter dig exportera/importera allt som `.json`.
