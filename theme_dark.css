@@ -1,24 +1,6 @@
-body.theme-dark {
-  --bg: #111;
-  --text: #eee;
-  --accent: #e33;
-  --btn-bg: #933;
-  --btn-text: #fff;
-  --border: #444;
-}
-
-body.theme-dark #editor {
-  background: #222;
-  color: var(--text);
-}
-/* ====== Mörkt tema (ej minnesläge) ====== */
-body.theme-dark:not(.memory-mode){
-  background:#0f0f10 url("stars.jpg") center/cover fixed;
-}
-body.theme-dark .page{
-  background:#161616; color:#eee; border-color:#333;
-}
-body.theme-dark #editor{
-  background:#1b1b1b; color:#eee; border-color:#333;
-}
-body.theme-dark .searchRow input{background:#202020; color:#fff; border-color:#333}
+/* Mörkt tema – invertera paneler, behåll pergament i editor */
+body{ background:#0e0e0e; }
+.page{ background:#1a1a1a; }
+#editor{ background:#222; color:#eee; }
+.titleInput{ background:#2a2a2a; color:#fff; border-color:#333; }
+#menu{ background:#101010; }
