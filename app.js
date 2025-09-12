@@ -89,149 +89,106 @@ const editor = byId('editor');
 const dateLine = byId('dateLine');
 const listEl = byId('entriesList');
 
-/* ---------- Lock / Unlock ---------- */
-async function setInitialPass(pass){
-  if(!pass) return setStatus('Ange ett nytt lösenord.');
-  const salt = buf2hex(crypto.getRandomValues(new Uint8Array(16)));
-  const key  = await deriveKey(pass, salt);
-  const test = await encObj(key,{ok:true});
-  await dbPut('meta',{k:'wrap', salt, test});
-  state.key = key;
-  hideLock();
-  await renderList();
-}
-async function unlock(pass){
-  const meta = await dbGet('meta','wrap');
-  if(!meta) return setStatus('Inget lösen valt ännu. Sätt nytt först.');
+  /* ---------- Lock / Unlock ---------- */
+function setStatus(msg){ document.getElementById('status').textContent = msg || ''; }
+function showLock(){ document.getElementById('lockscreen').classList.add('lock'); }
+function hideLock(){ document.getElementById('lockscreen').classList.remove('lock'); }
+
+async function setInitialPass(passRaw){
   try{
-    const key = await deriveKey(pass, meta.salt);
-    await decObj(key, meta.test); // test decrypt
+    const pass = String(passRaw || '').trim();
+    if (pass.length < 1){ setStatus('Skriv ett lösenord.'); return; }
+
+    const salt = buf2hex(crypto.getRandomValues(new Uint8Array(16)));
+    const key  = await deriveKey(pass, salt);
+    const test = await encObj(key, { ok:true });
+
+    await dbPut('meta', { k:'wrap', salt, test });
     state.key = key;
+
+    setStatus('Lösen satt ✔');
     hideLock();
     await renderList();
-  }catch(e){
+  }catch(err){
+    console.error('setInitialPass error:', err);
+    setStatus('Kunde inte sätta lösen.');
+  }
+}
+
+async function unlock(passRaw){
+  try{
+    const pass = String(passRaw || '').trim();
+    if (pass.length < 1){ setStatus('Skriv ditt lösenord.'); return; }
+
+    const meta = await dbGet('meta','wrap');
+    if (!meta){ setStatus('Inget lösen valt ännu. Välj “Sätt nytt lösen”.'); return; }
+
+    const key = await deriveKey(pass, meta.salt);
+    await decObj(key, meta.test); // verifiera
+
+    state.key = key;
+    setStatus('');
+    hideLock();
+    await renderList();
+  }catch(err){
+    console.error('unlock error:', err);
     setStatus('Fel lösenord.');
   }
 }
-function lock(){
-  state.key=null; state.currentId=null;
-  editor.innerHTML=''; dateLine.textContent='';
-  showLock();
-}
 
-/* ---------- UI helpers ---------- */
-function setStatus(msg){ byId('status').textContent = msg||''; }
-function showLock(){ byId('lockscreen').classList.add('lock'); }
-function hideLock(){ byId('lockscreen').classList.remove('lock'); }
+/* ---------- Wire up (på load) ---------- */
+window.addEventListener('load', () => {
+  const passEl = document.getElementById('pass');
 
-/* ---------- Entries ---------- */
-function firstTitle(html){
-  const div=document.createElement('div'); div.innerHTML=html||'';
-  const text = (div.textContent||'').trim();
-  return (text.split(/\n/)[0]||'Ny sida').slice(0,80);
-}
-async function saveEntry(){
-  if(!state.key) return alert('Lås upp först.');
-  const id = state.currentId || Date.now();
-  const html = editor.innerHTML;
-  const rec = { id, title:firstTitle(html), date:new Date().toLocaleString('sv-SE'), html };
-  const wrap = await encObj(state.key, rec);
-  await dbPut('entries', { id, wrap });
-  state.currentId = id;
-  await renderList();
-}
-async function renderList(){
-  listEl.innerHTML='';
-  const all = (await dbAll('entries')).sort((a,b)=>b.id-a.id);
-  for(const e of all){
-    const li = document.createElement('li');
-    try{
-      const item = await decObj(state.key, e.wrap);
-      li.textContent = `${new Date(item.id).toLocaleDateString('sv-SE')} — ${item.title}`;
-      li.onclick = async ()=>{
-        const item2 = await decObj(state.key, e.wrap);
-        state.currentId = item2.id;
-        editor.innerHTML = item2.html;
-        dateLine.textContent = item2.date;
-      };
-    }catch{
-      li.textContent = '— krypterad sida (låst) —';
-      li.style.opacity='.6';
+  // Låsskärm
+  document.getElementById('setPassBtn').onclick = () => setInitialPass(passEl.value);
+  document.getElementById('unlockBtn').onclick  = () => unlock(passEl.value);
+  document.getElementById('wipeLocalOnLock').onclick = async () => {
+    if (confirm('Rensa all lokal data?')){
+      await dbClearAll();
+      alert('Allt rensat.');
+      setStatus('');
+      showLock();
     }
-    listEl.appendChild(li);
-  }
-}
-async function delEntry(){
-  if(!state.key || !state.currentId) return;
-  const d = await openDB();
-  await new Promise((res,rej)=>{
-    const tx=d.transaction('entries','readwrite');
-    tx.objectStore('entries').delete(state.currentId);
-    tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error);
-  });
-  state.currentId=null; editor.innerHTML=''; dateLine.textContent='';
-  await renderList();
-}
+  };
 
-/* ---------- Export / Import ---------- */
-async function exportAll(){
-  const meta = await dbGet('meta','wrap');
-  const entries = await dbAll('entries');
-  const blob = new Blob([JSON.stringify({meta,entries})],{type:'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href=url; a.download='retro-diary.json'; a.click();
-  URL.revokeObjectURL(url);
-}
-async function importAll(file){
-  const txt = await file.text();
-  const data = JSON.parse(txt);
-  if(!data || !data.meta || !data.entries) return alert('Ogiltig fil.');
-  await dbPut('meta', data.meta);
-  for(const e of data.entries) await dbPut('entries', e);
-  alert('Import klart.');
-  await renderList();
-}
+  // Editor/CRUD
+  document.getElementById('newBtn').onclick    = () => { state.currentId=null; editor.innerHTML=''; dateLine.textContent=''; editor.focus(); };
+  document.getElementById('saveBtn').onclick   = saveEntry;
+  document.getElementById('deleteBtn').onclick = delEntry;
+  document.getElementById('lockBtn').onclick   = lock;
 
-/* ---------- Menu / Toolbar / Font ---------- */
-function toggleMenu(){
-  const m = byId('menu');
-  m.classList.toggle('open');
-  m.setAttribute('aria-hidden', m.classList.contains('open') ? 'false' : 'true');
-}
-function execCmd(cmd,val=null){ document.execCommand(cmd,false,val); }
+  // Toolbar
+  document.getElementById('boldBtn').onclick      = () => document.execCommand('bold', false, null);
+  document.getElementById('italicBtn').onclick    = () => document.execCommand('italic', false, null);
+  document.getElementById('underlineBtn').onclick = () => document.execCommand('underline', false, null);
+  document.getElementById('colorBtn').oninput     = e => document.execCommand('foreColor', false, e.target.value);
 
-/* ---------- Events ---------- */
-window.addEventListener('load', ()=>{
-  // låsskärm
-  byId('setPassBtn').onclick = ()=>setInitialPass(byId('pass').value);
-  byId('unlockBtn').onclick  = ()=>unlock(byId('pass').value);
-  byId('wipeLocalOnLock').onclick = async()=>{ if(confirm('Rensa all lokal data?')){ await dbClearAll(); alert('Allt rensat.'); } };
+  // Meny
+  document.getElementById('menuToggle').onclick = () => {
+    const m = document.getElementById('menu');
+    m.classList.toggle('open');
+    m.setAttribute('aria-hidden', m.classList.contains('open') ? 'false' : 'true');
+  };
+  document.getElementById('exportBtn').onclick  = exportAll;
+  document.getElementById('importBtn').onclick  = () => document.getElementById('importInput').click();
+  document.getElementById('importInput').onchange = e => { if (e.target.files[0]) importAll(e.target.files[0]); };
+  document.getElementById('wipeBtn').onclick    = async () => {
+    if (confirm('Rensa all lokal data?')){
+      await dbClearAll();
+      state.key=null; state.currentId=null; editor.innerHTML=''; dateLine.textContent='';
+      await renderList();
+      showLock();
+      setStatus('Allt rensat.');
+    }
+  };
 
-  // editor/CRUD
-  byId('newBtn').onclick    = ()=>{ state.currentId=null; editor.innerHTML=''; dateLine.textContent=''; editor.focus(); };
-  byId('saveBtn').onclick   = saveEntry;
-  byId('deleteBtn').onclick = delEntry;
-  byId('lockBtn').onclick   = lock;
-
-  // toolbar
-  byId('boldBtn').onclick      = ()=>execCmd('bold');
-  byId('italicBtn').onclick    = ()=>execCmd('italic');
-  byId('underlineBtn').onclick = ()=>execCmd('underline');
-  byId('colorBtn').oninput     = e=>execCmd('foreColor', e.target.value);
-
-  // meny
-  byId('menuToggle').onclick = toggleMenu;
-  byId('exportBtn').onclick  = exportAll;
-  byId('importBtn').onclick  = ()=>byId('importInput').click();
-  byId('importInput').onchange = e=>{ if(e.target.files[0]) importAll(e.target.files[0]); };
-  byId('wipeBtn').onclick    = async()=>{ if(confirm('Rensa all lokal data?')){ await dbClearAll(); state.key=null; state.currentId=null; editor.innerHTML=''; dateLine.textContent=''; await renderList(); } };
-
-  // font (endast editor)
-  const fontSel = byId('fontSelect');
+  // Font
+  const fontSel = document.getElementById('fontSelect');
   const savedFont = localStorage.getItem('rd_font');
-  if(savedFont){ editor.style.fontFamily = savedFont; fontSel.value = savedFont; }
-  fontSel.onchange = e=>{ editor.style.fontFamily = e.target.value; localStorage.setItem('rd_font', e.target.value); };
+  if (savedFont){ editor.style.fontFamily = savedFont; fontSel.value = savedFont; }
+  fontSel.onchange = e => { editor.style.fontFamily = e.target.value; localStorage.setItem('rd_font', e.target.value); };
 
-  // start i låst läge (om wrap finns kan man låsa upp)
+  // Start i låst läge
   showLock();
 });
