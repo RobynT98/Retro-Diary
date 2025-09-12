@@ -1,8 +1,8 @@
 {
   "name": "Retro Diary",
   "short_name": "Diary",
-  "description": "En retroinspirerad krypterad dagbok med pergament och läderstil.",
-  "start_url": "./index.html",
+  "description": "Retroinspirerad krypterad dagbok med Word-liknande verktyg.",
+  "start_url": "/index.html",
   "display": "standalone",
   "background_color": "#111111",
   "theme_color": "#b33",
