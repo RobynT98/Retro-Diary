@@ -4,32 +4,30 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Retro Diary</title>
-  <link rel="stylesheet" href="styles.css?app.js?v=book10, const CACHE_NAME='retro-diary-book11">
   <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="styles.css?v=book11">
+  <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Dancing+Script&family=IM+Fell+English&display=swap" rel="stylesheet">
 </head>
 <body class="locked">
-  <!-- Låsskärm -->
-  <div id="lockscreen">
-    <h1>🔒 Retro Diary</h1>
-    <input id="passInput" type="password" placeholder="Lösenord">
-    <button id="setPassBtn">Sätt nytt lösen</button>
-    <button id="unlockBtn">Lås upp</button>
-    <button id="wipeLocalOnLock">Rensa ALL lokal data</button>
-    <div id="status"></div>
-  </div>
 
-  <!-- Själva boken -->
+  <!-- Meny-knapp -->
+  <button id="menuToggle">☰</button>
+
+  <!-- Boken -->
   <div class="book">
-    <div class="page left">
-      <h2>Dina sidor</h2>
-      <ul id="entriesList"></ul>
+    <!-- Vänster sida -->
+    <div class="page">
+      <h2>Innehåll</h2>
+      <ul id="entries"></ul>
     </div>
-    <div class="page right">
+
+    <!-- Höger sida -->
+    <div class="page">
       <div id="toolbar">
-        <button data-cmd="bold"><b>B</b></button>
-        <button data-cmd="italic"><i>I</i></button>
-        <button data-cmd="underline"><u>U</u></button>
-        <input type="color" id="colorPicker">
+        <button id="boldBtn"><b>B</b></button>
+        <button id="italicBtn"><i>I</i></button>
+        <button id="underlineBtn"><u>U</u></button>
+        <button id="colorBtn">🎨</button>
       </div>
       <div id="editor" contenteditable="true"></div>
       <div id="actions">
@@ -41,28 +39,45 @@
     </div>
   </div>
 
-  <!-- Meny -->
-  <button id="menuToggle">☰</button>
+  <!-- Sidomeny -->
   <div id="menu">
     <h3>Meny</h3>
-    <button id="exportBtn">Exportera</button>
-    <input type="file" id="importInput" style="display:none">
-    <button id="importBtn">Importera</button>
-    <button id="wipeBtn">Rensa lokal data</button>
+    <button id="exportBtn">Exportera JSON</button>
+    <button id="importBtn">Importera JSON</button>
+    <input id="importInput" type="file" accept="application/json" hidden>
+    <button id="wipeBtn">Rensa ALL lokal data</button>
     <label for="fontSelect">Typsnitt:</label>
     <select id="fontSelect">
-      <option value="'Special Elite', cursive">Typewriter</option>
-      <option value="'IM Fell English', serif">Vintage</option>
-      <option value="'Roboto Slab', serif">Modern</option>
-      <option value="'Caveat', cursive">Handskrift</option>
+      <option value="'Special Elite', cursive">Special Elite</option>
+      <option value="'Dancing Script', cursive">Dancing Script</option>
+      <option value="'IM Fell English', serif">IM Fell English</option>
+      <option value="serif">Serif</option>
+      <option value="sans-serif">Sans-serif</option>
     </select>
-    <button id="forceUpdateBtn">🔄 Uppdatera app</button>
   </div>
 
-  <script src="app.js?v=book10"></script>
+  <!-- Låsskärm -->
+  <div id="lockscreen">
+    <div class="card">
+      <h2>🔒 Retro Diary</h2>
+      <input id="passInput" type="password" placeholder="Lösenord">
+      <div class="row">
+        <button id="setPassBtn">Sätt nytt lösen</button>
+        <button id="unlockBtn">Lås upp</button>
+      </div>
+      <button id="wipeLocalOnLock">Rensa ALL lokal data</button>
+      <div id="status"></div>
+    </div>
+  </div>
+
+  <!-- Force update knapp -->
+  <button id="forceUpdateBtn">⟳ Uppdatera app</button>
+
+  <script src="app.js?v=book11"></script>
   <script>
+    // Registrera service worker
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("sw.js?v=book10");
+      navigator.serviceWorker.register("sw.js?v=book11");
     }
   </script>
 </body>
