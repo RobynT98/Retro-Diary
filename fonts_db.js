@@ -16,13 +16,3 @@ window.FONT_DB = [
   {name: "Noto Serif",      css: "Noto+Serif:ital,wght@0,400;0,700;1,400", stack:"'Noto Serif', serif"},
   {name: "Satisfy",         css: "Satisfy", stack:"'Satisfy', cursive"}
 ];
-
-// Ladda in som <link> dynamiskt (kallas från app.js)
-window.loadFontCSS = (cssName)=>{
-  if(document.querySelector('link[data-font="'+cssName+'"]')) return;
-  const l=document.createElement('link');
-  l.rel='stylesheet';
-  l.href=`https://fonts.googleapis.com/css2?family=${cssName}&display=swap`;
-  l.setAttribute('data-font', cssName);
-  document.head.appendChild(l);
-};
