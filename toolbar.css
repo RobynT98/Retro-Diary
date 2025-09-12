@@ -1,4 +1,18 @@
-#toolbar{ display:flex; flex-wrap:wrap; gap:10px; margin-bottom:12px; align-items:center; }
-#blockSelect,#fontFamily,#fontSize{
-  padding:8px; border-radius:10px; border:1px solid rgba(0,0,0,.2); background:#fff8ea;
+#toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  background: #ddd;
+  padding: 5px;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  position: sticky;
+  top: 0;
+  z-index: 500;
+}
+
+#toolbar .btn,
+#toolbar select,
+#toolbar input[type="color"] {
+  flex: 0 0 auto;
 }
