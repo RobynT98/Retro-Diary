@@ -1,5 +1,5 @@
 /* sw.js — Retro Diary (lite) */
-const CACHE = 'rd-lite-v1';
+const CACHE = 'rd-lite-v2';
 const CORE = [
   '/',                 // om du serverar index på root
   '/index.html',
