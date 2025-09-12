@@ -1,95 +1,55 @@
-/* ============================ Retro Diary – app.js ============================ */
-/* --------------------------- Små hjälpare ----------------------------------- */
-const $ = (sel) => document.querySelector(sel);
-const byId = (id) => document.getElementById(id);
+// ---- Helpers ----
+const $ = s => document.querySelector(s);
+const byId = s => document.getElementById(s);
+const enc = new TextEncoder(); const dec = new TextDecoder();
+const passField = ()=> byId('passInput') || byId('pass');
 
-function setStatus(msg){ const s=byId('status'); if(s) s.textContent=msg||''; }
-function passEl(){ return byId('pass'); }
-
-/* Debugbanner (syns längst ned) */
-(function ensureDebugBar(){
-  if(!byId('debugBar')){
-    const pre=document.createElement('pre');
-    pre.id='debugBar';
-    pre.style.cssText='position:fixed;left:0;right:0;bottom:0;margin:0;background:#300;color:#fdd;padding:4px 8px;font:12px/1.2 monospace;z-index:99999;white-space:pre-wrap;max-height:25vh;overflow:auto';
-    pre.textContent='DEBUG: …';
-    document.addEventListener('DOMContentLoaded',()=>document.body.appendChild(pre),{once:true});
+function setStatus(msg){ const el=byId('status'); if(el) el.textContent = msg||''; }
+function debug(msg){
+  let el = byId('debugBar'); if(!el){ el=document.createElement('pre'); el.id='debugBar';
+    el.style.cssText='position:fixed;left:0;right:0;bottom:0;margin:0;background:#300;color:#fdd;padding:4px 8px;font:12px monospace;z-index:99999';
+    document.body.appendChild(el);
   }
-})();
-function debugBanner(msg){
-  const pre = byId('debugBar'); if(!pre) return;
-  pre.textContent = String(msg||'');
+  el.textContent = 'DEBUG: ' + msg;
 }
 
-/* Timeout wrapper för att inte fastna på vissa mobiler */
-function withTimeout(promise, ms, label='op'){
-  let t; const timer = new Promise((_,rej)=>{ t=setTimeout(()=>rej(new Error(label+' timeout')), ms);});
-  return Promise.race([promise.finally(()=>clearTimeout(t)), timer]);
-}
+// ---- Hex/U8 ----
+const buf2hex = b => [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
+function hex2u8(hex){ const a=new Uint8Array(hex.length/2); for(let i=0;i<a.length;i++) a[i]=parseInt(hex.substr(i*2,2),16); return a; }
 
-/* ============================ Crypto ======================================== */
-function buf2hex(buf){ return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join(''); }
-function hex2buf(hex){ const a=new Uint8Array(hex.length/2); for(let i=0;i<a.length;i++) a[i]=parseInt(hex.substr(i*2,2),16); return a.buffer; }
-
-async function deriveKey(pass, saltHex){
-  const salt = typeof saltHex==='string' ? hex2buf(saltHex) : saltHex;
-  const enc = new TextEncoder();
-  const mat = await crypto.subtle.importKey('raw', enc.encode(pass), {name:'PBKDF2'}, false, ['deriveKey']);
-  return crypto.subtle.deriveKey(
-    {name:'PBKDF2', salt, iterations:200000, hash:'SHA-256'},
-    mat,
-    {name:'AES-GCM', length:256},
-    false,
-    ['encrypt','decrypt']
-  );
-}
-async function encObj(key, obj){
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const data = new TextEncoder().encode(JSON.stringify(obj));
-  const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, data);
-  return { iv: buf2hex(iv), ct: buf2hex(ct) };
-}
-async function decObj(key, wrap){
-  const iv = hex2buf(String(wrap.iv||'')); 
-  const ct = hex2buf(String(wrap.ct||'')); 
-  const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv}, key, ct);
-  return JSON.parse(new TextDecoder().decode(pt));
-}
-
-/* ============================ IndexedDB (med fallback) ======================= */
+// ---- DB (IndexedDB med localStorage-fallback) ----
 let _db;
 function dbOpen(){
   if(_db) return Promise.resolve(_db);
   return new Promise((res,rej)=>{
-    const req = indexedDB.open('retro-diary', 1);
-    req.onupgradeneeded = e=>{
-      const d = e.target.result;
+    const r = indexedDB.open('retro-diary', 1);
+    r.onupgradeneeded = e=>{
+      const d=e.target.result;
+      if(!d.objectStoreNames.contains('meta')) d.createObjectStore('meta',{keyPath:'k'});
       if(!d.objectStoreNames.contains('entries')) d.createObjectStore('entries',{keyPath:'id'});
-      if(!d.objectStoreNames.contains('meta'))    d.createObjectStore('meta',{keyPath:'k'});
     };
-    req.onsuccess = e=>{ _db=e.target.result; res(_db); };
-    req.onerror   = ()=>rej(req.error||new Error('IDB open error'));
+    r.onsuccess=e=>{ _db=e.target.result; res(_db); };
+    r.onerror = ()=>rej(r.error);
   });
 }
-async function dbPut(store, obj){
+async function dbPut(store,obj){
   try{
     const db = await dbOpen();
     await new Promise((res,rej)=>{
-      const tx=db.transaction(store,'readwrite');
-      tx.objectStore(store).put(obj);
+      const tx=db.transaction(store,'readwrite'); tx.objectStore(store).put(obj);
       tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error);
     });
-  }catch{ // fallback localStorage
+  }catch{
     if(store==='meta') localStorage.setItem(obj.k, JSON.stringify(obj));
     if(store==='entries') localStorage.setItem('e:'+obj.id, JSON.stringify(obj));
   }
 }
-async function dbGet(store, key){
+async function dbGet(store,key){
   try{
     const db = await dbOpen();
     return await new Promise((res,rej)=>{
-      const tx=db.transaction(store); const req=tx.objectStore(store).get(key);
-      req.onsuccess=()=>res(req.result||null); req.onerror=()=>rej(req.error);
+      const tx=db.transaction(store,'readonly'); const rq=tx.objectStore(store).get(key);
+      rq.onsuccess=()=>res(rq.result||null); rq.onerror=()=>rej(rq.error);
     });
   }catch{
     if(store==='meta'){ const raw=localStorage.getItem(key); return raw?JSON.parse(raw):null; }
@@ -101,8 +61,8 @@ async function dbAll(store){
   try{
     const db = await dbOpen();
     return await new Promise((res,rej)=>{
-      const tx=db.transaction(store); const req=tx.objectStore(store).getAll();
-      req.onsuccess=()=>res(req.result||[]); req.onerror=()=>rej(req.error);
+      const tx=db.transaction(store,'readonly'); const rq=tx.objectStore(store).getAll();
+      rq.onsuccess=()=>res(rq.result||[]); rq.onerror=()=>rej(rq.error);
     });
   }catch{
     const out=[];
@@ -114,7 +74,7 @@ async function dbAll(store){
     return out;
   }
 }
-async function dbDel(store, key){
+async function dbDel(store,key){
   try{
     const db = await dbOpen();
     await new Promise((res,rej)=>{
@@ -129,9 +89,8 @@ async function dbClearAll(){
   try{
     const db = await dbOpen();
     await new Promise((res,rej)=>{
-      const tx=db.transaction(['entries','meta'],'readwrite');
-      tx.objectStore('entries').clear();
-      tx.objectStore('meta').clear();
+      const tx=db.transaction(['meta','entries'],'readwrite');
+      tx.objectStore('meta').clear(); tx.objectStore('entries').clear();
       tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error);
     });
   }catch{
@@ -139,143 +98,102 @@ async function dbClearAll(){
   }
 }
 
-/* ============================ Wrap-meta (lösen) ============================= */
-function normalizeWrap(m){
-  if(!m) return null;
-  // tillåt både {k:'wrap',salt,test:{iv,ct}} och {salt, test}
-  if(m.k && m.k!=='wrap') return null;
-  if(m.test && m.test.iv && m.test.ct && typeof m.salt==='string') return m;
-  return null;
+// ---- Crypto ----
+async function deriveKey(pass, saltHex){
+  const mat = await crypto.subtle.importKey('raw', enc.encode(pass), {name:'PBKDF2'}, false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    {name:'PBKDF2', salt: hex2u8(saltHex), iterations:200000, hash:'SHA-256'},
+    mat, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']
+  );
 }
-function validateWrap(m){
-  if(!m) return 'saknas';
-  if(typeof m.salt!=='string' || m.salt.length<32) return 'ogiltig salt';
-  if(!m.test || typeof m.test.iv!=='string' || typeof m.test.ct!=='string') return 'ogiltig test';
-  return null;
+async function encObj(key, obj){
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const data = enc.encode(JSON.stringify(obj));
+  const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, data);
+  return { iv: buf2hex(iv), ct: buf2hex(ct) };
 }
-async function setWrapMeta(obj){
-  await dbPut('meta', obj);            // IDB eller fallback sätter båda
+async function decObj(key, wrap){
+  const ivU8 = hex2u8(wrap.iv); const ctU8 = hex2u8(wrap.ct);
+  const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv: ivU8}, key, ctU8.buffer);
+  return JSON.parse(dec.decode(pt));
 }
+
+// ---- Wrap-meta ----
+async function setWrapMeta(w){ await dbPut('meta', {k:'wrap', salt:w.salt, test:w.test}); localStorage.setItem('wrap', JSON.stringify(w)); }
 async function getWrapMeta(){
-  const m = await dbGet('meta','wrap');
-  if(m) return m;
-  const raw = localStorage.getItem('wrap');
-  return raw ? JSON.parse(raw) : null;
-}
-async function clearWrapMeta(){
-  await dbClearAll();
-  localStorage.removeItem('wrap');
+  const m = await dbGet('meta','wrap'); if(m) return m;
+  const raw = localStorage.getItem('wrap'); return raw ? JSON.parse(raw) : null;
 }
 
-/* ============================ UI: låsskärm ================================== */
-function showLock(){
-  const l = byId('lockscreen'); if(!l) return;
-  l.style.display='flex'; l.removeAttribute('aria-hidden');
-}
-function hideLock(){
-  const l = byId('lockscreen'); if(!l) return;
-  l.style.display='none'; l.setAttribute('aria-hidden','true');
-}
+// ---- UI lock toggling via body.locked ----
+function showLock(){ document.body.classList.add('locked'); setStatus(''); setTimeout(()=>passField()?.focus(),50); }
+function hideLock(){ document.body.classList.remove('locked'); setStatus(''); }
 
-/* ============================ State ========================================= */
+// ---- State ----
 const state = { key:null, currentId:null };
 
-/* ============================ Lösen – sätt / lås upp ======================== */
+// ---- Lösen ----
 async function setInitialPass(passRaw){
   try{
     const pass = String(passRaw||'').trim();
     if(!pass){ setStatus('Skriv ett lösenord.'); return; }
-
     const salt = buf2hex(crypto.getRandomValues(new Uint8Array(16)));
-    const key  = await withTimeout(deriveKey(pass, salt), 8000, 'deriveKey');
-    const test = await withTimeout(encObj(key, {ok:true}), 8000, 'encrypt');
-
-    const wrap = { k:'wrap', salt, test };
-    await setWrapMeta(wrap);
-    localStorage.setItem('wrap', JSON.stringify(wrap)); // dubbelspar för äldre mobiler
-
+    const key  = await deriveKey(pass, salt);
+    const test = await encObj(key, {ok:true});
+    await setWrapMeta({salt, test});
     state.key = key;
     setStatus('Lösen satt ✔');
-    debugBanner(`DEBUG: wrap sparad: salt=${salt.length} iv=${test.iv.length} ct=${test.ct.length}`);
-    hideLock();
-    await renderList();
-  }catch(e){
-    setStatus('Kunde inte sätta lösen.');
-    debugBanner('setInitialPass ERROR: '+(e?.message||e));
-  }
+    hideLock(); await renderList();
+    debug(`wrap sparad. salt=${salt.length/2} iv=${(test.iv||'').length/2} ct=${(test.ct||'').length/2}`);
+  }catch(e){ setStatus('Kunde inte sätta lösen.'); debug('setInitialPass ERROR: '+(e?.message||e)); }
 }
 
 async function unlock(passRaw){
   try{
     const pass = String(passRaw||'').trim();
     if(!pass){ setStatus('Skriv ditt lösenord.'); return; }
-
-    let meta = await getWrapMeta();
-    meta = normalizeWrap(meta);
-    const vErr = validateWrap(meta);
-    if(vErr){ setStatus('Välj “Sätt nytt lösen” först.'); debugBanner('wrap problem: '+vErr); return; }
-
-    setStatus('Kontrollerar…'); debugBanner('deriveKey start');
-    const key = await withTimeout(deriveKey(pass, meta.salt), 8000, 'deriveKey');
-
-    debugBanner('decObj test start');
-    const probe = await withTimeout(decObj(key, meta.test), 8000, 'decrypt');
+    const meta = await getWrapMeta();
+    if(!meta || !meta.salt || !meta.test){ setStatus('Välj “Sätt nytt lösen” först.'); return; }
+    setStatus('Kontrollerar…');
+    const key = await deriveKey(pass, meta.salt);
+    const probe = await decObj(key, meta.test);
     if(!probe || probe.ok!==true) throw new Error('Test-decrypt misslyckades');
-
     state.key = key;
     setStatus('');
-    hideLock();
-    await renderList();
+    hideLock(); await renderList();
     $('#editor')?.focus();
-    passEl()?.value='';
-    debugBanner('unlock OK');
-  }catch(e){
-    const msg = (e && e.message) ? e.message : String(e);
-    setStatus('Upplåsning misslyckades: ' + msg);
-    debugBanner('unlock ERROR: ' + msg);
-    console.error('unlock', e);
-  }
+    debug('unlock OK');
+  }catch(e){ setStatus('Fel lösenord.'); debug('unlock ERROR: '+(e?.message||e)); }
 }
 
 function lock(){
   state.key=null; state.currentId=null;
-  const ed = byId('editor'); if(ed) ed.innerHTML='';
-  const dl = byId('dateLine'); if(dl) dl.textContent='';
-  setStatus('');
-  showLock();
-  setTimeout(()=>passEl()?.focus(), 50);
+  $('#editor') && ($('#editor').innerHTML=''); $('#dateLine') && ($('#dateLine').textContent='');
+  showLock(); debug('locked');
 }
 
-/* ============================ Sidor (CRUD) ================================== */
-function titleFrom(html){
-  const tmp=document.createElement('div'); tmp.innerHTML=html||'';
-  const t=(tmp.textContent||'').trim().split(/\n/)[0];
-  return (t||'Anteckning').slice(0,80);
-}
+// ---- Entries ----
+function titleFrom(html){ const d=document.createElement('div'); d.innerHTML=html||''; return (d.textContent||'').trim().split(/\n/)[0].slice(0,80)||'Anteckning'; }
 async function saveEntry(){
   if(!state.key){ alert('Lås upp först.'); return; }
-  const ed = byId('editor');
-  const id  = state.currentId || Date.now();
-  const obj = { id, html:ed.innerHTML, date:new Date().toLocaleString('sv-SE'), title:titleFrom(ed.innerHTML) };
+  const id = state.currentId || Date.now();
+  const obj = { id, html: $('#editor').innerHTML, date:new Date().toLocaleString('sv-SE'), title:titleFrom($('#editor').innerHTML) };
   const wrap = await encObj(state.key, obj);
   await dbPut('entries', { id, wrap, updated:Date.now() });
-  state.currentId = id;
-  await renderList();
+  state.currentId=id; await renderList();
 }
 async function renderList(){
-  const list = byId('entriesList'); if(!list) return;
-  list.innerHTML='';
-  const all = (await dbAll('entries')).sort((a,b)=> (b.updated||b.id)-(a.updated||a.id));
+  const list=$('#entries'); if(!list) return;
+  list.innerHTML=''; const all=(await dbAll('entries')).sort((a,b)=>(b.updated||b.id)-(a.updated||a.id));
   for(const e of all){
     const li=document.createElement('li');
     li.textContent = new Date(e.updated||e.id).toLocaleString('sv-SE');
-    li.tabIndex = 0;
     li.addEventListener('click', async ()=>{
-      const dec = await decObj(state.key, e.wrap);
-      state.currentId = dec.id;
-      byId('editor').innerHTML = dec.html;
-      byId('dateLine').textContent = dec.date;
-      byId('editor').focus();
+      const decd = await decObj(state.key, e.wrap);
+      state.currentId = decd.id;
+      $('#editor').innerHTML = decd.html;
+      $('#dateLine').textContent = decd.date;
+      $('#editor').focus();
     });
     list.appendChild(li);
   }
@@ -284,49 +202,42 @@ async function delEntry(){
   if(!state.key || !state.currentId) return;
   if(!confirm('Radera den här sidan?')) return;
   await dbDel('entries', state.currentId);
-  state.currentId=null; byId('editor').innerHTML=''; byId('dateLine').textContent='';
+  state.currentId=null; $('#editor').innerHTML=''; $('#dateLine').textContent='';
   await renderList();
 }
 
-/* ============================ Export / Import ================================ */
+// ---- Export / Import / Wipe ----
 async function exportAll(){
   const entries = await dbAll('entries');
   const meta    = await getWrapMeta();
   const blob = new Blob([JSON.stringify({meta,entries})], {type:'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href=url; a.download='retro-diary.json'; a.click();
-  URL.revokeObjectURL(url);
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='retro-diary.json'; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
 }
 async function importAll(file){
-  const text = await file.text();
-  const data = JSON.parse(text||'{}');
-  if(!data.meta || !data.entries) return alert('Ogiltig fil.');
+  const txt = await file.text(); const data = JSON.parse(txt||'{}');
+  if(!data.meta || !data.entries) return alert('Felaktig fil.');
   await setWrapMeta(data.meta);
-  localStorage.setItem('wrap', JSON.stringify(data.meta)); // även lokalt
   for(const e of data.entries) await dbPut('entries', e);
-  alert('Importerad.'); await renderList();
+  alert('Import klar.'); await renderList();
 }
-
-/* ============================ Wipe ========================================== */
 async function wipeAll(){
   if(!confirm('Rensa ALL lokal data?')) return;
   await dbClearAll(); localStorage.removeItem('wrap');
-  state.key=null; state.currentId=null;
-  byId('editor').innerHTML=''; byId('dateLine').textContent='';
+  state.key=null; state.currentId=null; $('#editor').innerHTML=''; $('#dateLine').textContent='';
   await renderList(); showLock(); setStatus('Allt rensat.');
 }
 
-/* ============================ Meny & verktyg ================================= */
+// ---- Meny & verktyg ----
 function toggleMenu(){
   const m = byId('menu'); if(!m) return;
   m.classList.toggle('open');
-  m.setAttribute('aria-hidden', m.classList.contains('open')?'false':'true');
+  m.setAttribute('aria-hidden', m.classList.contains('open') ? 'false' : 'true');
 }
-function execCmd(cmd, val=null){ document.execCommand(cmd,false,val); }
+function execCmd(cmd,val=null){ document.execCommand(cmd,false,val); }
 
-/* Forcera uppdatering (SW + caches) */
-async function forceUpdate(){
+// SW/Cache force update
+byId('forceUpdateBtn')?.addEventListener('click', async ()=>{
   try{
     if('serviceWorker' in navigator){
       const regs = await navigator.serviceWorker.getRegistrations();
@@ -339,57 +250,43 @@ async function forceUpdate(){
     alert('Appen uppdateras – laddar om…');
     location.reload(true);
   }catch(e){ alert('Kunde inte uppdatera: '+(e?.message||e)); }
-}
+});
 
-/* ============================ Event wiring ================================== */
+// ---- Wire up ----
 window.addEventListener('load', ()=>{
-  // Låsskärm
-  byId('setPassBtn')   ?.addEventListener('click', ()=>setInitialPass(passEl().value));
-  byId('unlockBtn')    ?.addEventListener('click', ()=>unlock(passEl().value));
+  byId('setPassBtn')     ?.addEventListener('click', ()=>setInitialPass(passField()?.value||''));
+  byId('unlockBtn')      ?.addEventListener('click', ()=>unlock(passField()?.value||''));
   byId('wipeLocalOnLock')?.addEventListener('click', wipeAll);
 
-  // Editor/CRUD
-  byId('newBtn')   ?.addEventListener('click', ()=>{ state.currentId=null; byId('editor').innerHTML=''; byId('dateLine').textContent=''; byId('editor').focus(); });
+  byId('newBtn')   ?.addEventListener('click', ()=>{ state.currentId=null; $('#editor').innerHTML=''; $('#dateLine').textContent=''; $('#editor').focus(); });
   byId('saveBtn')  ?.addEventListener('click', saveEntry);
   byId('deleteBtn')?.addEventListener('click', delEntry);
   byId('lockBtn')  ?.addEventListener('click', lock);
 
-  // Toolbar
   byId('boldBtn')     ?.addEventListener('click', ()=>execCmd('bold'));
   byId('italicBtn')   ?.addEventListener('click', ()=>execCmd('italic'));
   byId('underlineBtn')?.addEventListener('click', ()=>execCmd('underline'));
   byId('colorBtn')    ?.addEventListener('input', e=>execCmd('foreColor', e.target.value));
 
-  // Meny
   byId('menuToggle')?.addEventListener('click', toggleMenu);
   byId('exportBtn') ?.addEventListener('click', exportAll);
   byId('importBtn') ?.addEventListener('click', ()=>byId('importInput').click());
   byId('importInput')?.addEventListener('change', e=>{ if(e.target.files[0]) importAll(e.target.files[0]); });
   byId('wipeBtn')   ?.addEventListener('click', wipeAll);
 
-  // Font (bara editor)
-  const fontSel = byId('fontSelect');
-  if(fontSel){
+  // Font endast editor
+  const fs = byId('fontSelect');
+  if(fs){
     const saved = localStorage.getItem('rd_font');
-    if(saved){ byId('editor').style.fontFamily = saved; fontSel.value = saved; }
-    fontSel.addEventListener('change', e=>{
-      byId('editor').style.fontFamily = e.target.value;
-      localStorage.setItem('rd_font', e.target.value);
+    if(saved){ byId('editor').style.fontFamily = saved; fs.value=saved; }
+    fs.addEventListener('change', e=>{
+      const f = e.target.value;
+      byId('editor').style.fontFamily = f;
+      localStorage.setItem('rd_font', f);
     });
   }
 
-  // Uppdatera-app knapp
-  byId('forceUpdateBtn')?.addEventListener('click', forceUpdate);
-
-  // Börja i låst läge
-  showLock();
-  setTimeout(()=>passEl()?.focus(), 50);
-
-  // Registrera service worker (om finns)
-  if('serviceWorker' in navigator){
-    navigator.serviceWorker.register('./sw.js').catch(()=>{});
-  }
-
-  debugBanner('READY');
+  // börja låst
+  document.body.classList.add('locked');
+  passField()?.focus();
 });
-/* ============================================================================ */
