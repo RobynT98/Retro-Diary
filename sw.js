@@ -1,92 +1,85 @@
-/* sw.js — Retro Diary */
-const CACHE_NAME = 'retro-diary-v17';
-const CORE_ASSETS = [
-  '/',              // om du serverar index på rotnivå
+/* sw.js — Retro Diary (lite) */
+const CACHE = 'rd-lite-v1';
+const CORE = [
+  '/',                 // om du serverar index på root
   '/index.html',
   '/styles.css',
-  '/app.js?v=17',
+  '/app.js?v=lite1',
   '/manifest.json',
   '/icon-192.png',
   '/icon-512.png'
 ];
 
-// Hjälpare: avgör om vi ska köra network-first
-function isNetworkFirst(req) {
-  const url = new URL(req.url);
-  // Kör network-first för kärn-koden
-  return url.pathname.endsWith('/app.js') || url.pathname.includes('app.js?v=') ||
-         url.pathname.endsWith('/styles.css');
+// Vilka rutter ska vara network-first (koden)
+function isNetworkFirst(req){
+  const p = new URL(req.url).pathname;
+  return p.endsWith('/app.js') || p.includes('app.js?v=') || p.endsWith('/styles.css');
 }
 
-self.addEventListener('install', (e) => {
-  e.waitUntil((async () => {
-    const cache = await caches.open(CACHE_NAME);
-    await cache.addAll(CORE_ASSETS.map(p => new Request(p, { cache: 'reload' })));
-    // Skippar vänteläge så nya SW tar över tidigare
+self.addEventListener('install', (e)=>{
+  e.waitUntil((async()=>{
+    const cache = await caches.open(CACHE);
+    // cache: reload = hoppa över mellanlager
+    await cache.addAll(CORE.map(u=>new Request(u, { cache:'reload' })));
     self.skipWaiting();
   })());
 });
 
-self.addEventListener('activate', (e) => {
-  e.waitUntil((async () => {
-    // Städa gamla cachear
+self.addEventListener('activate', (e)=>{
+  e.waitUntil((async()=>{
     const keys = await caches.keys();
-    await Promise.all(keys.map(k => k !== CACHE_NAME && caches.delete(k)));
-    // Gör nya SW aktiv direkt
+    await Promise.all(keys.map(k => (k!==CACHE) && caches.delete(k)));
     await self.clients.claim();
   })());
 });
 
-self.addEventListener('fetch', (e) => {
+self.addEventListener('fetch', (e)=>{
   const req = e.request;
+  if(req.method!=='GET') return;
 
-  // Bara GET requests cachas
-  if (req.method !== 'GET') return;
-
-  // Network-first för app.js/styles.css
-  if (isNetworkFirst(req)) {
-    e.respondWith((async () => {
-      try {
-        const fresh = await fetch(req, { cache: 'no-store' });
-        const cache = await caches.open(CACHE_NAME);
+  // Network-first för koden
+  if(isNetworkFirst(req)){
+    e.respondWith((async()=>{
+      try{
+        const fresh = await fetch(req, { cache:'no-store' });
+        const cache = await caches.open(CACHE);
         cache.put(req, fresh.clone());
         return fresh;
-      } catch {
-        const cache = await caches.open(CACHE_NAME);
-        const cached = await cache.match(req, { ignoreSearch: false }) || await cache.match(stripQuery(req));
-        return cached || new Response('Offline och ingen cache för koden.', { status: 503, statusText: 'Offline' });
+      }catch{
+        const cache = await caches.open(CACHE);
+        return (await cache.match(req)) || (await cache.match(stripQuery(req))) ||
+               new Response('Offline (ingen cache för koden).', {status:503});
       }
     })());
     return;
   }
 
-  // Cache-first för annat (ikoner, manifest, bilder, fonter mm)
-  e.respondWith((async () => {
-    const cache = await caches.open(CACHE_NAME);
-    const cached = await cache.match(req, { ignoreSearch: false }) || await cache.match(stripQuery(req));
-    if (cached) return cached;
-    try {
+  // Cache-first för allt annat
+  e.respondWith((async()=>{
+    const cache = await caches.open(CACHE);
+    const hit = await cache.match(req, {ignoreSearch:false}) || await cache.match(stripQuery(req));
+    if(hit) return hit;
+    try{
       const fresh = await fetch(req);
-      // Cacha bara ok svar (200) och basic (samma origin) för säkerhets skull
-      if (fresh.ok && (fresh.type === 'basic' || fresh.type === 'cors')) {
+      if(fresh.ok && (fresh.type==='basic' || fresh.type==='cors')){
         cache.put(req, fresh.clone());
       }
       return fresh;
-    } catch {
-      // Minimal offline fallback
-      if (req.destination === 'document') {
-        // Ge vår index vid offline om vi inte hittar sidan
+    }catch{
+      if(req.destination==='document'){
         const fallback = await cache.match('/index.html');
-        if (fallback) return fallback;
+        if(fallback) return fallback;
       }
-      return new Response('Offline.', { status: 503, statusText: 'Offline' });
+      return new Response('Offline.', {status:503});
     }
   })());
 });
 
-// Hjälpare: matcha path utan querystring
-function stripQuery(req) {
-  const url = new URL(req.url);
-  url.search = '';
-  return new Request(url.toString(), { headers: req.headers, method: req.method, mode: req.mode, credentials: req.credentials, redirect: req.redirect, referrer: req.referrer, referrerPolicy: req.referrerPolicy });
+function stripQuery(req){
+  const u = new URL(req.url); u.search = '';
+  return new Request(u.toString(), {
+    headers:req.headers, method:req.method, mode:req.mode,
+    credentials:req.credentials, redirect:req.redirect,
+    referrer:req.referrer, referrerPolicy:req.referrerPolicy
+  });
 }
