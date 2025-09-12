@@ -203,3 +203,25 @@ button.danger:hover {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--accent);
 }
+#menu label {
+  display: block;
+  margin-top: 1rem;
+  margin-bottom: 0.25rem;
+  color: #ccc;
+}
+
+#menu select {
+  width: 100%;
+  padding: 0.4rem;
+  background: #111;
+  color: #eee;
+  border: 1px solid #900;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+#menu select:focus {
+  outline: none;
+  border-color: #c00;
+  box-shadow: 0 0 5px #c00;
+}
