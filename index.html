@@ -1,160 +1,99 @@
 <!DOCTYPE html>
 <html lang="sv">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Retro Diary</title>
 
-  <link rel="manifest" href="manifest.json">
+  <!-- Styles -->
   <link rel="stylesheet" href="styles.css">
   <link id="themeLink" rel="stylesheet" href="theme_light.css">
+  <link rel="stylesheet" href="theme_memory.css">
+
+  <!-- Manifest -->
+  <link rel="manifest" href="manifest.json">
 </head>
 <body>
   <!-- Menyknapp -->
-  <button id="menuToggle" class="btn btn-ghost" aria-label="Meny">☰</button>
-
-  <!-- Bok-layout -->
-  <div class="book">
-    <!-- Innehåll -->
-    <section class="page" id="leftPage">
-      <h2>Innehåll</h2>
-      <div class="searchRow">
-        <input id="searchInput" type="search" placeholder="Sök titel/text…">
-        <button id="searchBtn" class="btn">Sök</button>
-        <button id="clearSearchBtn" class="btn">Rensa</button>
-      </div>
-      <ul id="entries"></ul>
-    </section>
-
-    <!-- Editor -->
-    <section class="page" id="rightPage">
-      <!-- STICKY TOOLBAR -->
-      <div id="toolbar" role="toolbar" aria-label="Textverktyg">
-        <!-- Grupp 1: textstil -->
-        <div class="group">
-          <button id="boldBtn" class="btn" title="Fet (Ctrl+B)"><b>B</b></button>
-          <button id="italicBtn" class="btn" title="Kursiv (Ctrl+I)"><i>I</i></button>
-          <button id="underlineBtn" class="btn" title="Understryk (Ctrl+U)"><u>U</u></button>
-          <button id="strikeBtn" class="btn" title="Genomstruken">S</button>
-          <button id="clearFmtBtn" class="btn" title="Rensa formatering">⨂</button>
-        </div>
-
-        <!-- Grupp 2: block/justering/lista -->
-        <div class="group">
-          <select id="blockSelect" title="Block">
-            <option value="p">Brödtext</option>
-            <option value="h1">Rubrik 1</option>
-            <option value="h2">Rubrik 2</option>
-            <option value="h3">Rubrik 3</option>
-            <option value="blockquote">Citat</option>
-          </select>
-          <button id="leftBtn" class="btn" title="Vänster">⟸</button>
-          <button id="centerBtn" class="btn" title="Centrera">⇔</button>
-          <button id="rightBtn" class="btn" title="Höger">⟹</button>
-          <button id="justifyBtn" class="btn" title="Justera">≋</button>
-          <button id="ulBtn" class="btn" title="Punktlista">• Lista</button>
-          <button id="olBtn" class="btn" title="Numrerad lista">1. Lista</button>
-          <button id="hrBtn" class="btn" title="Horisontell linje">— Linje</button>
-          <button id="undoBtn" class="btn" title="Ångra">↶</button>
-          <button id="redoBtn" class="btn" title="Gör om">↷</button>
-        </div>
-
-        <!-- Grupp 3: färg/font -->
-        <div class="group">
-          <label class="swatch" title="Textfärg"><input id="foreColor" type="color"></label>
-          <label class="swatch" title="Markering"><input id="hiliteColor" type="color" value="#fff7a8"></label>
-          <label class="swatch" title="Bakgrund block"><input id="blockBg" type="color" value="#ffffff"></label>
-          <select id="fontFamily" title="Font" style="min-width:160px"></select>
-          <select id="fontSize" title="Storlek">
-            <option>14px</option><option selected>16px</option><option>18px</option>
-            <option>20px</option><option>22px</option><option>24px</option><option>28px</option>
-          </select>
-        </div>
-
-        <!-- Grupp 4: infoga/verktyg -->
-        <div class="group">
-          <button id="linkBtn" class="btn" title="Infoga länk">🔗</button>
-          <button id="unlinkBtn" class="btn" title="Ta bort länk">✂︎🔗</button>
-          <button id="btnImage" class="btn" title="Infoga bild">🖼️</button>
-          <button id="btnImgSmaller" class="btn" title="Mindre bild">➖</button>
-          <button id="btnImgBigger" class="btn" title="Större bild">➕</button>
-          <button id="btnAudio" class="btn" title="Infoga ljud">🎵</button>
-          <button id="emojiBtn" class="btn" title="Emoji">😊</button>
-          <button id="stampBtn" class="btn" title="Infoga datum/tid">🗓️</button>
-          <button id="copyBtn" class="btn" title="Kopiera">⎘</button>
-          <button id="pasteBtn" class="btn" title="Klistra in">📋</button>
-          <button id="ttsBtn" class="btn" title="Läs upp">🔊</button>
-          <button id="favoriteBtn" class="btn" title="Favorit">☆</button>
-          <button id="quickThemeBtn" class="btn" title="Tema snabbväxling">🌓</button>
-        </div>
-      </div>
-
-      <input id="titleInput" class="titleInput" placeholder="Titel…">
-      <div id="dateLine"></div>
-      <div id="editor" contenteditable="true" spellcheck="true"></div>
-
-      <div id="actions">
-        <button id="newBtn" class="btn">Ny sida</button>
-        <button id="saveBtn" class="btn">Spara</button>
-        <button id="deleteBtn" class="btn danger">Radera</button>
-        <button id="lockBtn" class="btn">Lås</button>
-      </div>
-    </section>
-  </div>
+  <button id="menuToggle" class="btn-ghost">☰</button>
 
   <!-- Sidomeny -->
   <aside id="menu" aria-hidden="true">
     <h2>Meny</h2>
     <button id="exportBtn" class="btn">Exportera (.json)</button>
-    <input id="importInput" type="file" accept="application/json" hidden>
     <button id="importBtn" class="btn">Importera (.json)</button>
+    <input id="importInput" type="file" accept="application/json" hidden>
 
     <label for="themeSelect">Tema</label>
-    <select id="themeSelect">
+    <select id="themeSelect" class="btn">
       <option value="light">Ljust</option>
       <option value="dark">Mörkt</option>
     </select>
 
     <button id="memoryBtn" class="btn">Minnesläge</button>
-    <button id="wipeBtn" class="btn danger">Rensa ALL lokal data</button>
+    <button id="wipeBtn" class="btn">Rensa ALL lokal data</button>
+    <button id="forceUpdateBtn" class="btn">Uppdatera app</button>
   </aside>
 
   <!-- Låsskärm -->
-  <div id="lockscreen" class="lock">
-    <div class="card">
-      <h2>🔒 Retro Diary</h2>
-      <input type="password" id="passInput" placeholder="Dagbokens lösenord">
-      <div class="row">
-        <button id="setPassBtn" class="btn">Sätt nytt lösen</button>
-        <button id="unlockBtn"  class="btn">Lås upp</button>
-      </div>
-      <button id="wipeLocalOnLock" class="btn danger">Rensa ALL lokal data</button>
-      <p id="status"></p>
+  <section id="lockScreen">
+    <h2>🔒 Låsdagbok</h2>
+    <input id="passInput" type="password" placeholder="Lösenord">
+    <button id="setPassBtn" class="btn">Sätt lösenord</button>
+    <button id="unlockBtn" class="btn">Lås upp</button>
+    <button id="wipeLocalOnLock" class="btn">Rensa ALL data</button>
+  </section>
+
+  <!-- Editor -->
+  <main id="main">
+    <header id="toolbar">
+      <button id="boldBtn" class="btn">B</button>
+      <button id="italicBtn" class="btn">I</button>
+      <button id="underlineBtn" class="btn">U</button>
+      <button id="strikeBtn" class="btn">S</button>
+      <button id="clearBtn" class="btn">⨉</button>
+      <button id="undoBtn" class="btn">↺</button>
+      <button id="redoBtn" class="btn">↻</button>
+      <button id="olBtn" class="btn">1.</button>
+      <button id="ulBtn" class="btn">•</button>
+      <button id="leftBtn" class="btn">⇤</button>
+      <button id="rightBtn" class="btn">⇥</button>
+      <button id="linkBtn" class="btn">🔗</button>
+      <button id="imgBtn" class="btn">🖼</button>
+      <input id="imgFile" type="file" accept="image/*" hidden>
+      <button id="audioBtn" class="btn">🎵</button>
+      <input id="audioFile" type="file" accept="audio/*" hidden>
+      <select id="fontSelect"></select>
+      <input id="colorPicker" type="color">
+      <button id="emojiBtn" class="btn">😊</button>
+      <button id="dateBtn" class="btn">📅</button>
+    </header>
+
+    <input id="titleInput" type="text" placeholder="Titel...">
+    <div id="editor" contenteditable="true"></div>
+    <p id="dateLine"></p>
+
+    <div class="actions">
+      <button id="newBtn" class="btn">Ny sida</button>
+      <button id="saveBtn" class="btn">Spara</button>
+      <button id="deleteBtn" class="btn">Radera</button>
+      <button id="lockBtn" class="btn">Lås</button>
     </div>
-  </div>
 
-  <!-- Dolda filinputs -->
-  <input id="imgFile"   type="file" accept="image/*" hidden>
-  <input id="audioFile" type="file" accept="audio/*" hidden>
+    <section id="entries"></section>
+  </main>
 
-  <!-- Force-update -->
-  <button id="forceUpdateBtn" title="Rensa cache och ladda om">⟳ Uppdatera app</button>
+  <footer>
+    <span id="status"></span>
+  </footer>
 
-  <!-- JS (finns redan hos dig) + ny editor.js nedan -->
-  <script src="fonts_db.js"></script>
-  <script src="crypto.js"></script>
-  <script src="storage.js"></script>
-  <script src="lock.js"></script>
-
-  <!-- NY/UPPDATERAD -->
-  <script src="editor.js"></script>
-  <script src="memory.js"></script>
-  <script src="app.js"></script>
-
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').catch(()=>{});
-    }
-  </script>
+  <!-- Scripts -->
+  <script src="fonts_db.js" defer></script>
+  <script src="crypto.js" defer></script>
+  <script src="storage.js" defer></script>
+  <script src="lock.js" defer></script>
+  <script src="editor.js" defer></script>
+  <script src="memory.js" defer></script>
+  <script src="app.js" defer></script>
 </body>
   </html>
