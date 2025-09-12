@@ -5,91 +5,59 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Retro Diary</title>
 
+  <!-- PWA -->
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#2b1a14" />
+  <meta name="theme-color" content="#3a241a"/>
 
-  <!-- Bas-typsnitt (UI). Redaktörens typsnitt väljs dynamiskt via fonts.js -->
-  <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=IM+Fell+English&display=swap" rel="stylesheet">
+  <!-- Google Fonts: 16 familjer (matchar fonts_db.js) -->
+  <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=IM+Fell+English&family=Dancing+Script&family=Roboto+Slab:wght@400;700&family=Merriweather:wght@400;700&family=Playfair+Display:wght@400;700&family=Lora:wght@400;700&family=Crimson+Text:wght@400;700&family=Cardo:wght@400;700&family=Spectral:wght@400;700&family=Kalam:wght@300;400;700&family=Courgette&family=Handlee&family=Cormorant+Garamond:wght@400;700&family=Source+Serif+4:wght@400;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="styles.css?v=bookX" />
+  <link rel="stylesheet" href="styles.css?v=fonts1">
 </head>
 <body class="locked">
 
   <!-- Menyknapp -->
-  <button id="menuToggle" aria-label="Meny">☰</button>
+  <button id="menuToggle" class="menu-btn" aria-label="Meny">☰</button>
 
-  <!-- Boklayout -->
+  <!-- Bok -->
   <div class="book">
-    <!-- Vänstersida: Innehåll -->
+    <!-- Vänster sida: innehåll -->
     <section class="page" id="leftPage">
       <h2>Innehåll</h2>
-      <ul id="entries"></ul>
+      <ul id="entries" class="entries"></ul>
     </section>
 
-    <!-- Högersida: Editor -->
+    <!-- Höger sida: editor -->
     <section class="page" id="rightPage">
-      <!-- Verktygsrad -->
       <div id="toolbar" class="toolbar">
-        <!-- Stil -->
-        <button class="btn" id="boldBtn" title="Fet (Ctrl+B)"><span>B</span></button>
-        <button class="btn" id="italicBtn" title="Kursiv (Ctrl+I)"><span>I</span></button>
-        <button class="btn" id="underlineBtn" title="Understruken (Ctrl+U)"><span>U</span></button>
-        <button class="btn" id="strikeBtn" title="Överstrykning"><span>S</span></button>
+        <button data-cmd="bold"><b>B</b></button>
+        <button data-cmd="italic"><i>I</i></button>
+        <button data-cmd="underline"><u>U</u></button>
 
-        <span class="divider"></span>
+        <button data-cmd="justifyLeft">⟸</button>
+        <button data-cmd="justifyCenter">≡</button>
+        <button data-cmd="justifyRight">⟹</button>
 
-        <!-- Block/rubrik -->
-        <label class="selectwrap" title="Rubriknivå">
-          <select id="blockSelect">
-            <option value="p">Brödtext</option>
-            <option value="h1">Rubrik 1</option>
-            <option value="h2">Rubrik 2</option>
-            <option value="h3">Rubrik 3</option>
-            <option value="blockquote">Citat</option>
-            <option value="pre">Kod</option>
-          </select>
-        </label>
+        <button id="ulBtn">• List</button>
+        <button id="olBtn">1. List</button>
 
-        <span class="divider"></span>
+        <input id="colorBtn" type="color" title="Textfärg"/>
 
-        <!-- Listor -->
-        <button class="btn" id="ulBtn" title="Punktlista">• List</button>
-        <button class="btn" id="olBtn" title="Numrerad lista">1. List</button>
+        <button id="linkBtn" title="Länk">🔗</button>
 
-        <span class="divider"></span>
-
-        <!-- Justering -->
-        <button class="btn" id="leftBtn"   title="Vänsterjustera">⟸</button>
-        <button class="btn" id="centerBtn" title="Centrera">⟷</button>
-        <button class="btn" id="rightBtn"  title="Högerjustera">⟹</button>
-        <button class="btn" id="justifyBtn" title="Justera">≋</button>
-
-        <span class="divider"></span>
-
-        <!-- Färger -->
-        <label class="swatch" title="Textfärg"><input id="colorBtn" type="color"/></label>
-        <label class="swatch" title="Markering"><input id="hiliteBtn" type="color" value="#fff2a8"/></label>
-
-        <span class="divider"></span>
-
-        <!-- Länk, städ & ångra/gör om -->
-        <button class="btn" id="linkBtn"  title="Infoga länk">🔗</button>
-        <button class="btn" id="clearBtn" title="Ta bort formatering">⟲</button>
-        <button class="btn" id="undoBtn"  title="Ångra (Ctrl+Z)">↶</button>
-        <button class="btn" id="redoBtn"  title="Gör om (Ctrl+Y)">↷</button>
-
-        <span class="divider"></span>
-
-        <!-- Font (från fonts.js) -->
-        <label class="selectwrap" title="Typsnitt (endast editor)">
+        <!-- Font-knapp -->
+        <label class="font-label">Font:
           <select id="fontSelect"></select>
         </label>
+
+        <!-- Bakgrundsmarkering -->
+        <input id="hiliteBtn" type="color" value="#fff2b3" title="Markera"/>
       </div>
 
-      <div id="dateLine"></div>
-      <div id="editor" contenteditable="true" spellcheck="true"></div>
+      <div id="dateLine" class="muted"></div>
+      <div id="editor" class="editor" contenteditable="true" spellcheck="true"></div>
 
-      <div id="actions">
+      <div id="actions" class="actions">
         <button id="newBtn">Ny sida</button>
         <button id="saveBtn">Spara</button>
         <button id="deleteBtn" class="danger">Radera</button>
@@ -101,11 +69,9 @@
   <!-- Sidomeny -->
   <aside id="menu" aria-hidden="true">
     <h2>Meny</h2>
-
     <button id="exportBtn">Exportera (.json)</button>
     <input id="importInput" type="file" accept="application/json" hidden>
     <button id="importBtn">Importera (.json)</button>
-
     <button id="wipeBtn" class="danger">Rensa ALL lokal data</button>
   </aside>
 
@@ -123,15 +89,15 @@
     </div>
   </div>
 
-  <!-- Force update -->
+  <!-- Tvinga cache-refresh -->
   <button id="forceUpdateBtn" title="Rensa cache och ladda om">⟳ Uppdatera app</button>
 
-  <script src="fonts.js?v=bookX"></script>
-  <script src="app.js?v=bookX"></script>
+  <script src="fonts_db.js?v=fonts1"></script>
+  <script src="app.js?v=fonts1"></script>
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js?v=bookX').catch(()=>{});
+      navigator.serviceWorker.register('sw.js').catch(()=>{});
     }
   </script>
 </body>
-          </html>
+</html>
