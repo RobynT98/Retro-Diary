@@ -1,108 +1,139 @@
 <!DOCTYPE html>
 <html lang="sv">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Retro Diary</title>
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#2b1a14">
-  <style>
-    :root{--ink:#1a120b}
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-         background:#2b1a14 url(leather.jpg) center/cover fixed;color:var(--ink)}
-    .book{max-width:980px;width:min(96vw,980px);margin:18px auto;border-radius:10px;overflow:hidden}
-    .row{display:flex;gap:10px;flex-wrap:wrap}
-    #toolbar button,#actions button,#menu button,#lockscreen button{
-      appearance:none;border:none;border-radius:8px;padding:10px 14px;font-weight:700;color:#fff;
-      background:linear-gradient(#c94141,#a02b2b);box-shadow:0 2px 0 #7f2222;cursor:pointer}
-    #toolbar{display:flex;gap:8px;margin:10px 0}
-    #editor{min-height:55vh;padding:16px 18px;background:rgba(255,255,240,.9);
-            border:1px solid rgba(0,0,0,.15);border-radius:8px}
-    #menuToggle{position:fixed;top:12px;left:12px;background:#111;color:#fff;border:1px solid #444;border-radius:8px;padding:8px 10px;z-index:1200}
-    #menu{position:fixed;top:0;right:-280px;width:260px;height:100%;background:#111;color:#fff;border-left:1px solid #000;
-          padding:16px;transition:right .25s;z-index:1100;display:flex;flex-direction:column;gap:10px}
-    #menu.open{right:0}
-    #entries{list-style:none;margin:0;padding:0;max-height:62vh;overflow:auto}
-    #entries li{padding:10px 12px;margin:6px 0;border:1px dashed rgba(0,0,0,.25);background:rgba(255,255,255,.35);border-radius:6px;cursor:pointer}
-    /* Lås-styrning */
-    #lockscreen{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;z-index:9999}
-    #lockscreen .card{width:min(520px,92vw);background:#111;color:#fff;border:1px solid #3a0f0f;border-radius:12px;padding:22px;text-align:center}
-    #lockscreen input{width:100%;padding:12px 14px;border:1px solid #444;border-radius:8px;margin:10px 0 12px;background:#000;color:#fff;font-size:16px}
-    #status{margin-top:8px;color:#ffd2d2;font-size:14px}
-    /* Force update-knapp – synlig även låst */
-    #forceUpdateBtn{position:fixed;bottom:12px;right:12px;background:#222;color:#fff;border:1px solid #c33;border-radius:6px;
-                    padding:8px 10px;font-size:13px;opacity:.9;z-index:1300}
-  </style>
+  <link rel="stylesheet" href="styles.css?v=rich21">
+  <!-- Google Fonts för några standardfamiljer -->
+  <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=IM+Fell+English&family=Dancing+Script&family=Merriweather:wght@400;700&family=Playfair+Display:wght@400;700&family=Crimson+Text:wght@400;700&family=Roboto+Slab:wght@400;700&display=swap" rel="stylesheet">
 </head>
-<body>
+<body class="locked" data-theme="parchment">
+  <button id="menuToggle" aria-label="Meny">☰</button>
 
-  <!-- Menyknapp -->
-  <button id="menuToggle" type="button" aria-label="Meny">☰</button>
-
-  <!-- Bok -->
-  <div class="book" id="book">
-    <section class="page" style="background:url(parchment.jpg) center/cover #f6f0dc;padding:18px">
+  <div class="book">
+    <div class="page" id="leftPage" style="background: var(--paper) center/cover;">
       <h2>Innehåll</h2>
       <ul id="entries"></ul>
-    </section>
+    </div>
 
-    <section class="page" style="background:url(parchment.jpg) center/cover #f6f0dc;padding:18px">
-      <div id="toolbar">
-        <button id="boldBtn"      type="button"><b>B</b></button>
-        <button id="italicBtn"    type="button"><i>I</i></button>
-        <button id="underlineBtn" type="button"><u>U</u></button>
-        <input  id="colorBtn" type="color" aria-label="Textfärg"/>
+    <div class="page" id="rightPage" style="background: var(--paper) center/cover;">
+      <input id="titleInput" class="title" placeholder="Titel (valfritt)">
+      <div id="dateLine"></div>
+
+      <div id="toolbar" class="row">
+        <button id="boldBtn"><b>B</b></button>
+        <button id="italicBtn"><i>I</i></button>
+        <button id="underlineBtn"><u>U</u></button>
+
+        <button id="alignLeftBtn">⇤</button>
+        <button id="alignCenterBtn">≡</button>
+        <button id="alignRightBtn">⇥</button>
+        <button id="justifyBtn">≣</button>
+
+        <button id="ulBtn">• Lista</button>
+        <button id="olBtn">1. Lista</button>
+
+        <button id="linkBtn">🔗</button>
+        <button id="imageBtn">🖼️ URL</button>
+        <button id="uploadImgBtn">⬆️ Bild</button>
+        <button id="audioBtn">🎵 URL</button>
+        <button id="uploadAudioBtn">⬆️ Ljud</button>
+        <button id="galleryBtn">📚 Galleri</button>
+        <button id="emojiBtn">😊</button>
+
+        <input id="fgBtn" type="color" title="Textfärg">
+        <input id="bgBtn" type="color" title="Markeringsfärg">
+
+        <select id="fontFamily" title="Typsnitt"></select>
+        <select id="fontSize" title="Storlek">
+          <option value="3">Brödtext</option>
+          <option value="1">Litet</option>
+          <option value="2">Mindre</option>
+          <option value="4">Större</option>
+          <option value="5">Rubrik 3</option>
+          <option value="6">Rubrik 2</option>
+          <option value="7">Rubrik 1</option>
+        </select>
+
+        <button id="imgSmallerBtn">🖼️−</button>
+        <button id="imgLargerBtn">🖼️+</button>
+
+        <button id="undoBtn">↶</button>
+        <button id="redoBtn">↷</button>
+        <button id="hrBtn">— Linje</button>
+
+        <button id="themeBtn" title="Byt tema">🕯️</button>
+        <button id="memorialBtn" title="Minnesläge">🕊️</button>
       </div>
 
-      <div id="dateLine" style="opacity:.7"></div>
       <div id="editor" contenteditable="true" spellcheck="true"></div>
 
-      <div id="actions" class="row" style="margin-top:12px">
-        <button id="newBtn"    type="button">Ny sida</button>
-        <button id="saveBtn"   type="button">Spara</button>
-        <button id="deleteBtn" type="button" class="danger">Radera</button>
-        <button id="lockBtn"   type="button">Lås</button>
+      <div id="actions" class="row">
+        <button id="newBtn">Ny sida</button>
+        <button id="saveBtn">Spara</button>
+        <button id="deleteBtn" class="danger">Radera</button>
+        <button id="lockBtn">Lås</button>
       </div>
-    </section>
+    </div>
   </div>
 
   <!-- Sidomeny -->
   <aside id="menu" aria-hidden="true">
     <h2>Meny</h2>
-    <button id="exportBtn" type="button">Exportera (.json)</button>
+    <button id="exportBtn">Exportera (.json)</button>
     <input id="importInput" type="file" accept="application/json" hidden>
-    <button id="importBtn" type="button">Importera (.json)</button>
-    <button id="wipeBtn"   type="button" class="danger">Rensa ALL lokal data</button>
+    <button id="importBtn">Importera (.json)</button>
+    <button id="wipeBtn" class="danger">Rensa ALL lokal data</button>
+
+    <h3>Minnessida</h3>
+    <p>Kort text som visas överst i minnesläge:</p>
+    <textarea id="memorialNote" rows="3" placeholder="Ex: Till minne av …"></textarea>
   </aside>
 
-  <!-- Låsskärm (synlig vid start) -->
+  <!-- Galleri-modal -->
+  <div id="galleryModal" class="modal" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Galleri</h3>
+        <button id="closeGallery">✕</button>
+      </div>
+      <div id="galleryGrid" class="grid"></div>
+    </div>
+  </div>
+
+  <!-- Dolda filinputar -->
+  <input id="imgFileInput" type="file" accept="image/*" hidden>
+  <input id="audioFileInput" type="file" accept="audio/*" hidden>
+
+  <!-- Låsskärm -->
   <div id="lockscreen" aria-hidden="false">
     <div class="card">
       <h2>🔒 Retro Diary</h2>
       <input id="passInput" type="password" placeholder="Lösenord">
-      <div class="row" style="justify-content:center">
-        <button id="setPassBtn"    type="button">Sätt nytt lösen</button>
-        <button id="unlockBtn"     type="button">Lås upp</button>
+      <div class="row">
+        <button id="setPassBtn">Sätt nytt lösen</button>
+        <button id="unlockBtn">Lås upp</button>
       </div>
-      <button id="wipeLocalOnLock" type="button" class="danger">Rensa ALL lokal data</button>
+      <button id="wipeLocalOnLock" class="danger">Rensa ALL lokal data</button>
       <div id="status" aria-live="polite"></div>
     </div>
   </div>
 
-  <!-- Uppdatera (rensar SW + cache) – synlig även låst -->
-  <button id="forceUpdateBtn" type="button" title="Rensa cache och ladda om">⟳ Uppdatera app</button>
+  <!-- Uppdatera (synlig även låst) -->
+  <button id="forceUpdateBtn" title="Rensa cache och ladda om">⟳ Uppdatera app</button>
 
   <script>
-    console.log("index: laddar app.js …");
+    // Ladda font-databas från JSON
+    window.FONT_DB = [];
+    fetch('fonts_db.json?v=rich21').then(r=>r.json()).then(js=>window.FONT_DB=js).catch(()=>{});
   </script>
-  <script src="app.js?build=20250912-1"></script>
+  <script src="app.js?v=rich21"></script>
   <script>
-    setTimeout(()=>{ if(!window.__APP_WIRED__) alert("app.js verkar inte ha laddats. Tryck 'Uppdatera app'."); }, 900);
-    if('serviceWorker' in navigator){
-      navigator.serviceWorker.register('sw.js?build=20250912-1').catch(()=>{});
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js?v=rich21').catch(()=>{});
     }
   </script>
 </body>
-</html>
+  </html>
