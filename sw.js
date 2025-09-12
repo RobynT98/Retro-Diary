@@ -1,42 +1,68 @@
-const CACHE_NAME = "retro-diary-v27"; // <-- bumpad version
-const CORE_ASSETS = [
-  "/", 
-  "index.html",
-  "styles.css",
-  "theme_memory.css",
-  "memory.js",
-  "app.js",
-  "crypto.js",
-  "lock.js",
-  "storage.js",
-  "editor.js",
-  "fonts_db.js",
-  "manifest.json",
-  "leather.jpg",
-  "parchment.jpg",
-  "paper_faded.jpg",
-  "stars.jpg"
+// ---- Retro Diary Service Worker ----
+// Bumpa versionen när du ändrar filer:
+const CACHE_VER  = "v3";                         // ändra t.ex. till v4 vid uppdatering
+const CACHE_NAME = `retro-diary-${CACHE_VER}`;
+
+const ASSETS = [
+  "./",
+  "./index.html",
+
+  // Stilar
+  "./styles.css",
+  "./modern.css",
+  "./theme_light.css",
+  "./theme_dark.css",
+
+  // JS-moduler
+  "./fonts_db.js",
+  "./crypto.js",
+  "./storage.js",
+  "./lock.js",
+  "./editor.js",
+  "./memory.js",
+  "./app.js",
+
+  // Bilder / bakgrunder / ikoner
+  "./leather.jpg",
+  "./parchment.jpg",
+  "./stars.jpg",
+  "./paper_faded.jpg",
+  "./icon-192.png",
+  "./icon-512.png",
+
+  // Manifest
+  "./manifest.json"
 ];
 
-// Install
-self.addEventListener("install", e => {
-  e.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(CORE_ASSETS))
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.addAll(ASSETS))
+      .then(() => self.skipWaiting())
   );
 });
 
-// Activate – rensa gammalt
-self.addEventListener("activate", e => {
-  e.waitUntil(
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-    )
+      Promise.all(keys
+        .filter(k => k !== CACHE_NAME)
+        .map(k => caches.delete(k))
+      )
+    ).then(() => self.clients.claim())
   );
 });
 
-// Fetch – nät först, fallback cache
-self.addEventListener("fetch", e => {
-  e.respondWith(
-    fetch(e.request).catch(() => caches.match(e.request))
+// Network first, fallback till cache. Cache uppdateras i bakgrunden.
+self.addEventListener("fetch", (event) => {
+  const req = event.request;
+  event.respondWith(
+    fetch(req)
+      .then((res) => {
+        const copy = res.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
+        return res;
+      })
+      .catch(() => caches.match(req))
   );
 });
