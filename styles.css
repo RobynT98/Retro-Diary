@@ -1,290 +1,169 @@
-/* =================== THEME VARS =================== */
-:root{
-  /* Palett: retro + modern */
-  --bg: #121214;
-  --panel: #1a1b1e;
-  --panel-2: #202127;
-  --ink: #e9e9ef;
-  --muted: #b6b6c2;
-  --brand: #7df9ff;         /* cyan-glöd */
-  --brand-2: #ff9efc;       /* retro magenta */
-  --accent: #9dff57;        /* limegrön */
-  --danger: #ff6b6b;
+/* ===== Retro Diary Lite – Maskulin Stil ===== */
 
-  /* UI neutrals */
-  --line: #2a2b31;
-  --shadow: 0 10px 20px rgba(0,0,0,.35);
-
-  /* Typo */
-  --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, "Noto Sans", sans-serif;
-  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-
-  /* Radier & spacing */
-  --r: 16px;
-  --r-sm: 10px;
-  --pad: 14px;
-  --gap: 14px;
-
-  /* Subtil “scanline”/brus för CRT-känsla */
-  --noise: radial-gradient(circle at 20% 20%, rgba(255,255,255,.025), transparent 40%),
-           radial-gradient(circle at 80% 0%, rgba(255,255,255,.015), transparent 45%),
-           repeating-linear-gradient(0deg, rgba(255,255,255,.03), rgba(255,255,255,.03) 1px, transparent 2px, transparent 3px);
+/* Färgpalett */
+:root {
+  --bg: #111;            /* mörk bas */
+  --bg-alt: #1b1b1b;     /* alternativ yta */
+  --accent: #b22222;     /* mörkröd accent */
+  --accent-soft: #8b0000;
+  --text: #f0f0f0;
+  --text-dim: #aaa;
+  --success: #2e8b57;    /* grönt för hopp */
+  --error: #cc3333;
+  --shadow: rgba(0,0,0,0.6);
 }
 
-/* =================== BASE =================== */
-*{ box-sizing: border-box; }
-html, body{ height:100%; }
-body{
-  margin:0;
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
   background: var(--bg);
-  color: var(--ink);
-  font: 15px/1.5 var(--font);
-  letter-spacing:.15px;
-  /* Diskret CRT-textur */
-  background-image: var(--noise);
-  background-blend-mode: overlay;
+  color: var(--text);
+  font-family: "Courier New", monospace;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
-h1,h2,h3{ margin:0 0 8px; line-height:1.2; }
-h1{ font-size: 22px; }
-h2{ font-size: 18px; color: var(--brand); }
-h3{ font-size: 16px; color: var(--brand-2); }
+/* Titlebar */
+.titlebar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: .6rem 1rem;
+  background: linear-gradient(to right, var(--bg-alt), #000);
+  box-shadow: 0 2px 6px var(--shadow);
+}
+.titlebar h1 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--accent);
+  letter-spacing: 1px;
+}
 
-a, .linklike{
-  color: var(--brand);
+/* Buttons */
+button {
+  background: var(--bg-alt);
+  color: var(--text);
+  border: 1px solid var(--accent-soft);
+  padding: .4rem .8rem;
+  margin: .2rem;
+  border-radius: 4px;
+  font-size: .9rem;
   cursor: pointer;
-  text-decoration: none;
+  transition: background .2s, transform .1s;
 }
-.linklike:hover{ text-decoration: underline; }
-
-small, .tiny{ color: var(--muted); font-size: 12px; }
-.status{ min-height: 18px; color: var(--muted); }
-
-/* Inputs & buttons */
-input[type="text"], input[type="email"], input[type="password"], input[type="color"]{
-  width:100%; background: var(--panel-2); border:1px solid var(--line); color:var(--ink);
-  padding:10px 12px; border-radius: var(--r-sm); outline:none;
+button:hover {
+  background: var(--accent);
+  transform: translateY(-1px);
 }
-input:focus{ border-color: var(--brand); box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 25%, transparent); }
-
-button{
-  background: linear-gradient(180deg, #2a2b31, #222328);
-  color: var(--ink); border:1px solid var(--line);
-  padding:9px 12px; border-radius: var(--r-sm); cursor:pointer; box-shadow: var(--shadow);
-  transition: transform .05s ease, border-color .2s ease, background .2s ease;
-}
-button:hover{ border-color: color-mix(in srgb, var(--brand) 40%, var(--line)); }
-button:active{ transform: translateY(1px); }
-button.ghost{
-  background: transparent; border-color: var(--line); box-shadow: none;
-}
-button.danger{ border-color: color-mix(in srgb, var(--danger) 45%, var(--line)); color:#ffdede; }
-.filebtn{ display:inline-flex; align-items:center; gap:8px; }
-
-.field{ display:flex; gap:10px; align-items:center; margin:8px 0; }
-hr{ border:none; border-top:1px solid var(--line); margin:8px 0; }
-
-/* Scrollbars (webkit) */
-*::-webkit-scrollbar{ width:10px; height:10px; }
-*::-webkit-scrollbar-track{ background: transparent; }
-*::-webkit-scrollbar-thumb{ background: #2f3036; border-radius: 10px; border:2px solid transparent; background-clip: padding-box; }
-*::-webkit-scrollbar-thumb:hover{ background:#3a3b41; }
-
-/* Små utility-klasser */
-.center{ display:grid; place-items:center; }
-.row{ display:flex; gap:10px; align-items:center; }
-/* =================== FRAME & TITLEBAR =================== */
-.frame{ height:100%; display:flex; flex-direction:column; }
-
-.titlebar{
-  display:flex; justify-content:space-between; align-items:center;
-  gap:12px; padding:10px var(--pad);
-  border-bottom:1px solid var(--line);
-  background: linear-gradient(180deg, #17181b, #141518);
-  position: sticky; top:0; z-index: 20;
+button:disabled {
+  opacity: .5;
+  cursor: not-allowed;
 }
 
-.brand{ display:flex; align-items:center; gap:10px; font-weight:600; letter-spacing:.3px; }
-.badge{
-  width:14px; height:14px; border-radius:50%;
-  background: radial-gradient(circle at 30% 30%, var(--brand), #116f7a 60%, #0b1b1f);
-  box-shadow: 0 0 12px rgba(125,249,255,.6);
+/* Layout */
+main {
+  flex: 1;
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
 }
-
-.actions{ display:flex; align-items:center; gap:10px; }
-
-/* =================== WRAP LAYOUT =================== */
-.wrap{
-  display:grid; grid-template-columns: 280px 1fr; gap: var(--gap);
-  padding: var(--gap);
+#sidebar {
+  width: 220px;
+  background: var(--bg-alt);
+  border-right: 2px solid var(--accent-soft);
+  padding: .5rem;
+  overflow-y: auto;
 }
-
-/* Sidebar */
-.sidebar{
-  background: linear-gradient(180deg, #17181d, #14151a);
-  border:1px solid var(--line);
-  border-radius: var(--r);
-  padding: var(--pad);
-  box-shadow: var(--shadow);
-  min-height: calc(100dvh - 120px);
-  position: sticky; top: 62px;
+#sidebar h2 {
+  font-size: .9rem;
+  color: var(--text-dim);
+  margin: .3rem 0 .6rem;
 }
-.entry-list{ display:flex; flex-direction:column; gap:10px; max-height: calc(100dvh - 160px); overflow:auto; }
-.entry-item{
-  display:flex; justify-content:space-between; align-items:center; gap:10px;
-  padding:10px; border:1px solid var(--line); border-radius: var(--r-sm);
-  background: #1b1c22;
+#entries {
+  list-style: none;
+  padding: 0;
+  margin: 0;
 }
-.entry-item:hover{ border-color:#343640; }
-.entry-item .ghost{ white-space:nowrap; }
-
-/* Content */
-.content{
-  background: linear-gradient(180deg, #18191f, #15161b);
-  border:1px solid var(--line);
-  border-radius: var(--r);
-  padding: var(--pad);
-  box-shadow: var(--shadow);
-  min-height: calc(100dvh - 120px);
-  display:flex; flex-direction:column; gap: 10px;
+#entries li {
+  padding: .4rem .6rem;
+  margin-bottom: .3rem;
+  background: #191919;
+  border-left: 3px solid var(--accent-soft);
+  cursor: pointer;
 }
-
-.date-line{
-  color: var(--muted);
-  font-weight:600; letter-spacing:.3px;
+#entries li:hover {
+  background: var(--accent-soft);
 }
-
-/* =================== RTF TOOLBAR =================== */
-.rt-toolbar{
-  display:flex; flex-wrap:wrap; gap:10px; align-items:center;
-  background:#15161b; border:1px solid var(--line); border-radius: var(--r-sm);
-  padding:8px; position: sticky; top: 62px; z-index: 10;
-}
-.rt-toolbar .btn-group{ display:flex; gap:6px; }
-.rt-toolbar button{ padding:8px 10px; }
 
 /* Editor */
-.editor{
-  flex:1 1 auto; min-height: 45vh;
-  background: #0f1013; border:1px solid var(--line);
-  border-radius: var(--r-sm); padding: 14px;
-  outline:none; overflow:auto; line-height: 1.6;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.02);
+#editor {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
-.editor:focus{ border-color: #33414a; box-shadow: 0 0 0 2px rgba(125,249,255,.15) inset; }
-.editor a{ color: var(--brand-2); }
-.editor h1,.editor h2{ margin: 8px 0 6px; }
-.editor p{ margin: 8px 0; }
-.editor[data-placeholder]:empty:before{
-  content: attr(data-placeholder); color: #6c6d75; pointer-events:none;
+#toolbar {
+  margin-bottom: .5rem;
 }
-
-/* Footer-stämpel + knappar */
-.toolbar{ display:flex; gap:10px; }
-.stamp{ color: var(--muted); font-family: var(--mono); font-size: 12px; margin-top: 4px; }
-/* =================== MENY =================== */
-.menu{ position:relative; }
-.dropdown{
-  position:absolute; right:0; top: calc(100% + 8px);
-  min-width: 280px; background: #14151a; border:1px solid var(--line); border-radius: var(--r);
-  box-shadow: var(--shadow); padding:8px; z-index: 40;
-  max-height: 70vh; overflow:auto;
+#toolbar button {
+  padding: .3rem .6rem;
+  font-size: .8rem;
 }
-.dropdown button, .dropdown .filebtn{
-  width:100%; justify-content:flex-start; background:#181a20;
-}
-#menuWrap{ position:relative; } /* enklare target */
-
-/* =================== DIALOGER =================== */
-dialog{
-  border:none; background: #16171c; color: var(--ink);
-  padding: 16px; border-radius: var(--r); width:min(520px, 96vw);
-  border:1px solid var(--line); box-shadow: var(--shadow);
-}
-dialog::backdrop{ background: rgba(0,0,0,.55); backdrop-filter: blur(2px); }
-
-/* Återställningsdialog */
-#resetDialog .status{ margin-top: 6px; color: var(--muted); }
-
-/* Visa/Skapa återställningskod */
-#recoveryCode{
-  font-family: var(--mono); letter-spacing: 2px; text-align:center;
-  font-size: 14px; padding: 10px 12px;
+#editorContent {
+  flex: 1;
+  padding: 1rem;
+  background: #191919;
+  border: 1px solid var(--accent-soft);
+  border-radius: 4px;
+  overflow-y: auto;
 }
 
-/* =================== LÅSSKÄRM =================== */
-.lockscreen{
-  position: fixed; inset: 0; background: rgba(4,6,8,.75);
-  display:grid; place-items:center; z-index: 50; backdrop-filter: blur(2px);
+/* Lock screen */
+#lockScreen {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 20;
 }
-.lockcard{
-  width: min(560px, 92vw);
-  background: linear-gradient(180deg, #14151a, #101116);
-  border:1px solid var(--line); border-radius: 18px;
-  padding: 18px; box-shadow: var(--shadow);
+#lockScreen .box {
+  background: var(--bg-alt);
+  padding: 2rem;
+  border: 2px solid var(--accent);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px var(--shadow);
+  text-align: center;
 }
-.lockscreen .hint{ color: var(--muted); margin-bottom: 6px; }
-.lockscreen fieldset{
-  border:1px dashed #30313a; padding: 12px; border-radius: var(--r-sm); margin: 10px 0;
+#lockScreen input {
+  width: 100%;
+  padding: .5rem;
+  margin: .5rem 0;
+  border: 1px solid var(--accent-soft);
+  background: #000;
+  color: var(--text);
 }
-.lockscreen legend{ color: var(--brand); padding: 0 6px; }
-.lockscreen .status{ min-height: 18px; color: #ffef9e; }
 
-/* Dölj menyn och 'Ny sida' när låst */
-body.locked #newEntryBtn,
-body.locked #menuWrap { display: none; }
-body.locked .titlebar .actions #lockBtn{ opacity:.5; pointer-events:none; }
+/* Status text */
+.status {
+  font-size: .8rem;
+  margin-top: .6rem;
+  color: var(--text-dim);
+}
 
-/* =================== IKON-DIALOG =================== */
-#iconDialog .tabs{
-  display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px;
+/* Dialogs */
+dialog {
+  background: var(--bg-alt);
+  color: var(--text);
+  border: 2px solid var(--accent);
+  border-radius: 6px;
+  padding: 1rem;
+  box-shadow: 0 6px 16px var(--shadow);
 }
-#iconDialog .tab{
-  background:#1b1c22; border:1px solid var(--line); padding:6px 10px; border-radius: 999px;
-}
-#iconDialog .tab.active{
-  border-color: color-mix(in srgb, var(--brand) 50%, var(--line));
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 20%, transparent);
-}
-.icon-grid{
-  display:grid; grid-template-columns: repeat(auto-fill, minmax(44px,1fr)); gap:8px;
-  padding:6px; background: #101116; border:1px solid var(--line); border-radius: var(--r-sm);
-}
-.icon-grid button{
-  font-size: 20px; padding:10px; background:#17181d; border-color:#2a2b31;
+dialog::backdrop {
+  background: rgba(0,0,0,0.8);
   }
-/* =================== RESPONSIVE =================== */
-@media (max-width: 980px){
-  .wrap{ grid-template-columns: 1fr; }
-  .sidebar{ position: static; min-height: auto; }
-  .entry-list{ max-height: none; }
-  .rt-toolbar{ top: 0; position: sticky; }
-}
-
-@media (max-width: 520px){
-  .actions{ gap:6px; }
-  .titlebar{ padding: 8px 10px; }
-  .wrap{ padding: 10px; gap: 10px; }
-  .editor{ min-height: 40vh; }
-}
-
-/* =================== GLOW-EFFEKTER =================== */
-button:hover{
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--brand) 20%, transparent),
-    0 8px 20px rgba(0,0,0,.35);
-}
-button:focus-visible{
-  outline: none;
-  box-shadow:
-    0 0 0 2px color-mix(in srgb, var(--brand) 35%, transparent),
-    0 8px 20px rgba(0,0,0,.35);
-}
-
-/* Små “LED”-prickar i paneler (retro vibe) */
-.sidebar, .content{
-  background-image:
-    radial-gradient(circle at 12px 14px, rgba(125,249,255,.12), transparent 20px),
-    radial-gradient(circle at 92% 8%, rgba(255,158,252,.10), transparent 18px);
-  background-blend-mode: screen;
-}
