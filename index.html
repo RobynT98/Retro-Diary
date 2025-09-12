@@ -4,13 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Retro Diary</title>
-  <link rel="manifest" href="manifest.json?v=2">
-  <link rel="stylesheet" href="styles.css?v=2">
-  <link rel="icon" href="icon-192.png">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#b33">
+  <link rel="stylesheet" href="styles.css?v=book13">
 </head>
-<body>
-
-  <!-- Låsskärm -->
+<body class="locked">
   <div id="lockscreen">
     <div class="card">
       <h1>🔒 Retro Diary</h1>
@@ -18,27 +16,23 @@
       <div class="buttons">
         <button id="setPassBtn">Sätt nytt lösen</button>
         <button id="unlockBtn">Lås upp</button>
-        <button id="wipeLocalOnLock" class="danger">Rensa data</button>
+        <button id="wipeBtn" class="danger">Rensa data</button>
       </div>
       <div id="status"></div>
     </div>
   </div>
 
-  <!-- Själva boken -->
   <div id="app" hidden>
     <div class="book">
-      <div class="page left">
-        <h2>Mina sidor</h2>
-        <ul id="entriesList"></ul>
-      </div>
-      <div class="page right">
-        <div class="toolbar">
-          <button id="boldBtn"><b>B</b></button>
-          <button id="italicBtn"><i>I</i></button>
-          <button id="underlineBtn"><u>U</u></button>
-          <input id="colorBtn" type="color">
-        </div>
+      <div id="entries" class="page"></div>
+      <div class="page">
         <div id="editor" contenteditable="true"></div>
+        <div class="toolbar">
+          <button id="boldBtn">B</button>
+          <button id="italicBtn">I</button>
+          <button id="underlineBtn">U</button>
+          <button id="colorBtn">🎨</button>
+        </div>
         <div class="actions">
           <button id="newBtn">Ny sida</button>
           <button id="saveBtn">Spara</button>
@@ -48,30 +42,25 @@
       </div>
     </div>
 
-    <!-- Sidomeny -->
-    <div id="menu">
+    <aside id="menu">
+      <h2>Meny</h2>
       <button id="exportBtn">Exportera JSON</button>
-      <input type="file" id="importInput" accept="application/json" hidden>
       <button id="importBtn">Importera JSON</button>
-      <button id="wipeBtn" class="danger">Rensa allt</button>
-      <label for="fontSelect">Font:</label>
-      <select id="fontSelect">
-        <option value="'Special Elite', cursive">Typewriter</option>
-        <option value="'IM Fell English', serif">Old Book</option>
-        <option value="'Roboto Slab', serif">Modern Serif</option>
-      </select>
-    </div>
-    <button id="menuToggle">☰</button>
+      <input id="importInput" type="file" accept="application/json" hidden>
+      <button id="wipeLocalOnLock" class="danger">Rensa ALL lokal data</button>
+      <div class="fontSelect">
+        <label for="fontSelect">Typsnitt:</label>
+        <select id="fontSelect">
+          <option value="Special Elite">Special Elite</option>
+          <option value="IM Fell English">IM Fell English</option>
+          <option value="serif">Serif</option>
+          <option value="sans-serif">Sans</option>
+        </select>
+      </div>
+    </aside>
   </div>
 
-  <!-- Uppdatera app -->
-  <button id="forceUpdateBtn" class="update">↻ Uppdatera app</button>
-
-  <script src="app.js?v=1"></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js?v=1');
-    }
-  </script>
+  <button id="forceUpdateBtn">↻ Uppdatera app</button>
+  <script src="app.js?v=book13"></script>
 </body>
 </html>
