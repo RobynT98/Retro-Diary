@@ -65,17 +65,29 @@ document.addEventListener('DOMContentLoaded', async ()=>{
     alert('Importerad.'); renderList();
   });
 
-  // Tema
-  const themeSel = document.getElementById('themeSelect');
-  const themeLink= document.getElementById('themeLink');
-  const savedTheme = localStorage.getItem('rd_theme') || 'light';
-  themeSel.value = savedTheme;
-  themeLink.href = savedTheme==='dark' ? 'theme_dark.css' : 'theme_light.css';
-  themeSel.addEventListener('change', ()=>{
-    const v=themeSel.value;
-    localStorage.setItem('rd_theme', v);
-    themeLink.href = v==='dark' ? 'theme_dark.css' : 'theme_light.css';
-  });
+// --- Tema ---
+function setTheme(val) {
+  const b = document.body;
+  // växla klass (används bl.a. av theme_memory.css)
+  b.classList.remove('theme-light','theme-dark');
+  b.classList.add(val === 'dark' ? 'theme-dark' : 'theme-light');
+
+  // växla CSS-fil via <link id="themeLink">
+  const link = document.getElementById('themeLink');
+  if (link) link.href = (val === 'dark') ? 'theme_dark.css' : 'theme_light.css';
+
+  localStorage.setItem('theme', val);
+}
+
+// Anrop vid start:
+document.addEventListener('DOMContentLoaded', () => {
+  const saved = localStorage.getItem('theme') || 'light';
+  setTheme(saved);
+  const sel = document.getElementById('themeSelect');
+  if (sel) sel.value = saved;
+
+  sel?.addEventListener('change', e => setTheme(e.target.value));
+});
 
   // Force-update
   document.getElementById('forceUpdateBtn')?.addEventListener('click', async ()=>{
