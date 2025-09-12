@@ -167,3 +167,49 @@ dialog {
 dialog::backdrop {
   background: rgba(0,0,0,0.8);
   }
+/* === Toolbar === */
+#toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+  padding: .5rem;
+  background: #1a1a1a;
+  border: 1px solid var(--accent-soft);
+  border-radius: 6px;
+  margin-bottom: .6rem;
+}
+
+#toolbar button {
+  flex: 0 0 auto;
+  background: #222;
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: .3rem .6rem;
+  font-size: .8rem;
+}
+
+#toolbar button:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* === Stora actions (spara, ny sida, lås) === */
+button.big {
+  padding: .5rem 1rem;
+  font-weight: bold;
+  background: #191919;
+  border: 2px solid var(--accent-soft);
+  border-radius: 5px;
+}
+
+button.big:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+/* === Lock screen input === */
+#lockScreen input {
+  border-radius: 4px;
+  border: 1px solid var(--accent-soft);
+  padding: .6rem;
+}
