@@ -1,215 +1,180 @@
-/* ===== Retro Diary Lite – Maskulin Stil ===== */
-
-/* Färgpalett */
 :root {
-  --bg: #111;            /* mörk bas */
-  --bg-alt: #1b1b1b;     /* alternativ yta */
-  --accent: #b22222;     /* mörkröd accent */
-  --accent-soft: #8b0000;
-  --text: #f0f0f0;
-  --text-dim: #aaa;
-  --success: #2e8b57;    /* grönt för hopp */
-  --error: #cc3333;
-  --shadow: rgba(0,0,0,0.6);
+  --bg: #0d0d0d;
+  --bg-card: #1a1a1a;
+  --text: #f5f5f5;
+  --accent: #e63946;   /* röd */
+  --accent2: #457b9d;  /* blå */
+  --muted: #888;
+  --border: #333;
+  --radius: 6px;
+  --shadow: 0 2px 8px rgba(0,0,0,.6);
+  font-size: 16px;
 }
-
-* { box-sizing: border-box; }
 
 body {
   margin: 0;
+  font-family: "Courier New", monospace;
   background: var(--bg);
   color: var(--text);
-  font-family: "Courier New", monospace;
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-  height: 100vh;
   display: flex;
   flex-direction: column;
+  height: 100vh;
 }
 
-/* Titlebar */
+h1, h2, h3 {
+  margin: 0;
+  font-weight: normal;
+}
+
+/* Frame & Titlebar */
+.frame {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
 .titlebar {
+  background: var(--bg-card);
+  padding: 0.8rem 1rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: .6rem 1rem;
-  background: linear-gradient(to right, var(--bg-alt), #000);
-  box-shadow: 0 2px 6px var(--shadow);
+  box-shadow: var(--shadow);
+  border-bottom: 1px solid var(--border);
 }
+
 .titlebar h1 {
-  margin: 0;
-  font-size: 1.1rem;
-  color: var(--accent);
+  font-size: 1.2rem;
   letter-spacing: 1px;
 }
 
-/* Buttons */
-button {
-  background: var(--bg-alt);
-  color: var(--text);
-  border: 1px solid var(--accent-soft);
-  padding: .4rem .8rem;
-  margin: .2rem;
-  border-radius: 4px;
-  font-size: .9rem;
-  cursor: pointer;
-  transition: background .2s, transform .1s;
-}
-button:hover {
-  background: var(--accent);
-  transform: translateY(-1px);
-}
-button:disabled {
-  opacity: .5;
-  cursor: not-allowed;
-}
-
-/* Layout */
-main {
-  flex: 1;
-  display: flex;
-  gap: 1rem;
-  padding: 1rem;
-}
-#sidebar {
-  width: 220px;
-  background: var(--bg-alt);
-  border-right: 2px solid var(--accent-soft);
-  padding: .5rem;
-  overflow-y: auto;
-}
-#sidebar h2 {
-  font-size: .9rem;
-  color: var(--text-dim);
-  margin: .3rem 0 .6rem;
-}
-#entries {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-#entries li {
-  padding: .4rem .6rem;
-  margin-bottom: .3rem;
-  background: #191919;
-  border-left: 3px solid var(--accent-soft);
-  cursor: pointer;
-}
-#entries li:hover {
-  background: var(--accent-soft);
+.titlebar .actions button {
+  margin-left: .5rem;
 }
 
 /* Editor */
-#editor {
+#editorWrap {
   flex: 1;
   display: flex;
   flex-direction: column;
 }
-#toolbar {
-  margin-bottom: .5rem;
-}
-#toolbar button {
-  padding: .3rem .6rem;
-  font-size: .8rem;
-}
-#editorContent {
+
+#editor {
   flex: 1;
   padding: 1rem;
-  background: #191919;
-  border: 1px solid var(--accent-soft);
-  border-radius: 4px;
+  outline: none;
   overflow-y: auto;
+  line-height: 1.5;
+}
+
+/* Toolbar */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  padding: .5rem;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border);
+}
+
+.toolbar button {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: .3rem .6rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.toolbar button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+button.big {
+  padding: .5rem 1rem;
+  font-weight: bold;
+}
+
+button.danger {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+button.danger:hover {
+  background: var(--accent);
+  color: #fff;
 }
 
 /* Lock screen */
-#lockScreen {
+.lockscreen {
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,.9);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 20;
+  z-index: 999;
 }
-#lockScreen .box {
-  background: var(--bg-alt);
+
+.lockcard {
+  background: var(--bg-card);
   padding: 2rem;
-  border: 2px solid var(--accent);
-  border-radius: 6px;
-  box-shadow: 0 4px 12px var(--shadow);
-  text-align: center;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  max-width: 320px;
+  width: 100%;
 }
-#lockScreen input {
+
+.lockcard h2 {
+  margin-bottom: .5rem;
+  color: var(--accent2);
+}
+
+.lockcard .hint {
+  font-size: .9rem;
+  color: var(--muted);
+  margin-bottom: 1rem;
+}
+
+fieldset {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+}
+
+legend {
+  padding: 0 .5rem;
+  font-size: .85rem;
+  color: var(--muted);
+}
+
+.field {
+  margin-bottom: 1rem;
+}
+
+input[type=password] {
   width: 100%;
   padding: .5rem;
-  margin: .5rem 0;
-  border: 1px solid var(--accent-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   background: #000;
   color: var(--text);
 }
 
-/* Status text */
 .status {
-  font-size: .8rem;
-  margin-top: .6rem;
-  color: var(--text-dim);
+  font-size: .85rem;
+  margin: .5rem 0;
+  color: var(--accent);
 }
 
-/* Dialogs */
-dialog {
-  background: var(--bg-alt);
-  color: var(--text);
-  border: 2px solid var(--accent);
-  border-radius: 6px;
-  padding: 1rem;
-  box-shadow: 0 6px 16px var(--shadow);
-}
-dialog::backdrop {
-  background: rgba(0,0,0,0.8);
-  }
-/* === Toolbar === */
-#toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: .4rem;
-  padding: .5rem;
-  background: #1a1a1a;
-  border: 1px solid var(--accent-soft);
-  border-radius: 6px;
-  margin-bottom: .6rem;
+.tiny {
+  font-size: .75rem;
 }
 
-#toolbar button {
-  flex: 0 0 auto;
-  background: #222;
-  border: 1px solid #444;
-  border-radius: 4px;
-  padding: .3rem .6rem;
-  font-size: .8rem;
-}
-
-#toolbar button:hover {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-}
-
-/* === Stora actions (spara, ny sida, lås) === */
-button.big {
-  padding: .5rem 1rem;
-  font-weight: bold;
-  background: #191919;
-  border: 2px solid var(--accent-soft);
-  border-radius: 5px;
-}
-
-button.big:hover {
-  background: var(--accent);
-  border-color: var(--accent);
-}
-
-/* === Lock screen input === */
-#lockScreen input {
-  border-radius: 4px;
-  border: 1px solid var(--accent-soft);
-  padding: .6rem;
+/* Stamp (timestamp) */
+.stamp {
+  font-size: .75rem;
+  color: var(--muted);
+  padding: .3rem .8rem;
 }
