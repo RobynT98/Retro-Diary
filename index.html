@@ -1,86 +1,82 @@
 <!DOCTYPE html>
 <html lang="sv">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Retro Diary Lite</title>
-  <link rel="stylesheet" href="styles.css?v=7">
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=IM+Fell+English&family=Merriweather&family=Roboto+Slab&family=Dancing+Script&family=Amatic+SC&family=Cinzel&family=Patrick+Hand&display=swap" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Retro Diary</title>
+
+  <!-- Fonts (för editor & rubriker; editor-font kan bytas i menyn) -->
+  <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English&family=Special+Elite&family=Roboto+Slab&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=book1">
 </head>
-<body class="locked">
+<body>
+
+  <!-- Bok / omslag -->
+  <div class="book" id="book">
+    <!-- Menyknapp -->
+    <button id="menuToggle" class="menu-toggle" aria-label="Öppna meny">☰</button>
+
+    <!-- Vänstersida: innehåll -->
+    <section class="page" id="leftPage">
+      <h2>Innehåll</h2>
+      <ul id="entriesList" class="entries"></ul>
+    </section>
+
+    <!-- Högersida: editor -->
+    <section class="page" id="rightPage">
+      <div id="toolbar">
+        <button id="boldBtn"><b>B</b></button>
+        <button id="italicBtn"><i>I</i></button>
+        <button id="underlineBtn"><u>U</u></button>
+        <input id="colorBtn" type="color" aria-label="Textfärg"/>
+      </div>
+
+      <div id="dateLine"></div>
+      <div id="editor" contenteditable="true" spellcheck="true"></div>
+
+      <div id="actions">
+        <button id="newBtn">Ny sida</button>
+        <button id="saveBtn">Spara</button>
+        <button id="deleteBtn" class="danger">Radera</button>
+        <button id="lockBtn">Lås</button>
+      </div>
+    </section>
+
+    <!-- Snygg sidomeny -->
+    <aside id="menu" aria-hidden="true">
+      <h2>Meny</h2>
+
+      <button id="exportBtn">Exportera (.json)</button>
+
+      <input id="importInput" type="file" accept="application/json" hidden>
+      <button id="importBtn">Importera (.json)</button>
+
+      <button id="wipeBtn" class="danger">Rensa ALL lokal data</button>
+
+      <label for="fontSelect">Typsnitt (endast sidan):</label>
+      <select id="fontSelect">
+        <option value="'IM Fell English', serif">IM Fell English</option>
+        <option value="'Special Elite', cursive">Special Elite</option>
+        <option value="'Roboto Slab', serif">Roboto Slab</option>
+      </select>
+    </aside>
+  </div>
 
   <!-- Låsskärm -->
-  <div id="lockscreen">
-    <h2>🔒 Retro Diary</h2>
-    <input id="pass" type="password" placeholder="Lösenord">
-    <div>
-      <button id="unlockBtn" class="big">Lås upp</button>
-      <button id="setPassBtn" class="big">Sätt nytt lösenord</button>
-    </div>
-    <button id="wipeLocalOnLock" class="danger">Rensa ALL lokal data</button>
-    <p id="status"></p>
-  </div>
-
-  <!-- Editor -->
-  <div id="app" hidden>
-    <header>
-      <button id="menuBtn">☰</button>
-      <h1>Retro Diary</h1>
-    </header>
-
-    <!-- Toolbar -->
-    <div id="toolbar">
-      <button id="boldBtn"><b>B</b></button>
-      <button id="italicBtn"><i>I</i></button>
-      <button id="underlineBtn"><u>U</u></button>
-      <input id="colorBtn" type="color">
-    </div>
-
-    <!-- Editorfält -->
-    <div id="dateLine"></div>
-    <div id="editor" contenteditable="true"></div>
-
-    <!-- Actions -->
-    <div class="actions">
-      <button id="newEntryBtn" class="big">Ny sida</button>
-      <button id="saveBtn" class="big">Spara</button>
-      <button id="delBtn" class="big danger">Radera</button>
-      <button id="lockBtn" class="big">Lås</button>
-    </div>
-
-    <!-- Lista med sidor -->
-    <ul id="entries"></ul>
-
-    <!-- Meny -->
-    <div id="menu">
-      <h3>Meny</h3>
-      <button id="exportBtn">Exportera</button>
-      <input id="importFile" type="file" accept="application/json">
-      <button id="wipeLocalBtn" class="danger">Rensa allt</button>
-
-      <hr>
-      <label for="fontSelect">Font:</label>
-      <select id="fontSelect">
-        <option value="'Special Elite', cursive">Special Elite (Skrivmaskin)</option>
-        <option value="'IM Fell English', serif">IM Fell English (Gammaldags)</option>
-        <option value="'Merriweather', serif">Merriweather (Klassisk bokstil)</option>
-        <option value="'Roboto Slab', serif">Roboto Slab (Retro ren)</option>
-        <option value="'Dancing Script', cursive">Dancing Script (Elegant handstil)</option>
-        <option value="'Amatic SC', cursive">Amatic SC (Smalt handritat)</option>
-        <option value="'Cinzel', serif">Cinzel (Antikt/gotiskt)</option>
-        <option value="'Patrick Hand', cursive">Patrick Hand (Avslappnad handstil)</option>
-      </select>
+  <div id="lockscreen" class="lock">
+    <div class="card">
+      <h2>🔒 Lås upp dagboken</h2>
+      <input type="password" id="pass" placeholder="Dagbokens lösenord">
+      <div class="row">
+        <button id="setPassBtn">Sätt nytt lösen</button>
+        <button id="unlockBtn">Lås upp</button>
+      </div>
+      <p class="hint">Glömt lösen? Du kan alltid rensa allt lokalt i menyn.</p>
+      <button id="wipeLocalOnLock" class="danger">Rensa ALL lokal data</button>
+      <p id="status"></p>
     </div>
   </div>
 
-  <!-- Script -->
-  <script src="app.js?v=7"></script>
-  <script>
-    // Service worker
-    if('serviceWorker' in navigator){
-      navigator.serviceWorker.register('sw.js?v=7');
-    }
-  </script>
+  <script src="app.js?v=book1"></script>
 </body>
-  </html>
+                                            </html>
