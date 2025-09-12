@@ -105,11 +105,30 @@ header button {
   background: #181818;
   border-bottom: 1px dashed var(--accent2);
 }
+
 #editor {
   flex: 1;
-  padding: 1em;
+  padding: 2rem;
   outline: none;
   overflow-y: auto;
+  font-family: 'IM Fell English', 'Times New Roman', serif;
+  font-size: 14pt;
+  line-height: 1.7;
+
+  /* pergament look */
+  background: #fdf6e3;
+  color: #2c1a0e;
+  border: 1px solid #d6c6a5;
+  border-radius: 6px;
+  box-shadow: 0 0 20px rgba(0,0,0,0.5);
+
+  /* subtil textur */
+  background-image: radial-gradient(rgba(0,0,0,0.03) 1px, transparent 1px);
+  background-size: 6px 6px;
+}
+#editor:focus {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(160,120,60,0.6), 0 0 20px rgba(0,0,0,0.5);
 }
 
 /* ==== Actions ==== */
@@ -191,6 +210,26 @@ button.danger:hover {
 #menu button:hover {
   background: var(--accent);
 }
+#menu label {
+  display: block;
+  margin-top: 1rem;
+  margin-bottom: 0.25rem;
+  color: #ccc;
+}
+#menu select {
+  width: 100%;
+  padding: 0.4rem;
+  background: #111;
+  color: #eee;
+  border: 1px solid #900;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+#menu select:focus {
+  outline: none;
+  border-color: #c00;
+  box-shadow: 0 0 5px #c00;
+}
 
 /* ==== Scrollbars (retro) ==== */
 ::-webkit-scrollbar {
@@ -202,26 +241,4 @@ button.danger:hover {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--accent);
-}
-#menu label {
-  display: block;
-  margin-top: 1rem;
-  margin-bottom: 0.25rem;
-  color: #ccc;
-}
-
-#menu select {
-  width: 100%;
-  padding: 0.4rem;
-  background: #111;
-  color: #eee;
-  border: 1px solid #900;
-  border-radius: 4px;
-  font-size: 0.9rem;
-}
-
-#menu select:focus {
-  outline: none;
-  border-color: #c00;
-  box-shadow: 0 0 5px #c00;
 }
