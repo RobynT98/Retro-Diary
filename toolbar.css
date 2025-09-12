@@ -1,4 +1,43 @@
-#toolbar{ display:flex; flex-wrap:wrap; gap:10px; margin-bottom:12px; align-items:center; }
-#blockSelect,#fontFamily,#fontSize{
-  padding:8px; border-radius:10px; border:1px solid rgba(0,0,0,.2); background:#fff8ea;
+/* ===== Toolbar – kompakt men samma stil ===== */
+#toolbar{
+  position: sticky; top:0; z-index:5;
+  display:flex; flex-wrap:wrap; align-items:center;
+  gap:8px;                       /* mindre mellanrum */
+  padding:6px 8px;               /* lägre höjd */
+  margin:-8px -8px 10px -8px;    /* samma look som innan */
+  background:linear-gradient(#c77a67, #a55d4c);
+  border:1px solid #7a3d31;
+  border-radius:12px;
+  box-shadow:0 3px 6px rgba(0,0,0,.25);
 }
+#toolbar .group{
+  display:flex; gap:8px; align-items:center;
+  padding-right:8px;
+  border-right:1px dashed rgba(0,0,0,.15);
+}
+#toolbar .group:last-child{border-right:none}
+
+/* knappar i toolbaren något mindre */
+#toolbar .btn{
+  padding:6px 9px;
+  border-radius:12px;
+  font-weight:700;
+}
+
+/* select och färgväljare lite tajtare */
+#toolbar select{
+  padding:6px 8px;
+  border-radius:10px;
+  border:1px solid #cbb;
+  background:#fff7f0;
+}
+#toolbar .swatch input{
+  width:26px; height:26px; padding:0; border:none; background:transparent;
+}
+
+/* gör att grupper bryter rad snyggt på mobil */
+@media (max-width: 600px){
+  #toolbar{gap:6px; padding:5px 6px}
+  #toolbar .group{padding-right:6px}
+  #toolbar .btn{padding:6px 8px}
+  }
