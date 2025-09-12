@@ -1,184 +1,205 @@
+/* ==== Grundtema ==== */
 :root {
-  --bg: #0d0d0d;
-  --bg-card: #1a1a1a;
-  --text: #f5f5f5;
-  --accent: #e63946;   /* röd */
-  --accent2: #457b9d;  /* blå */
-  --muted: #888;
-  --border: #333;
-  --radius: 6px;
-  --shadow: 0 2px 8px rgba(0,0,0,.6);
-  font-size: 16px;
+  --bg: #111;
+  --fg: #eee;
+  --accent: #d33; /* röd accent */
+  --accent2: #555;
 }
 
 body {
   margin: 0;
-  font-family: "Courier New", monospace;
+  font-family: monospace, sans-serif;
   background: var(--bg);
-  color: var(--text);
+  color: var(--fg);
+  height: 100vh;
   display: flex;
   flex-direction: column;
-  height: 100vh;
 }
 
-h1, h2, h3 {
-  margin: 0;
-  font-weight: normal;
+/* ==== Låsskärm ==== */
+#lockscreen {
+  margin: auto;
+  text-align: center;
+  padding: 2em;
+  border: 2px solid var(--accent);
+  border-radius: 8px;
+  background: #222;
+  box-shadow: 0 0 15px #000;
+}
+#lockscreen input {
+  padding: .5em;
+  margin-bottom: 1em;
+  width: 200px;
+  border: 1px solid var(--accent2);
+  border-radius: 4px;
+  background: #000;
+  color: var(--fg);
+}
+#lockscreen button {
+  margin: .2em;
 }
 
-/* Frame & Titlebar */
-.frame {
+/* Statusmeddelande */
+#status {
+  margin-top: 1em;
+  color: var(--accent);
+  font-size: .9em;
+}
+
+/* ==== App ==== */
+#app {
   display: flex;
   flex-direction: column;
   height: 100%;
 }
 
-.titlebar {
-  background: var(--bg-card);
-  padding: 0.8rem 1rem;
+header {
+  background: #222;
+  padding: .5em;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  box-shadow: var(--shadow);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 2px solid var(--accent);
 }
-
-.titlebar h1 {
-  font-size: 1.2rem;
-  letter-spacing: 1px;
-}
-
-.titlebar .actions button {
-  margin-left: .5rem;
-}
-
-/* Editor */
-#editorWrap {
+header h1 {
   flex: 1;
+  margin: 0;
+  font-size: 1.2em;
+}
+header button {
+  margin-right: .5em;
+}
+
+/* ==== Toolbar ==== */
+#toolbar {
+  background: #191919;
+  padding: .4em;
+  border-bottom: 1px solid var(--accent2);
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: .3em;
 }
-
-#editor {
-  flex: 1;
-  padding: 1rem;
-  outline: none;
-  overflow-y: auto;
-  line-height: 1.5;
+#toolbar button {
+  padding: .3em .6em;
+  background: #333;
+  border: 1px solid var(--accent2);
+  color: var(--fg);
+  cursor: pointer;
+  border-radius: 4px;
 }
-
-/* Toolbar */
-.toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: .5rem;
-  padding: .5rem;
-  background: var(--bg-card);
-  border-top: 1px solid var(--border);
+#toolbar button:hover {
+  background: var(--accent);
 }
-
-.toolbar button {
-  background: none;
-  border: 1px solid var(--border);
-  color: var(--text);
-  padding: .3rem .6rem;
-  border-radius: var(--radius);
+#toolbar input[type="color"] {
+  border: none;
+  width: 32px;
+  height: 28px;
+  background: transparent;
   cursor: pointer;
 }
 
-.toolbar button:hover {
-  border-color: var(--accent);
+/* ==== Editor ==== */
+#dateLine {
+  padding: .5em;
+  font-size: .9em;
   color: var(--accent);
+  background: #181818;
+  border-bottom: 1px dashed var(--accent2);
+}
+#editor {
+  flex: 1;
+  padding: 1em;
+  outline: none;
+  overflow-y: auto;
 }
 
+/* ==== Actions ==== */
+.actions {
+  padding: .5em;
+  display: flex;
+  justify-content: center;
+  gap: .5em;
+  border-top: 1px solid var(--accent2);
+  background: #181818;
+}
 button.big {
-  padding: .5rem 1rem;
+  padding: .6em 1em;
+  background: #333;
+  border: 2px solid var(--accent2);
+  border-radius: 6px;
   font-weight: bold;
+  color: var(--fg);
+  cursor: pointer;
+  min-width: 100px;
 }
-
+button.big:hover {
+  background: var(--accent);
+}
 button.danger {
   border-color: var(--accent);
   color: var(--accent);
 }
-
 button.danger:hover {
   background: var(--accent);
   color: #fff;
 }
 
-/* Lock screen */
-.lockscreen {
+/* ==== Lista med sidor ==== */
+#entries {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  max-height: 200px;
+  border-top: 1px solid var(--accent2);
+}
+#entries li {
+  padding: .5em;
+  border-bottom: 1px solid #333;
+  cursor: pointer;
+}
+#entries li:hover {
+  background: #222;
+}
+
+/* ==== Meny ==== */
+#menu {
   position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.9);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 999;
+  top: 50px;
+  left: 10px;
+  background: #1a1a1a;
+  border: 2px solid var(--accent2);
+  border-radius: 8px;
+  padding: .8em;
+  box-shadow: 0 0 10px #000;
+  display: none;
+  flex-direction: column;
+  gap: .5em;
 }
-
-.lockcard {
-  background: var(--bg-card);
-  padding: 2rem;
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  max-width: 320px;
-  width: 100%;
-}
-
-.lockcard h2 {
-  margin-bottom: .5rem;
-  color: var(--accent2);
-}
-
-.lockcard .hint {
-  font-size: .9rem;
-  color: var(--muted);
-  margin-bottom: 1rem;
-}
-
-fieldset {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 1rem;
-}
-
-legend {
-  padding: 0 .5rem;
-  font-size: .85rem;
-  color: var(--muted);
-}
-
-.field {
-  margin-bottom: 1rem;
-}
-
-input[type=password] {
-  width: 100%;
-  padding: .5rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: #000;
-  color: var(--text);
-}
-
-.status {
-  font-size: .85rem;
-  margin: .5rem 0;
+#menu h3 {
+  margin-top: 0;
   color: var(--accent);
 }
-
-.tiny {
-  font-size: .75rem;
+#menu button,
+#menu input[type="file"] {
+  background: #333;
+  border: 1px solid var(--accent2);
+  color: var(--fg);
+  padding: .4em .6em;
+  border-radius: 4px;
+  cursor: pointer;
+}
+#menu button:hover {
+  background: var(--accent);
 }
 
-/* Stamp (timestamp) */
-.stamp {
-  font-size: .75rem;
-  color: var(--muted);
-  padding: .3rem .8rem;
+/* ==== Scrollbars (retro) ==== */
+::-webkit-scrollbar {
+  width: 10px;
 }
-body.locked #menuBtn,
-body.locked #menuDrop {
-  display: none !important;
-  }
+::-webkit-scrollbar-thumb {
+  background: #444;
+  border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
