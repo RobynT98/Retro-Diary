@@ -1,3 +1,11 @@
+window.onerror = (msg, src, line, col, err) => {
+  document.body.innerHTML += `<pre style="background:#300;color:#f77;padding:1em">
+  JS-fel: ${msg}
+  (${src}:${line}:${col})
+  </pre>`;
+};
+console.log("✅ app.js laddad");
+
 /* ========================== Helpers ========================== */
 const $ = sel => document.querySelector(sel);
 const deU8 = buf => new TextDecoder().decode(buf);
