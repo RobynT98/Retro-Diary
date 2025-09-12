@@ -1,5 +1,5 @@
 // Retro Diary Service Worker (lite/book)
-const CACHE_NAME = 'retro-diary-v8';
+const CACHE_NAME = 'retro-diary-v9';
 const ASSETS = [
   "/",            
   "/index.html",
