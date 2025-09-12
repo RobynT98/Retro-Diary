@@ -1,241 +1,165 @@
-/* ============ Små hjälpare ============ */
-const $ = (sel, parent=document) => parent.querySelector(sel);
-const $$ = (sel, parent=document) => [...parent.querySelectorAll(sel)];
+/* ======= Helpers ======= */
+const $  = sel => document.querySelector(sel);
+const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
 const byId = id => document.getElementById(id);
-const passEl = () => byId('passInput');
-const editor = byId('editor');
-const dateLine = byId('dateLine');
+const passEl = ()=> byId('passInput');
+const setStatus = txt => { const el=byId('status'); if(el) el.textContent=txt||''; };
 
-/* ============ State ============ */
-const state = {
-  key:null,
-  currentId:null,              // id på aktiv sida
-  autoSaveTimer:null,
-  symbols: "🕯️ 🕊️ ❤️ ⭐ 🌿 🌸 ✨ ☀️ 🌙 🖤".split(' ')
-};
-
-/* ============ IndexedDB wrapper ============ */
-const DB_NAME='retro-diary';
-const DB_VER =1;
-
+/* ======= IndexedDB ======= */
+let db;
 function openDB(){
   return new Promise((res,rej)=>{
-    const r=indexedDB.open(DB_NAME, DB_VER);
-    r.onupgradeneeded = ()=>{
-      const db=r.result;
-      db.createObjectStore('meta',   {keyPath:'k'});
-      db.createObjectStore('entries',{keyPath:'id'});
+    const r = indexedDB.open('retro-diary', 1);
+    r.onupgradeneeded = e=>{
+      const d = e.target.result;
+      if(!d.objectStoreNames.contains('meta')){
+        d.createObjectStore('meta', { keyPath:'k' });
+      }
+      if(!d.objectStoreNames.contains('entries')){
+        const s = d.createObjectStore('entries', { keyPath:'id' });
+        s.createIndex('updated','updated');
+        s.createIndex('title','title');
+      }
     };
-    r.onsuccess=()=>res(r.result);
-    r.onerror =()=>rej(r.error);
+    r.onsuccess = ()=>{ db=r.result; res(); };
+    r.onerror = ()=> rej(r.error);
   });
 }
-async function dbPut(store, obj){
-  const db = await openDB();
-  await new Promise((res,rej)=>{
-    const tx=db.transaction(store,'readwrite'); tx.objectStore(store).put(obj);
-    tx.oncomplete=res; tx.onerror=()=>rej(tx.error);
+function tx(store, mode='readonly'){ return db.transaction(store, mode).objectStore(store); }
+function dbPut(store, val){ return new Promise((res,rej)=>{ const r=tx(store,'readwrite').put(val); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); }); }
+function dbGet(store, key){ return new Promise((res,rej)=>{ const r=tx(store).get(key); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
+function dbAll(store){ return new Promise((res,rej)=>{ const arr=[]; const r=tx(store).openCursor(); r.onsuccess=e=>{ const c=e.target.result; if(c){ arr.push(c.value); c.continue(); } else res(arr); }; r.onerror=()=>rej(r.error); }); }
+function dbDel(store, key){ return new Promise((res,rej)=>{ const r=tx(store,'readwrite').delete(key); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); }); }
+function dbClearAll(){
+  return new Promise((res,rej)=>{
+    const t = db.transaction(['meta','entries'],'readwrite');
+    t.objectStore('meta').clear();
+    t.objectStore('entries').clear();
+    t.oncomplete = ()=>res();
+    t.onerror = ()=>rej(t.error);
   });
-  db.close();
-}
-async function dbGet(store, key){
-  const db = await openDB();
-  const val = await new Promise((res,rej)=>{
-    const tx=db.transaction(store,'readonly');
-    const req=tx.objectStore(store).get(key);
-    req.onsuccess=()=>res(req.result);
-    req.onerror =()=>rej(req.error);
-  });
-  db.close(); return val;
-}
-async function dbAll(store){
-  const db = await openDB();
-  const out = await new Promise((res,rej)=>{
-    const tx=db.transaction(store,'readonly');
-    const req=tx.objectStore(store).getAll();
-    req.onsuccess=()=>res(req.result||[]);
-    req.onerror =()=>rej(req.error);
-  });
-  db.close(); return out;
-}
-async function dbDel(store, key){
-  const db = await openDB();
-  await new Promise((res,rej)=>{
-    const tx=db.transaction(store,'readwrite');
-    tx.objectStore(store).delete(key);
-    tx.oncomplete=res; tx.onerror=()=>rej(tx.error);
-  });
-  db.close();
-}
-async function dbClearAll(){
-  const db = await openDB();
-  await new Promise((res,rej)=>{
-    const tx=db.transaction(['meta','entries'],'readwrite');
-    tx.objectStore('meta').clear(); tx.objectStore('entries').clear();
-    tx.oncomplete=res; tx.onerror=()=>rej(tx.error);
-  });
-  db.close();
 }
 
-/* ============ Kryptering ============ */
-const enc = new TextEncoder(); const dec = new TextDecoder();
-function buf2hex(buf){ return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join(''); }
-function hex2buf(str){ return new Uint8Array(str.match(/.{1,2}/g).map(b=>parseInt(b,16))).buffer; }
+/* ======= Crypto ======= */
+const enc = new TextEncoder(), dec = new TextDecoder();
+const hex = buf => Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+const unhex = str => new Uint8Array(str.match(/../g).map(h=>parseInt(h,16))).buffer;
 
 async function deriveKey(pass, saltHex){
-  const salt = hex2buf(saltHex);
-  const baseKey = await crypto.subtle.importKey('raw', enc.encode(pass), 'PBKDF2', false, ['deriveKey']);
-  return crypto.subtle.deriveKey(
+  const salt = typeof saltHex==='string' ? unhex(saltHex) : crypto.getRandomValues(new Uint8Array(16)).buffer;
+  const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(pass), {name:'PBKDF2'}, false, ['deriveKey']);
+  const key = await crypto.subtle.deriveKey(
     {name:'PBKDF2', salt, iterations:150000, hash:'SHA-256'},
-    baseKey,
+    keyMaterial,
     {name:'AES-GCM', length:256},
     false, ['encrypt','decrypt']
   );
+  return { key, saltHex: hex(salt) };
 }
 async function encObj(key, obj){
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, enc.encode(JSON.stringify(obj)));
-  return {iv:buf2hex(iv), ct:buf2hex(ct)};
+  const data = enc.encode(JSON.stringify(obj));
+  const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, data);
+  return { iv: hex(iv), ct: hex(ct) };
 }
 async function decObj(key, wrap){
-  const iv = hex2buf(wrap.iv), data=hex2buf(wrap.ct);
-  const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv:new Uint8Array(iv)}, key, data);
+  const iv = unhex(wrap.iv);
+  const ct = unhex(wrap.ct);
+  const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv}, key, ct);
   return JSON.parse(dec.decode(pt));
 }
 
-/* Wrap meta (salt + test) i både IDB + LS */
-async function setWrapMeta(w){ await dbPut('meta', {k:'wrap', salt:w.salt, test:w.test}); localStorage.setItem('wrap', JSON.stringify(w)); }
+/* ======= Wrap-meta ======= */
+async function setWrapMeta(w){
+  await dbPut('meta', {k:'wrap', salt:w.salt, test:w.test});
+  localStorage.setItem('wrap', JSON.stringify(w));
+}
 async function getWrapMeta(){
   const m = await dbGet('meta','wrap'); if(m) return m;
   const raw = localStorage.getItem('wrap'); return raw ? JSON.parse(raw) : null;
 }
-async function clearWrapMeta(){ await dbClearAll(); localStorage.removeItem('wrap'); }
+async function clearWrapMeta(){
+  await dbClearAll(); localStorage.removeItem('wrap');
+}
 
-/* ============ UI hjälp ============ */
-function setStatus(msg){ byId('status').textContent=msg||''; }
+/* ======= State ======= */
+const state = {
+  key:null,
+  currentId:null,
+  theme: localStorage.getItem('rd_theme') || 'dark'
+};
+
+/* ======= UI ======= */
 function showLock(){ document.body.classList.add('locked'); }
 function hideLock(){ document.body.classList.remove('locked'); }
-
-/* ============ Lösen ============ */
-async function setInitialPass(passRaw){
-  try{
-    const pass = String(passRaw||'').trim();
-    if(!pass){ setStatus('Skriv ett lösenord.'); return; }
-
-    const salt = buf2hex(crypto.getRandomValues(new Uint8Array(16)));
-    const key  = await deriveKey(pass, salt);
-    const test = await encObj(key, {ok:true});
-    await setWrapMeta({ salt, test });
-    state.key = key;
-    setStatus('Lösen satt ✔'); hideLock(); await renderList();
-  }catch(e){ setStatus('Kunde inte sätta lösen.'); alert('Fel setInitialPass: '+(e?.message||e)); }
-}
-
-async function unlock(passRaw){
-  try{
-    const pass = String(passRaw||'').trim();
-    if(!pass){ setStatus('Skriv ditt lösenord.'); return; }
-    const meta = await getWrapMeta();
-    if(!meta){ setStatus('Välj “Sätt nytt lösen”.'); return; }
-    const key = await deriveKey(pass, meta.salt);
-    await decObj(key, meta.test); // verifiering
-    state.key = key; setStatus(''); hideLock(); await renderList();
-  }catch(e){ setStatus('Upplåsning misslyckades.'); alert('Fel unlock: '+(e?.message||e)); }
-}
-
-function lock(){
-  state.key=null; state.currentId=null;
-  editor.innerHTML=''; dateLine.textContent=''; byId('titleInput').value='';
-  showLock(); setStatus(''); setTimeout(()=>passEl()?.focus(), 50);
-}
-
-/* ============ Autospara ============ */
-function scheduleAutoSave(){
-  clearTimeout(state.autoSaveTimer);
-  state.autoSaveTimer=setTimeout(()=>saveEntry(true), 1200);
-}
-
-/* ============ Entry CRUD ============ */
-function titleFrom(html, fallback='Anteckning'){
+function exec(cmd, val=null){ document.execCommand(cmd, false, val); scheduleAutoSave(); }
+function setBlock(tag){ exec('formatBlock', tag==='div'?'p':tag); }
+function titleFrom(html){
   const tmp=document.createElement('div'); tmp.innerHTML=html||'';
-  const t = (tmp.textContent||'').trim().split(/\n/)[0].slice(0,80);
-  return t || fallback;
-}
-function collectTags(){
-  const tags=[];
-  if(byId('tagMem').checked) tags.push('minnesdag');
-  if(byId('tagFav').checked) tags.push('favorit');
-  if(byId('tagImp').checked) tags.push('viktigt');
-  return tags;
-}
-function applyTagsUI(tags=[]){
-  byId('tagMem').checked = tags.includes('minnesdag');
-  byId('tagFav').checked = tags.includes('favorit');
-  byId('tagImp').checked = tags.includes('viktigt');
+  return (tmp.textContent||'').trim().split(/\n/)[0].slice(0,80) || 'Anteckning';
 }
 
-async function saveEntry(isAuto=false){
-  if(!state.key){ if(!isAuto) alert('Lås upp först.'); return; }
+/* ======= Autospara ======= */
+let autoTimer=null;
+function scheduleAutoSave(){ clearTimeout(autoTimer); autoTimer=setTimeout(saveEntry, 1200); }
+
+/* ======= CRUD ======= */
+async function saveEntry(){
+  if(!state.key){ alert('Lås upp först.'); return; }
   const id  = state.currentId || Date.now();
   const obj = {
     id,
-    title: byId('titleInput').value.trim() || titleFrom(editor.innerHTML),
-    html: editor.innerHTML,
+    html: byId('editor').innerHTML,
     date: new Date().toLocaleString(),
-    tags: collectTags(),
-    updated: Date.now()
+    title: (byId('titleInput').value.trim() || titleFrom(byId('editor').innerHTML)),
+    tags:  byId('tagsInput').value.trim()
   };
   const wrap = await encObj(state.key, obj);
-  await dbPut('entries', { id, wrap, updated:obj.updated, title:obj.title, tags:obj.tags });
+  await dbPut('entries', { id, wrap, updated: Date.now(), title: obj.title, tags: obj.tags });
   state.currentId = id;
-  if(!isAuto) alert('Sparat.');
   await renderList();
+}
+async function renderList(filter=''){
+  const list = byId('entriesList'); if(!list) return;
+  list.innerHTML='';
+  const all = (await dbAll('entries')).sort((a,b)=>(b.updated||b.id)-(a.updated||a.id));
+  for(const e of all){
+    const hay = (e.title||'')+' '+(e.tags||'');
+    if(filter && !hay.toLowerCase().includes(filter.toLowerCase())) continue;
+
+    const li=document.createElement('li');
+    const dt = new Date(e.updated||e.id).toLocaleString();
+    li.innerHTML = `<strong>${(e.title||'Anteckning')}</strong><span class="meta">${dt}${e.tags? ' • '+e.tags:''}</span>`;
+    li.onclick = async ()=>{
+      try{
+        const decd = await decObj(state.key, e.wrap);
+        state.currentId = decd.id;
+        byId('editor').innerHTML = decd.html;
+        byId('dateLine').textContent = decd.date;
+        byId('titleInput').value = decd.title || '';
+        byId('tagsInput').value  = decd.tags  || '';
+        byId('editor').focus();
+      }catch{ alert('Kunde inte öppna sidan. Felaktigt lösen?'); }
+    };
+    list.appendChild(li);
+  }
 }
 async function delEntry(){
   if(!state.key || !state.currentId) return;
   if(!confirm('Radera den här sidan?')) return;
   await dbDel('entries', state.currentId);
-  state.currentId=null; editor.innerHTML=''; dateLine.textContent=''; byId('titleInput').value='';
+  state.currentId=null; byId('editor').innerHTML=''; byId('dateLine').textContent='';
+  byId('titleInput').value=''; byId('tagsInput').value='';
   await renderList();
 }
 
-async function renderList(){
-  const list = byId('entriesList'); if(!list) return;
-  list.innerHTML='';
-  const all = (await dbAll('entries')).sort((a,b)=> (b.updated||b.id)-(a.updated||a.id));
-
-  // filtrering
-  const q = byId('searchInput').value.trim().toLowerCase();
-  const t = byId('tagFilter').value;
-
-  for(const e of all){
-    let title=e.title||new Date(e.updated||e.id).toLocaleString();
-    if(q && !title.toLowerCase().includes(q)) continue;
-    if(t && !(e.tags||[]).includes(t)) continue;
-
-    const li=document.createElement('li');
-    li.innerHTML = `<span>${title}</span> <span class="tags">${(e.tags||[]).join(', ')}</span>`;
-    li.onclick = async ()=>{
-      const decd = await decObj(state.key, e.wrap);
-      state.currentId = decd.id;
-      editor.innerHTML = decd.html;
-      dateLine.textContent = decd.date;
-      byId('titleInput').value = decd.title || '';
-      applyTagsUI(decd.tags||[]);
-      editor.focus();
-    };
-    list.appendChild(li);
-  }
-}
-
-/* ============ Export/Import/Wipe ============ */
+/* ======= Export / Import / Wipe ======= */
 async function exportAll(){
   const entries = await dbAll('entries');
   const meta    = await getWrapMeta();
   const blob = new Blob([JSON.stringify({meta,entries})], {type:'application/json'});
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href=url; a.download='retro-diary.json'; a.click();
+  const a = document.createElement('a'); a.href=url; a.download='retro-diary.json'; a.click();
   URL.revokeObjectURL(url);
 }
 async function importAll(file){
@@ -248,195 +172,189 @@ async function importAll(file){
 }
 async function wipeAll(){
   if(!confirm('Rensa ALL lokal data?')) return;
-  await dbClearAll(); localStorage.removeItem('wrap');
-  state.key=null; state.currentId=null; editor.innerHTML=''; dateLine.textContent='';
+  await clearWrapMeta();
+  state.key=null; state.currentId=null;
+  byId('editor').innerHTML=''; byId('dateLine').textContent='';
+  byId('titleInput').value=''; byId('tagsInput').value='';
   await renderList(); showLock(); setStatus('Allt rensat.');
 }
 
-/* ============ Rich actions ============ */
-function exec(cmd, val=null){ document.execCommand(cmd, false, val); editor.focus(); }
-
-function setBlock(tag){
-  // Byt blocktyp kring caret / markering
-  exec('formatBlock', tag);
+/* ======= Lösenord ======= */
+async function setInitialPass(passRaw){
+  try{
+    const pass = String(passRaw||'').trim();
+    if(!pass){ setStatus('Skriv ett lösenord.'); return; }
+    const {key, saltHex} = await deriveKey(pass);
+    const test = await encObj(key, {ok:true});
+    await setWrapMeta({ k:'wrap', salt:saltHex, test });
+    state.key = key;
+    setStatus('Lösen satt ✔'); hideLock(); await renderList();
+  }catch(e){ setStatus('Kunde inte sätta lösen.'); alert('Fel setInitialPass: '+(e?.message||e)); }
+}
+async function unlock(passRaw){
+  try{
+    const pass = String(passRaw||'').trim();
+    if(!pass){ setStatus('Skriv ditt lösenord.'); return; }
+    const meta = await getWrapMeta();
+    if(!meta){ setStatus('Välj “Sätt nytt lösen” först.'); return; }
+    setStatus('Kontrollerar…');
+    const {key} = await deriveKey(pass, meta.salt);
+    const probe = await decObj(key, meta.test);
+    if(!probe || probe.ok!==true) throw new Error('Test-decrypt misslyckades');
+    state.key = key;
+    setStatus(''); hideLock(); await renderList();
+  }catch{ setStatus('Upplåsning misslyckades.'); }
+}
+function lock(){
+  state.key=null; state.currentId=null;
+  byId('editor').innerHTML=''; byId('dateLine').textContent='';
+  byId('titleInput').value=''; byId('tagsInput').value='';
+  showLock(); setStatus(''); setTimeout(()=>passEl()?.focus(), 50);
 }
 
-function setAlign(which){
-  const map={L:'justifyLeft', C:'justifyCenter', R:'justifyRight', J:'justifyFull'};
-  exec(map[which]);
+/* ======= Bild, Länk, Emoji ======= */
+byId('imgBtn')?.addEventListener('click', ()=> byId('imgInput').click());
+byId('imgInput')?.addEventListener('change', e=>{
+  const f = e.target.files[0]; if(!f) return;
+  const url = URL.createObjectURL(f);
+  exec('insertImage', url);
+  setTimeout(()=>URL.revokeObjectURL(url), 15000);
+});
+byId('linkBtn')?.addEventListener('click', ()=>{
+  const url = prompt('Klistra in länk (inkl. https://)');
+  if(url) exec('createLink', url);
+});
+byId('emojiBtn')?.addEventListener('click', ()=>{
+  const s = prompt('Emoji/symbol (t.ex. 🕯️ 🕊️ ❤️):');
+  if(s) exec('insertText', s+' ');
+});
+
+/* ======= Ljud (fil & URL) ======= */
+function insertAudioElement(src, caption=''){
+  // figure + audio + figcaption (frivillig)
+  const fig = document.createElement('figure');
+  fig.style.textAlign = 'center';
+
+  const audio = document.createElement('audio');
+  audio.controls = true;
+  audio.src = src;
+  audio.style.width = '100%';
+
+  fig.appendChild(audio);
+
+  if(caption){
+    const fc = document.createElement('figcaption');
+    fc.textContent = caption;
+    fig.appendChild(fc);
+  }
+
+  const sel = window.getSelection();
+  if(sel && sel.rangeCount){
+    const r = sel.getRangeAt(0);
+    r.insertNode(fig);
+    r.collapse(false);
+  }else{
+    byId('editor').appendChild(fig);
+  }
+  scheduleAutoSave();
 }
 
-function setColor(input, isBg=false){
-  const v=input.value;
-  exec(isBg ? 'hiliteColor' : 'foreColor', v);
-}
+byId('audioBtn')?.addEventListener('click', ()=> byId('audioInput').click());
+byId('audioInput')?.addEventListener('change', e=>{
+  const f = e.target.files[0]; if(!f) return;
+  const url = URL.createObjectURL(f);
+  const caption = prompt('Beskrivning (valfritt):') || '';
+  insertAudioElement(url, caption);
+  // behåll blob-URL; om vi återkallar den direkt slutar ljudet fungera efter reload.
+  // (Vill du minska minne: spara base64 i texten. Det blir dock stora sidor.)
+});
 
-function insertLink(){
-  const url = prompt('Länk (https://…):');
+byId('audioUrlBtn')?.addEventListener('click', ()=>{
+  const url = prompt('Klistra in ljud-URL (mp3/ogg/m4a…):');
   if(!url) return;
-  exec('createLink', url);
+  const caption = prompt('Beskrivning (valfritt):') || '';
+  insertAudioElement(url, caption);
+});
+
+/* ======= Tema ======= */
+function applyTheme(){
+  document.body.classList.toggle('theme-dark',  state.theme==='dark');
+  document.body.classList.toggle('theme-light', state.theme==='light');
+}
+function toggleTheme(){
+  state.theme = (state.theme==='dark' ? 'light' : 'dark');
+  localStorage.setItem('rd_theme', state.theme);
+  applyTheme();
 }
 
-function insertImage(){
-  const inp = document.createElement('input');
-  inp.type='file'; inp.accept='image/*';
-  inp.onchange = ()=>{
-    const f = inp.files[0]; if(!f) return;
-    const url = URL.createObjectURL(f);
-    const img = document.createElement('img');
-    img.src=url; img.className='img-m center';
-    const sel = window.getSelection(); const r=sel.getRangeAt(0);
-    r.insertNode(img); r.collapse(false);
-    scheduleAutoSave();
-  };
-  inp.click();
+/* ======= Meny / Force Update ======= */
+function toggleMenu(){
+  const m = byId('menu'); if(!m) return;
+  m.classList.toggle('open');
+  m.setAttribute('aria-hidden', m.classList.contains('open')?'false':'true');
 }
+byId('forceUpdateBtn')?.addEventListener('click', async ()=>{
+  try{
+    if('serviceWorker' in navigator){
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r=>r.unregister()));
+    }
+    if ('caches' in window) {
+      const names = await caches.keys();
+      await Promise.all(names.map(n=>caches.delete(n)));
+    }
+    alert('Appen uppdateras – laddar om...');
+    location.reload();
+  }catch(e){ alert('Kunde inte uppdatera: '+(e?.message||e)); }
+});
 
-function insertAudio(){
-  const inp = document.createElement('input');
-  inp.type='file'; inp.accept='audio/*';
-  inp.onchange = ()=>{
-    const f = inp.files[0]; if(!f) return;
-    const url = URL.createObjectURL(f);
-    const el = document.createElement('audio');
-    el.controls=true; el.src=url;
-    const sel = window.getSelection(); const r=sel.getRangeAt(0);
-    r.insertNode(el); r.collapse(false);
-    scheduleAutoSave();
-  };
-  inp.click();
-}
+/* ======= Wire up ======= */
+window.addEventListener('load', async ()=>{
+  await openDB();
+  applyTheme();
 
-function symbolPalette(){
-  const menu = document.createElement('div');
-  menu.style.position='absolute'; menu.style.zIndex=2000;
-  menu.style.background='#fff'; menu.style.border='1px solid #aaa';
-  menu.style.borderRadius='8px'; menu.style.padding='6px';
-  menu.style.boxShadow='0 4px 16px rgba(0,0,0,.20)';
-  state.symbols.forEach(s=>{
-    const b=document.createElement('button');
-    b.textContent=s; b.className='btn small';
-    b.onclick=()=>{ exec('insertText', s+' '); menu.remove(); };
-    menu.appendChild(b);
+  // Toolbar-kommando-knappar
+  $$('#toolbar .t').forEach(b=>{
+    const cmd=b.dataset.cmd;
+    if(cmd) b.addEventListener('click', ()=> exec(cmd));
   });
-  document.body.appendChild(menu);
-  const rect = byId('symBtn').getBoundingClientRect();
-  menu.style.left = (rect.left)+'px';
-  menu.style.top  = (rect.bottom+4)+'px';
-  document.addEventListener('click', ()=>menu.remove(), {once:true});
-}
 
-function setImgSize(cls){
-  const img = editor.querySelector('img:is(:focus, .selected)') || getClosestImageAtSelection();
-  if(!img) return alert('Markera/klicka på bilden först.');
-  img.classList.remove('img-s','img-m','img-l');
-  img.classList.add(cls);
-}
-function centerImg(){
-  const img = editor.querySelector('img:is(:focus, .selected)') || getClosestImageAtSelection();
-  if(!img) return alert('Markera/klicka på bilden först.');
-  img.classList.toggle('center');
-}
-function getClosestImageAtSelection(){
-  const sel=window.getSelection(); if(!sel.rangeCount) return null;
-  let node=sel.anchorNode; if(node?.nodeType===3) node=node.parentElement;
-  return node?.closest('img');
-}
+  byId('ulBtn')?.addEventListener('click', ()=>exec('insertUnorderedList'));
+  byId('olBtn')?.addEventListener('click', ()=>exec('insertOrderedList'));
+  byId('blockSelect')?.addEventListener('change', e=>setBlock(e.target.value));
+  byId('hrBtn')?.addEventListener('click', ()=>exec('insertHorizontalRule'));
 
-/* ============ Tema + font ============ */
-function applyTheme(themeCls){
-  document.body.classList.remove('theme-dark','theme-light');
-  document.body.classList.add(themeCls);
-  localStorage.setItem('rd_theme', themeCls);
-}
-function populateFonts(){
-  const sel = byId('fontSelect'); sel.innerHTML='';
-  (window.FONT_DB||[]).forEach(f=>{
-    const o=document.createElement('option'); o.value=f.stack; o.textContent=f.name; sel.appendChild(o);
-    window.loadFontCSS(f.css);
-  });
-  const saved = localStorage.getItem('rd_font');
-  if(saved){ editor.style.fontFamily=saved; sel.value=saved; }
-}
+  byId('foreColor')?.addEventListener('input', e=>exec('foreColor', e.target.value));
+  byId('backColor')?.addEventListener('input', e=>exec('hiliteColor', e.target.value));
 
-/* ============ Wire up ============ */
-window.addEventListener('load', ()=>{
-  // toolbar basic
-  $$('#toolbar [data-cmd]').forEach(b=> b.addEventListener('click', ()=>exec(b.dataset.cmd)));
-  byId('alignL').onclick=()=>setAlign('L');
-  byId('alignC').onclick=()=>setAlign('C');
-  byId('alignR').onclick=()=>setAlign('R');
-  byId('justify').onclick=()=>setAlign('J');
-  byId('blockType').onchange=e=>setBlock(e.target.value);
-  byId('ulBtn').onclick=()=>exec('insertUnorderedList');
-  byId('olBtn').onclick=()=>exec('insertOrderedList');
-  byId('colorBtn').oninput=e=>setColor(e.target,false);
-  byId('hlBtn').oninput=e=>setColor(e.target,true);
-  byId('linkBtn').onclick=insertLink;
-  byId('imgBtn').onclick=insertImage;
-  byId('audioBtn').onclick=insertAudio;
-  byId('symBtn').onclick=symbolPalette;
-  byId('undoBtn').onclick=()=>exec('undo');
-  byId('redoBtn').onclick=()=>exec('redo');
-  byId('clearFormat').onclick=()=>exec('removeFormat');
+  byId('undoBtn')?.addEventListener('click', ()=>document.execCommand('undo'));
+  byId('redoBtn')?.addEventListener('click', ()=>document.execCommand('redo'));
 
-  byId('imgSize').onchange=e=>setImgSize(e.target.value);
-  byId('imgCenter').onclick=centerImg;
+  // Editor ändrad => autospara
+  byId('editor')?.addEventListener('input', scheduleAutoSave);
+  byId('titleInput')?.addEventListener('input', scheduleAutoSave);
+  byId('tagsInput') ?.addEventListener('input', scheduleAutoSave);
 
-  // CRUD
-  byId('newBtn').onclick=()=>{ state.currentId=null; editor.innerHTML=''; byId('titleInput').value=''; dateLine.textContent=''; editor.focus(); };
-  byId('saveBtn').onclick=()=>saveEntry(false);
-  byId('deleteBtn').onclick=delEntry;
-  byId('lockBtn').onclick=lock;
+  // Sök
+  byId('searchInput')?.addEventListener('input', e=>renderList(e.target.value.trim()));
+
+  // Åtgärder
+  byId('newBtn')   ?.addEventListener('click', ()=>{ state.currentId=null; byId('editor').innerHTML=''; byId('dateLine').textContent=''; byId('titleInput').value=''; byId('tagsInput').value=''; byId('editor').focus(); });
+  byId('saveBtn')  ?.addEventListener('click', saveEntry);
+  byId('deleteBtn')?.addEventListener('click', delEntry);
+  byId('lockBtn')  ?.addEventListener('click', lock);
 
   // Meny
-  byId('menuToggle').onclick=()=>{ const m=byId('menu'); m.classList.toggle('open'); m.setAttribute('aria-hidden', m.classList.contains('open')?'false':'true'); };
-  byId('exportBtn').onclick=exportAll;
-  byId('importBtn').onclick=()=>byId('importInput').click();
-  byId('importInput').addEventListener('change', e=>{ if(e.target.files[0]) importAll(e.target.files[0]); });
-  byId('wipeBtn').onclick=wipeAll;
+  byId('menuToggle')?.addEventListener('click', toggleMenu);
+  byId('exportBtn') ?.addEventListener('click', exportAll);
+  byId('importBtn') ?.addEventListener('click', ()=>byId('importInput').click());
+  byId('importInput')?.addEventListener('change', e=>{ if(e.target.files[0]) importAll(e.target.files[0]); });
+  byId('wipeBtn')   ?.addEventListener('click', wipeAll);
 
-  // Sök/filtrera
-  byId('searchInput').oninput=renderList;
-  byId('tagFilter').onchange=renderList;
-
-  // Tema
-  const savedTheme = localStorage.getItem('rd_theme') || 'theme-dark';
-  applyTheme(savedTheme);
-  byId('themeSelect').value=savedTheme;
-  byId('themeSelect').onchange=e=>applyTheme(e.target.value);
-
-  // Font
-  populateFonts();
-  byId('fontSelect').onchange=e=>{
-    editor.style.fontFamily = e.target.value;
-    localStorage.setItem('rd_font', e.target.value);
-  };
-
-  // Autospara
-  editor.addEventListener('input', scheduleAutoSave);
-  byId('titleInput').addEventListener('input', scheduleAutoSave);
-  $$('input[type=checkbox]', byId('rightPage')).forEach(c=>c.addEventListener('change', scheduleAutoSave));
-
-  // Lås
-  byId('setPassBtn').onclick = ()=>setInitialPass(passEl().value);
-  byId('unlockBtn').onclick  = ()=>unlock(passEl().value);
-  byId('wipeLocalOnLock').onclick = wipeAll;
-
-  // Force update
-  byId('forceUpdateBtn').addEventListener('click', async ()=>{
-    try{
-      if('serviceWorker' in navigator){
-        const regs = await navigator.serviceWorker.getRegistrations();
-        await Promise.all(regs.map(r=>r.unregister()));
-      }
-      if('caches' in window){
-        const names=await caches.keys();
-        await Promise.all(names.map(n=>caches.delete(n)));
-      }
-      alert('Appen uppdateras – laddar om…'); location.reload(true);
-    }catch(e){ alert('Kunde inte uppdatera: '+(e?.message||e)); }
-  });
+  // Låsskärm
+  byId('setPassBtn')   ?.addEventListener('click', ()=>setInitialPass(passEl().value));
+  byId('unlockBtn')    ?.addEventListener('click', ()=>unlock(passEl().value));
+  byId('wipeLocalOnLock')?.addEventListener('click', wipeAll);
 
   // Start
   showLock();
