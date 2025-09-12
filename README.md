@@ -4,7 +4,7 @@ En **krypterad retro-dagbok (PWA)** med pergament/läderkänsla.
 All text sparas **lokalt** i din webbläsare och krypteras med **AES-GCM** (nyckel från ditt lösenord via PBKDF2).  
 Fungerar offline, kan installeras som app, och låter dig exportera/importera allt som `.json`.
 
----
+
 
 ## ✨ Funktioner
 
@@ -21,7 +21,7 @@ Fungerar offline, kan installeras som app, och låter dig exportera/importera al
 - 📱 **PWA**: offline, ”Lägg till på hemskärmen”.
 - ♻️ **⟳ Uppdatera app** – rensar service worker & cache när du uppdaterar koden.
 
----
+
 
 ## 🚀 Kom igång
 
@@ -32,13 +32,11 @@ Fungerar offline, kan installeras som app, och låter dig exportera/importera al
 
 > **Tips:** Efter att du uppdaterat filer i repo:t, klicka **⟳ Uppdatera app** nere till höger för att tvinga in ny cache.
 
----
 
 ## 📁 Filstruktur
 ```
 / (rot) ├─ index.html ├─ styles.css ├─ app.js ├─ fonts_db.js        ← fontkatalog (lägg till egna fonter här) ├─ sw.js              ← service worker för cache/offline ├─ manifest.json      ← PWA-manifest ├─ leather.jpg        ← bakgrund (läder) ├─ parchment.jpg      ← bakgrund (pergament) ├─ icon-192.png ├─ icon-512.png └─ README.md
 ```
----
 
 ## 🔐 Säkerhet
 
@@ -47,7 +45,6 @@ Fungerar offline, kan installeras som app, och låter dig exportera/importera al
 - All data lagras i **IndexedDB** i din webbläsare.
 - **Glömt lösenordet?** Det finns ingen återställning. Importera en **tidigare export** eller börja om.
 
----
 
 ## 🧩 Toolbar-översikt
 
@@ -68,7 +65,7 @@ Fungerar offline, kan installeras som app, och låter dig exportera/importera al
 - Ctrl/Cmd **B/I/U** – fet/kursiv/understryk  
 - Ctrl/Cmd **Z / Shift+Z** – ångra / gör om
 
----
+
 
 ## 🔎 Titel, taggar & sök
 
@@ -76,7 +73,6 @@ Fungerar offline, kan installeras som app, och låter dig exportera/importera al
 - **Taggar**: använd fältet ”Lägg till tagg…” per inlägg (Enter för att lägga till).  
 - **Sök**: filtrerar på titel, innehåll och taggar.
 
----
 
 ## 🗂 Export/Import
 
@@ -86,7 +82,6 @@ Fungerar offline, kan installeras som app, och låter dig exportera/importera al
 
 > Förvara exporten i t.ex. iCloud/Drive/Dropbox.
 
----
 
 ## 🔤 Fonter
 
