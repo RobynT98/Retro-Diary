@@ -1,19 +1,1 @@
 /* Ljust tema – redan pergamentbaserat, men lämna plats för overrides */
-body.theme-light {
-  --bg: #fdfdfd;
-  --text: #2b2b2b;
-  --accent: #a33;
-  --btn-bg: #c66;
-  --btn-text: #fff;
-  --border: #ccc;
-}
-
-body.theme-light #editor {
-  background: #fff;
-  color: var(--text);
-}
-/* ====== Ljust tema ====== */
-body:not(.memory-mode){
-  background: url("leather.jpg") center/cover fixed #3a241c;
-}
-#rightPage #editor{background:#fffdf8}
