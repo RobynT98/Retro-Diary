@@ -4,144 +4,131 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Retro Diary</title>
-  <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="styles.css?v=mem1">
+
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#2a1a14"/>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <script defer src="fonts_db.js?v=mem1"></script>
-  <script defer src="app.js?v=mem1"></script>
+  <!-- Basfonter för UI (editorfonter laddas via fonts_db.js om du använder den filen) -->
+  <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=IM+Fell+English&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles.css?v=audio1" />
 </head>
 <body class="locked theme-dark">
 
-<!-- Menyknapp -->
-<button id="menuToggle" class="btn menu">☰</button>
+  <!-- Menyknapp -->
+  <button id="menuToggle" class="btn menu-btn" type="button" aria-label="Meny">☰</button>
 
-<!-- Bok -->
-<div class="book">
-  <!-- Innehåll + filter -->
-  <section class="page left">
-    <h2>Innehåll</h2>
+  <!-- Bok -->
+  <div class="book">
+    <!-- Vänstersida: Innehåll / sök -->
+    <section class="page left">
+      <h2>Innehåll</h2>
 
-    <div class="filters">
-      <input id="searchInput" placeholder="Sök titel/text…" />
-      <select id="tagFilter">
-        <option value="">Alla taggar</option>
-        <option value="minnesdag">Minnesdag 🕯️</option>
-        <option value="favorit">Favorit ❤️</option>
-        <option value="viktigt">Viktigt ⭐</option>
-      </select>
-    </div>
-
-    <ul id="entriesList" class="entries"></ul>
-  </section>
-
-  <!-- Editor -->
-  <section class="page right">
-    <!-- Titelfält + taggar -->
-    <div class="head">
-      <input id="titleInput" maxlength="80" placeholder="Titel (max 80 tecken)" />
-      <div class="tags">
-        <label><input type="checkbox" id="tagMem" /> Minnesdag 🕯️</label>
-        <label><input type="checkbox" id="tagFav" /> Favorit ❤️</label>
-        <label><input type="checkbox" id="tagImp" /> Viktigt ⭐</label>
+      <div class="search-row">
+        <input id="searchInput" type="search" placeholder="Sök titel, tagg eller text…" />
       </div>
-    </div>
 
-    <!-- Toolbar -->
-    <div id="toolbar" class="toolbar">
-      <button data-cmd="bold" class="btn t">B</button>
-      <button data-cmd="italic" class="btn t"><i>I</i></button>
-      <button data-cmd="underline" class="btn t"><u>U</u></button>
-      <button data-cmd="strikeThrough" class="btn t">S</button>
+      <ul id="entriesList" class="entries"></ul>
+    </section>
 
-      <button id="alignL" class="btn t">⇤</button>
-      <button id="alignC" class="btn t">〰</button>
-      <button id="alignR" class="btn t">⇥</button>
-      <button id="justify" class="btn t">≋</button>
+    <!-- Högersida: editor -->
+    <section class="page right" id="rightPage">
+      <!-- Titel + taggar -->
+      <input id="titleInput" class="title" maxlength="80" placeholder="Titel (max 80 tecken)…" />
+      <input id="tagsInput" class="tags" placeholder="Taggar (komma-separerade) – t.ex. minnen, drömmar" />
 
-      <select id="blockType" class="sel">
-        <option value="P">Brödtext</option>
-        <option value="H2">Rubrik</option>
-        <option value="H3">Mellanrubrik</option>
-        <option value="BLOCKQUOTE">Citat</option>
-      </select>
+      <!-- Verktygsrad -->
+      <div id="toolbar" class="toolbar">
+        <button type="button" data-cmd="bold"   class="t">B</button>
+        <button type="button" data-cmd="italic" class="t"><i>I</i></button>
+        <button type="button" data-cmd="underline" class="t"><u>U</u></button>
 
-      <button id="ulBtn" class="btn t">• Lista</button>
-      <button id="olBtn" class="btn t">1. Lista</button>
+        <button type="button" data-cmd="justifyLeft"  class="t">↤</button>
+        <button type="button" data-cmd="justifyCenter" class="t">≡</button>
+        <button type="button" data-cmd="justifyRight" class="t">↦</button>
 
-      <input id="colorBtn" type="color" title="Textfärg" />
-      <input id="hlBtn" type="color" title="Bakgrund (markering)" />
+        <select id="blockSelect" class="select">
+          <option value="div">Brödtext</option>
+          <option value="h1">Rubrik 1</option>
+          <option value="h2">Rubrik 2</option>
+          <option value="h3">Rubrik 3</option>
+          <option value="blockquote">Citat</option>
+        </select>
 
-      <button id="linkBtn" class="btn t">🔗</button>
-      <button id="imgBtn"  class="btn t">🖼️</button>
-      <button id="audioBtn" class="btn t">🎵</button>
-      <button id="symBtn"  class="btn t">⚜️</button>
+        <button type="button" id="ulBtn" class="t">• Lista</button>
+        <button type="button" id="olBtn" class="t">1. Lista</button>
 
-      <select id="fontSelect" class="sel"></select>
+        <input id="foreColor" type="color" class="color" title="Textfärg">
+        <input id="backColor" type="color" class="color" title="Markeringsfärg">
 
-      <select id="imgSize" class="sel" title="Storlek vald bild">
-        <option value="img-m">Bild: Medel</option>
-        <option value="img-s">Bild: Liten</option>
-        <option value="img-l">Bild: Stor</option>
-      </select>
-      <button id="imgCenter" class="btn t" title="Centrera bild">⟂</button>
+        <button type="button" id="linkBtn"  class="t" title="Infoga länk">🔗</button>
+        <button type="button" id="imgBtn"   class="t" title="Infoga bild">🖼️</button>
+        <button type="button" id="emojiBtn" class="t" title="Emoji">😊</button>
 
-      <button id="undoBtn" class="btn t">↶</button>
-      <button id="redoBtn" class="btn t">↷</button>
-      <button id="clearFormat" class="btn t">⟲</button>
-    </div>
+        <!-- NYTT: ljud -->
+        <button type="button" id="audioBtn" class="t" title="Infoga ljud">🎵</button>
+        <button type="button" id="audioUrlBtn" class="t" title="Infoga ljud från URL">🌐🎵</button>
 
-    <div id="dateLine" class="dateline"></div>
-    <div id="editor" contenteditable="true" spellcheck="true"></div>
+        <select id="fontSelect" class="select" title="Typsnitt (editor)"></select>
 
-    <div id="actions" class="actions">
-      <button id="newBtn" class="btn">Ny sida</button>
-      <button id="saveBtn" class="btn">Spara</button>
-      <button id="deleteBtn" class="btn danger">Radera</button>
-      <button id="lockBtn" class="btn">Lås</button>
-    </div>
-  </section>
-</div>
+        <button type="button" id="undoBtn" class="t" title="Ångra">↶</button>
+        <button type="button" id="redoBtn" class="t" title="Gör om">↷</button>
 
-<!-- Sidomeny -->
-<aside id="menu" aria-hidden="true">
-  <h2>Meny</h2>
-  <button id="exportBtn" class="btn full">Exportera (.json)</button>
-  <input id="importInput" type="file" accept="application/json" hidden>
-  <button id="importBtn" class="btn full">Importera (.json)</button>
-  <button id="wipeBtn" class="btn full danger">Rensa ALL lokal data</button>
+        <button type="button" id="hrBtn"   class="t" title="Horisontell linje">— Linje</button>
 
-  <div class="line"></div>
+        <div class="spacer"></div>
+        <button type="button" id="themeBtn" class="t" title="Byt tema">🌓</button>
+      </div>
 
-  <label>Tema:</label>
-  <select id="themeSelect" class="sel full">
-    <option value="theme-dark">Mörk (läder)</option>
-    <option value="theme-light">Ljus (pergament)</option>
-  </select>
-</aside>
+      <div id="dateLine" class="date"></div>
+      <div id="editor" class="editor" contenteditable="true" spellcheck="true"></div>
 
-<!-- Låsskärm -->
-<div id="lockscreen" aria-hidden="false">
-  <div class="card">
-    <h2>🔏 Retro Diary</h2>
-    <input id="passInput" type="password" placeholder="Lösenord">
-    <div class="row">
-      <button id="setPassBtn" class="btn">Sätt nytt lösen</button>
-      <button id="unlockBtn"  class="btn">Lås upp</button>
-    </div>
-    <button id="wipeLocalOnLock" class="btn danger">Rensa ALL lokal data</button>
-    <div id="status" aria-live="polite"></div>
+      <div id="actions" class="actions">
+        <button type="button" id="newBtn"    class="btn">Ny sida</button>
+        <button type="button" id="saveBtn"   class="btn">Spara</button>
+        <button type="button" id="deleteBtn" class="btn danger">Radera</button>
+        <button type="button" id="lockBtn"   class="btn">Lås</button>
+      </div>
+
+      <input id="imgInput" type="file" accept="image/*" hidden>
+      <!-- NYTT: dold filväljare för ljud -->
+      <input id="audioInput" type="file" accept="audio/*" hidden>
+    </section>
   </div>
-</div>
 
-<!-- Uppdatera (rensar SW + cache) -->
-<button id="forceUpdateBtn" title="Rensa cache och ladda om" class="btn small floating">
-  ⟳ Uppdatera app
-</button>
+  <!-- Sidomeny -->
+  <aside id="menu" aria-hidden="true">
+    <h2>Meny</h2>
+    <button type="button" id="exportBtn" class="btn">Exportera (.json)</button>
+    <input id="importInput" type="file" accept="application/json" hidden>
+    <button type="button" id="importBtn" class="btn">Importera (.json)</button>
+    <button type="button" id="wipeBtn"   class="btn danger">Rensa ALL lokal data</button>
+  </aside>
 
-<script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js?v=mem1').catch(()=>{});
-  }
-</script>
+  <!-- Låsskärm -->
+  <div id="lockscreen" aria-hidden="false">
+    <div class="card">
+      <h2>🔒 Retro Diary</h2>
+      <input id="passInput" type="password" placeholder="Lösenord">
+      <div class="row">
+        <button type="button" id="setPassBtn" class="btn">Sätt nytt lösen</button>
+        <button type="button" id="unlockBtn"  class="btn">Lås upp</button>
+      </div>
+      <button type="button" id="wipeLocalOnLock" class="btn danger">Rensa ALL lokal data</button>
+      <div id="status" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <!-- Uppdatera (rensar SW + cache) -->
+  <button id="forceUpdateBtn" class="update-btn" type="button" title="Rensa cache och ladda om">⟳ Uppdatera app</button>
+
+  <script src="app.js?v=audio1"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js?v=audio1').catch(()=>{});
+    }
+  </script>
 </body>
-        </html>
+  </html>
