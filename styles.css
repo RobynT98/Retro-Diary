@@ -1,244 +1,201 @@
-/* ==== Grundtema ==== */
+/* =========================
+   Retro Diary Lite - Book Style
+   ========================= */
 :root {
-  --bg: #111;
   --fg: #eee;
-  --accent: #d33; /* röd accent */
+  --accent: #d33;
   --accent2: #555;
+
+  /* Texturer */
+  --parchment: url("assets/parchment.jpg");
+  --leather: url("assets/leather.jpg");
+
+  --font-body: "IM Fell English", serif;
 }
 
+/* Grund */
 body {
   margin: 0;
-  font-family: monospace, sans-serif;
-  background: var(--bg);
+  background: var(--leather) center/cover fixed;
+  font-family: var(--font-body);
   color: var(--fg);
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-/* ==== Låsskärm ==== */
-#lockscreen {
-  margin: auto;
-  text-align: center;
-  padding: 2em;
-  border: 2px solid var(--accent);
-  border-radius: 8px;
-  background: #222;
-  box-shadow: 0 0 15px #000;
-}
-#lockscreen input {
-  padding: .5em;
-  margin-bottom: 1em;
-  width: 200px;
-  border: 1px solid var(--accent2);
-  border-radius: 4px;
-  background: #000;
-  color: var(--fg);
-}
-#lockscreen button {
-  margin: .2em;
-}
-
-/* Statusmeddelande */
-#status {
-  margin-top: 1em;
-  color: var(--accent);
-  font-size: .9em;
-}
-
-/* ==== App ==== */
-#app {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-header {
-  background: #222;
-  padding: .5em;
-  display: flex;
-  align-items: center;
-  border-bottom: 2px solid var(--accent);
-}
-header h1 {
-  flex: 1;
-  margin: 0;
-  font-size: 1.2em;
-}
-header button {
-  margin-right: .5em;
-}
-
-/* ==== Toolbar ==== */
-#toolbar {
-  background: #191919;
-  padding: .4em;
-  border-bottom: 1px solid var(--accent2);
-  display: flex;
-  align-items: center;
-  gap: .3em;
-}
-#toolbar button {
-  padding: .3em .6em;
-  background: #333;
-  border: 1px solid var(--accent2);
-  color: var(--fg);
-  cursor: pointer;
-  border-radius: 4px;
-}
-#toolbar button:hover {
-  background: var(--accent);
-}
-#toolbar input[type="color"] {
-  border: none;
-  width: 32px;
-  height: 28px;
-  background: transparent;
-  cursor: pointer;
-}
-
-/* ==== Editor ==== */
-#dateLine {
-  padding: .5em;
-  font-size: .9em;
-  color: var(--accent);
-  background: #181818;
-  border-bottom: 1px dashed var(--accent2);
-}
-
-#editor {
-  flex: 1;
-  padding: 2rem;
-  outline: none;
-  overflow-y: auto;
-  font-family: 'IM Fell English', 'Times New Roman', serif;
-  font-size: 14pt;
-  line-height: 1.7;
-
-  /* pergament look */
-  background: #fdf6e3;
-  color: #2c1a0e;
-  border: 1px solid #d6c6a5;
-  border-radius: 6px;
-  box-shadow: 0 0 20px rgba(0,0,0,0.5);
-
-  /* subtil textur */
-  background-image: radial-gradient(rgba(0,0,0,0.03) 1px, transparent 1px);
-  background-size: 6px 6px;
-}
-#editor:focus {
-  outline: none;
-  box-shadow: 0 0 0 4px rgba(160,120,60,0.6), 0 0 20px rgba(0,0,0,0.5);
-}
-
-/* ==== Actions ==== */
-.actions {
-  padding: .5em;
   display: flex;
   justify-content: center;
-  gap: .5em;
-  border-top: 1px solid var(--accent2);
-  background: #181818;
+  align-items: center;
+  height: 100vh;
 }
-button.big {
-  padding: .6em 1em;
+
+/* Bokram */
+.book {
+  width: 90%;
+  max-width: 1000px;
+  height: 90%;
+  background: var(--leather) center/cover;
+  border: 5px solid #3a1c0a;
+  border-radius: 12px;
+  box-shadow: 0 0 40px rgba(0,0,0,0.7), inset 0 0 50px rgba(0,0,0,0.6);
+  display: flex;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Sidor */
+.page {
+  flex: 1;
+  margin: 10px;
+  background: var(--parchment) center/cover;
+  border: 2px solid #b48a58;
+  border-radius: 8px;
+  box-shadow: inset 0 0 25px rgba(0,0,0,0.4);
+  padding: 1rem;
+  overflow-y: auto;
+  color: #222;
+  font-size: 1.1rem;
+  line-height: 1.6;
+}
+
+/* Editor = högra sidan */
+#editor {
+  min-height: 100%;
+  outline: none;
+}
+
+/* Toolbar */
+#toolbar {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.8rem;
+}
+#toolbar button {
   background: #333;
-  border: 2px solid var(--accent2);
-  border-radius: 6px;
-  font-weight: bold;
+  border: 1px solid var(--accent2);
   color: var(--fg);
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
   cursor: pointer;
-  min-width: 100px;
 }
-button.big:hover {
-  background: var(--accent);
+#toolbar button:hover {
+  background: var(--accent2);
 }
-button.danger {
-  border-color: var(--accent);
-  color: var(--accent);
+
+/* Actions */
+#actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1rem;
 }
-button.danger:hover {
-  background: var(--accent);
+#actions button {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--accent2);
+  border-radius: 4px;
+  background: #333;
+  color: var(--fg);
+  font-weight: bold;
+  cursor: pointer;
+}
+#actions button:hover {
+  background: var(--accent2);
+}
+#actions .danger {
+  background: #600;
+  border-color: #900;
   color: #fff;
 }
-
-/* ==== Lista med sidor ==== */
-#entries {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  overflow-y: auto;
-  max-height: 200px;
-  border-top: 1px solid var(--accent2);
-}
-#entries li {
-  padding: .5em;
-  border-bottom: 1px solid #333;
-  cursor: pointer;
-}
-#entries li:hover {
-  background: #222;
+#actions .danger:hover {
+  background: #900;
 }
 
-/* ==== Meny ==== */
+/* Menyflik */
 #menu {
-  position: fixed;
-  top: 50px;
-  left: 10px;
-  background: #1a1a1a;
-  border: 2px solid var(--accent2);
-  border-radius: 8px;
-  padding: .8em;
-  box-shadow: 0 0 10px #000;
-  display: none;
+  position: absolute;
+  top: 0;
+  right: -260px;
+  width: 240px;
+  height: 100%;
+  background: rgba(20,20,20,0.95);
+  border-left: 3px solid var(--accent);
+  padding: 1rem;
+  display: flex;
   flex-direction: column;
-  gap: .5em;
+  gap: 1rem;
+  transition: right 0.3s ease;
+  z-index: 1000;
 }
-#menu h3 {
+#menu.open {
+  right: 0;
+}
+#menu h2 {
   margin-top: 0;
+  font-size: 1.2rem;
+  border-bottom: 1px solid var(--accent2);
+  padding-bottom: 0.5rem;
   color: var(--accent);
 }
 #menu button,
-#menu input[type="file"] {
+#menu select {
   background: #333;
   border: 1px solid var(--accent2);
   color: var(--fg);
-  padding: .4em .6em;
+  padding: 0.4rem 0.6rem;
   border-radius: 4px;
   cursor: pointer;
 }
-#menu button:hover {
-  background: var(--accent);
-}
-#menu label {
-  display: block;
-  margin-top: 1rem;
-  margin-bottom: 0.25rem;
-  color: #ccc;
-}
-#menu select {
-  width: 100%;
-  padding: 0.4rem;
-  background: #111;
-  color: #eee;
-  border: 1px solid #900;
-  border-radius: 4px;
-  font-size: 0.9rem;
-}
-#menu select:focus {
-  outline: none;
-  border-color: #c00;
-  box-shadow: 0 0 5px #c00;
+#menu button:hover,
+#menu select:hover {
+  background: var(--accent2);
 }
 
-/* ==== Scrollbars (retro) ==== */
-::-webkit-scrollbar {
-  width: 10px;
+/* Låsskärm */
+#lockscreen {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
 }
-::-webkit-scrollbar-thumb {
-  background: #444;
-  border-radius: 5px;
+#lockscreen .card {
+  background: #222;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 2px solid var(--accent);
+  width: 300px;
+  text-align: center;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: var(--accent);
+#lockscreen input {
+  width: 100%;
+  padding: 0.4rem;
+  margin: 0.6rem 0;
+  border: 1px solid var(--accent2);
+  border-radius: 4px;
+  background: #111;
+  color: var(--fg);
 }
+#lockscreen button {
+  padding: 0.5rem 1rem;
+  margin-top: 0.6rem;
+  border: 1px solid var(--accent2);
+  border-radius: 4px;
+  background: #333;
+  color: var(--fg);
+  cursor: pointer;
+}
+#lockscreen button:hover {
+  background: var(--accent2);
+}
+#lockscreen .danger {
+  background: #600;
+  border-color: #900;
+  color: #fff;
+}
+#lockscreen .danger:hover {
+  background: #900;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-track { background: #222; }
+::-webkit-scrollbar-thumb { background: var(--accent2); }
+::-webkit-scrollbar-thumb:hover { background: var(--accent); }
