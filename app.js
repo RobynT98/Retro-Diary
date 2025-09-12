@@ -753,7 +753,6 @@ window.addEventListener('load', async ()=>{
   document.body.insertAdjacentHTML("beforeend", 
   `<button id="testBtn">Test</button>`);
 document.getElementById("testBtn").onclick = ()=>alert("Knappen lever!");
-  // Start i låst läge
+// Start i låst läge
   lock();
-});
-                                                                                                   }
+});                                                                                                  
