@@ -1,27 +1,21 @@
-#titleInput {
-  width: 100%;
-  font-size: 20px;
-  padding: 6px;
-  margin-bottom: 8px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+.titleInput{
+  width:100%; padding:10px 12px; border-radius:10px; border:1px solid rgba(0,0,0,.15);
+  background:#fff7e8; margin-bottom:6px; font-size:18px; font-weight:700;
 }
+#dateLine{ font:14px/1.2 'IM Fell English',serif; color:#6e5849; margin:2px 0 8px; }
+#editor{
+  min-height:60vh; padding:16px 18px; outline:none;
+  background:rgba(255,255,240,.9);
+  border:1px solid rgba(0,0,0,.15); border-radius:12px;
+  box-shadow: inset 0 2px 12px rgba(0,0,0,.12), 0 1px 0 rgba(255,255,255,.35);
+  font-size:17px; line-height:1.6;
+}
+#editor img{
+  max-width:100%; height:auto; border-radius:10px;
+  box-shadow:0 6px 18px rgba(0,0,0,.25);
+}
+#editor figure{ display:inline-block; margin:10px; padding:6px; background:rgba(255,255,255,.55); border-radius:10px; }
+#editor figcaption{ font-size:13px; color:#6b5a4d; text-align:center; }
+#editor img.selected{ outline:2px dashed #b44; outline-offset:2px; }
 
-#editor {
-  min-height: 300px;
-  border: 1px solid var(--border);
-  padding: 10px;
-  border-radius: 8px;
-  background: #fff;
-  overflow-y: auto;
-}
-
-#editor img {
-  max-width: 100%;
-  height: auto;
-  border-radius: 6px;
-}
-
-#editor img.selected {
-  outline: 2px solid var(--accent);
-}
+#actions{ display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; }
