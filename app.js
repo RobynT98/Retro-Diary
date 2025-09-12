@@ -1,91 +1,79 @@
-// ================= Retro Diary – app.js =================
+// ================= Retro Diary - app.js (Pages/Mobile Safe) =================
 
 // ---------- Helpers ----------
 const $ = s => document.querySelector(s);
 const byId = s => document.getElementById(s);
+const enc = new TextEncoder();
+const dec = new TextDecoder();
 
-const editor   = byId('editor');
-const dateLine = byId('dateLine');
-
-const state = { key: null, currentId: null };
+function passEl(){ return byId('passInput') || byId('pass'); }
+function entriesEl(){ return byId('entries') || byId('entriesList'); }
 
 function setStatus(msg){ const el = byId('status'); if(el) el.textContent = msg || ''; }
-function showLock(){ byId('lockscreen')?.classList.add('lock'); }
-function hideLock(){ byId('lockscreen')?.classList.remove('lock'); }
+function showLock(){ byId('lockscreen')?.classList.add('lock'); document.body.classList.add('locked'); }
+function hideLock(){ byId('lockscreen')?.classList.remove('lock'); document.body.classList.remove('locked'); }
 
 // Uint8Array <-> hex
 function buf2hex(buf){ return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join(''); }
 function hex2u8(hex){ const a=new Uint8Array(hex.length/2); for(let i=0;i<a.length;i++) a[i]=parseInt(hex.substr(i*2,2),16); return a; }
 
-// ---------- IndexedDB ----------
-let db;
-function idb(){
-  if(db) return Promise.resolve(db);
+// ---------- IndexedDB (med enkel API) ----------
+let _db;
+function openDB(){
+  if(_db) return Promise.resolve(_db);
   return new Promise((res,rej)=>{
-    const r = indexedDB.open('retro-diary',1);
+    const r = indexedDB.open('retro-diary', 1);
     r.onupgradeneeded = e=>{
       const d = e.target.result;
-      d.createObjectStore('entries',{keyPath:'id'});
-      d.createObjectStore('meta',{keyPath:'k'});
+      if(!d.objectStoreNames.contains('meta'))    d.createObjectStore('meta',{keyPath:'k'});
+      if(!d.objectStoreNames.contains('entries')) d.createObjectStore('entries',{keyPath:'id'});
     };
-    r.onsuccess = e=>{ db=e.target.result; res(db); };
+    r.onsuccess = e=>{ _db=e.target.result; res(_db); };
     r.onerror   = ()=>rej(r.error);
   });
 }
-async function dbPut(store, obj){
-  const d = await idb();
+async function dbPut(store,obj){
+  const d = await openDB();
   return new Promise((res,rej)=>{
-    const tx = d.transaction(store,'readwrite');
-    tx.objectStore(store).put(obj);
-    tx.oncomplete=()=>res();
-    tx.onerror  =()=>rej(tx.error);
+    const tx=d.transaction(store,'readwrite'); tx.objectStore(store).put(obj);
+    tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error);
   });
 }
 async function dbGet(store,key){
-  const d = await idb();
+  const d = await openDB();
   return new Promise((res,rej)=>{
-    const tx = d.transaction(store);
-    const r  = tx.objectStore(store).get(key);
-    r.onsuccess=()=>res(r.result||null);
-    r.onerror  =()=>rej(r.error);
+    const tx=d.transaction(store,'readonly'); const rq=tx.objectStore(store).get(key);
+    rq.onsuccess=()=>res(rq.result||null); rq.onerror=()=>rej(rq.error);
   });
 }
 async function dbAll(store){
-  const d = await idb();
+  const d = await openDB();
   return new Promise((res,rej)=>{
-    const tx = d.transaction(store);
-    const r  = tx.objectStore(store).getAll();
-    r.onsuccess=()=>res(r.result||[]);
-    r.onerror  =()=>rej(r.error);
+    const tx=d.transaction(store,'readonly'); const rq=tx.objectStore(store).getAll();
+    rq.onsuccess=()=>res(rq.result||[]); rq.onerror=()=>rej(rq.error);
   });
 }
 async function dbDel(store,key){
-  const d = await idb();
+  const d = await openDB();
   return new Promise((res,rej)=>{
-    const tx = d.transaction(store,'readwrite');
-    tx.objectStore(store).delete(key);
-    tx.oncomplete=()=>res();
-    tx.onerror  =()=>rej(tx.error);
+    const tx=d.transaction(store,'readwrite'); tx.objectStore(store).delete(key);
+    tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error);
   });
 }
 async function dbClearAll(){
-  const d = await idb();
+  const d = await openDB();
   return new Promise((res,rej)=>{
-    const tx = d.transaction(['entries','meta'],'readwrite');
-    tx.objectStore('entries').clear();
-    tx.objectStore('meta').clear();
-    tx.oncomplete=()=>res();
-    tx.onerror  =()=>rej(tx.error);
+    const tx=d.transaction(['meta','entries'],'readwrite');
+    tx.objectStore('meta').clear(); tx.objectStore('entries').clear();
+    tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error);
   });
 }
 
-// ---------- Crypto ----------
+// ---------- Crypto (PBKDF2 + AES-GCM) ----------
 async function deriveKey(pass, saltHex){
-  const enc  = new TextEncoder();
-  const salt = hex2u8(saltHex);
-  const mat  = await crypto.subtle.importKey('raw', enc.encode(pass), {name:'PBKDF2'}, false, ['deriveKey']);
+  const mat = await crypto.subtle.importKey('raw', enc.encode(pass), {name:'PBKDF2'}, false, ['deriveKey']);
   return crypto.subtle.deriveKey(
-    {name:'PBKDF2', salt, iterations:200000, hash:'SHA-256'},
+    {name:'PBKDF2', salt:hex2u8(saltHex), iterations:200000, hash:'SHA-256'},
     mat,
     {name:'AES-GCM', length:256},
     false,
@@ -94,51 +82,48 @@ async function deriveKey(pass, saltHex){
 }
 async function encObj(key, obj){
   const iv   = crypto.getRandomValues(new Uint8Array(12));
-  const data = new TextEncoder().encode(JSON.stringify(obj));
+  const data = enc.encode(JSON.stringify(obj));
   const ct   = await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, data);
   return { iv: buf2hex(iv), ct: buf2hex(ct) };
 }
+// Viktigt för mobil/webviews: skicka ArrayBuffer till decrypt
 async function decObj(key, wrap){
-  const iv = hex2u8(wrap.iv);
-  const ct = hex2u8(wrap.ct);
-  const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv}, key, ct);
-  return JSON.parse(new TextDecoder().decode(pt));
+  const ivU8 = hex2u8(wrap.iv);
+  const ctU8 = hex2u8(wrap.ct);
+  const pt   = await crypto.subtle.decrypt({name:'AES-GCM', iv: ivU8}, key, ctU8.buffer);
+  return JSON.parse(dec.decode(pt));
 }
 
 // ---------- Wrap/Meta (med localStorage-fallback) ----------
 async function setWrapMeta(obj){
-  try { await dbPut('meta', obj); }
-  catch { localStorage.setItem('wrap', JSON.stringify(obj)); }
+  try { await dbPut('meta', { k:'wrap', salt: obj.salt, test: obj.test }); }
+  catch { localStorage.setItem('wrap', JSON.stringify({ k:'wrap', salt: obj.salt, test: obj.test })); }
 }
 async function getWrapMeta(){
-  try { const m = await dbGet('meta','wrap'); if(m) return m; } catch {}
-  const raw = localStorage.getItem('wrap');
-  return raw ? JSON.parse(raw) : null;
+  try{ const m = await dbGet('meta','wrap'); if(m && m.salt && m.test) return m; }catch{}
+  const raw = localStorage.getItem('wrap'); if(!raw) return null;
+  try{ const m = JSON.parse(raw); return (m && m.salt && m.test) ? m : null; }catch{ return null; }
 }
-async function clearWrapMeta(){
-  try{ await dbClearAll(); }catch{}
-  localStorage.removeItem('wrap');
-}
+
+// ---------- State ----------
+const state = { key:null, currentId:null };
 
 // ---------- Lås / lås upp ----------
 async function setInitialPass(passRaw){
   try{
     const pass = String(passRaw||'').trim();
     if(!pass){ setStatus('Skriv ett lösenord.'); return; }
-
     const salt = buf2hex(crypto.getRandomValues(new Uint8Array(16)));
     const key  = await deriveKey(pass, salt);
-    const test = await encObj(key, {ok:true});
-
-    await setWrapMeta({ k:'wrap', salt, test });
+    const test = await encObj(key, { ok:true, v:'book10' }); // liten “canary”
+    await setWrapMeta({ salt, test });
     state.key = key;
-
     setStatus('Lösen satt ✔');
     hideLock();
     await renderList();
   }catch(e){
-    setStatus('Kunde inte sätta lösen.');
-    console.error(e);
+    setStatus('Kunde inte sätta lösen. ' + (e?.message||e));
+    console.error('setInitialPass', e);
   }
 }
 
@@ -146,111 +131,123 @@ async function unlock(passRaw){
   try{
     const pass = String(passRaw||'').trim();
     if(!pass){ setStatus('Skriv ditt lösenord.'); return; }
-
     const meta = await getWrapMeta();
-    if(!meta){ setStatus('Inget lösen valt ännu. Välj “Sätt nytt lösen”.'); return; }
+    if(!meta){ setStatus('Välj “Sätt nytt lösen” först.'); return; }
 
-    const key = await deriveKey(pass, meta.salt);
-    await decObj(key, meta.test); // verifiera
+    setStatus('Kontrollerar…');
+    const key   = await deriveKey(pass, meta.salt);
+    const probe = await decObj(key, meta.test); // verifiera nyckeln
+
+    if(!probe || probe.ok !== true){ throw new Error('Test-decrypt misslyckades'); }
 
     state.key = key;
     setStatus('');
     hideLock();
     await renderList();
   }catch(e){
-    setStatus('Fel lösenord.');
-    console.error('unlock error:', e);
+    setStatus('Upplåsning misslyckades: ' + (e?.message||e));
+    console.error('unlock', e);
   }
 }
 
 function lock(){
-  state.key = null; state.currentId = null;
-  editor.innerHTML=''; dateLine.textContent='';
+  state.key=null; state.currentId=null;
+  const ed = byId('editor'); if(ed) ed.innerHTML='';
+  const dl = byId('dateLine'); if(dl) dl.textContent='';
   showLock(); setStatus('');
-  setTimeout(()=>byId('pass')?.focus(), 30);
+  setTimeout(()=>passEl()?.focus(), 50);
 }
 
-// ---------- Poster ----------
+// ---------- Entries ----------
 function titleFrom(html){
   const tmp=document.createElement('div'); tmp.innerHTML=html||'';
   return (tmp.textContent||'').trim().split(/\n/)[0].slice(0,80) || 'Anteckning';
 }
-
 async function saveEntry(){
   if(!state.key){ alert('Lås upp först.'); return; }
+  const ed = byId('editor'); const dl = byId('dateLine');
   const id   = state.currentId || Date.now();
-  const obj  = { id, html: editor.innerHTML, date: new Date().toLocaleString(), title: titleFrom(editor.innerHTML) };
+  const obj  = { id, html: ed.innerHTML, date: new Date().toLocaleString('sv-SE'), title: titleFrom(ed.innerHTML) };
   const wrap = await encObj(state.key, obj);
   await dbPut('entries', { id, wrap, updated: Date.now() });
   state.currentId = id;
+  if(dl) dl.textContent = obj.date;
   await renderList();
 }
-
 async function renderList(){
-  const list = byId('entriesList'); // <— matchar index.html
-  if(!list) return;
+  const list = entriesEl(); if(!list) return;
+  const ed = byId('editor'), dl = byId('dateLine');
   list.innerHTML = '';
   const all = (await dbAll('entries')).sort((a,b)=> (b.updated||b.id)-(a.updated||a.id));
   for(const e of all){
-    const li = document.createElement('li');
-    li.textContent = new Date(e.updated||e.id).toLocaleString();
-    li.addEventListener('click', async ()=>{
-      const dec = await decObj(state.key, e.wrap);
-      state.currentId    = dec.id;
-      editor.innerHTML   = dec.html;
-      dateLine.textContent = dec.date;
-      editor.focus();
-    });
+    const li=document.createElement('li');
+    // visa datum + titel (utan att dekryptera om vi är låsta)
+    try{
+      if(state.key){
+        const peek = await decObj(state.key, e.wrap);
+        li.textContent = `${new Date(e.updated||e.id).toLocaleDateString('sv-SE')} — ${peek.title}`;
+        li.addEventListener('click', async ()=>{
+          const decd = await decObj(state.key, e.wrap);
+          state.currentId = decd.id;
+          if(ed) ed.innerHTML = decd.html;
+          if(dl) dl.textContent = decd.date;
+          ed?.focus();
+        });
+      }else{
+        li.textContent = new Date(e.updated||e.id).toLocaleString('sv-SE');
+        li.style.opacity = '.7';
+      }
+    }catch{
+      li.textContent = new Date(e.updated||e.id).toLocaleString('sv-SE');
+      li.style.opacity = '.7';
+    }
     list.appendChild(li);
   }
 }
-
 async function delEntry(){
   if(!state.key || !state.currentId) return;
   if(!confirm('Radera den här sidan?')) return;
   await dbDel('entries', state.currentId);
-  state.currentId=null; editor.innerHTML=''; dateLine.textContent='';
+  state.currentId=null; byId('editor').innerHTML=''; byId('dateLine').textContent='';
   await renderList();
 }
 
-// ---------- Export / import / wipe ----------
+// ---------- Export / Import / Wipe ----------
 async function exportAll(){
   const entries = await dbAll('entries');
   const meta    = await getWrapMeta();
   const blob = new Blob([JSON.stringify({meta, entries})], {type:'application/json'});
   const url  = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = 'retro-diary.json'; a.click();
+  const a = document.createElement('a'); a.href=url; a.download='retro-diary.json'; a.click();
   URL.revokeObjectURL(url);
 }
 async function importAll(file){
   const txt  = await file.text();
   const data = JSON.parse(txt);
-  if(!data.meta || !data.entries) return alert('Felaktig fil.');
+  if(!data?.meta || !data?.entries) return alert('Felaktig fil.');
   await setWrapMeta(data.meta);
   for(const e of data.entries) await dbPut('entries', e);
-  alert('Importerad.');
+  alert('Import klar.');
   await renderList();
 }
 async function wipeAll(){
   if(!confirm('Rensa ALL lokal data?')) return;
-  await dbClearAll();
-  localStorage.removeItem('wrap');
+  await dbClearAll(); localStorage.removeItem('wrap');
   state.key=null; state.currentId=null;
-  editor.innerHTML=''; dateLine.textContent='';
-  await renderList();
-  showLock(); setStatus('Allt rensat.');
+  const ed = byId('editor'), dl = byId('dateLine');
+  if(ed) ed.innerHTML=''; if(dl) dl.textContent='';
+  await renderList(); showLock(); setStatus('Allt rensat.');
 }
 
 // ---------- Meny & toolbar ----------
 function toggleMenu(){
   const m = byId('menu'); if(!m) return;
   m.classList.toggle('open');
-  m.setAttribute('aria-hidden', m.classList.contains('open')?'false':'true');
+  m.setAttribute('aria-hidden', m.classList.contains('open') ? 'false' : 'true');
 }
 function execCmd(cmd,val=null){ document.execCommand(cmd,false,val); }
 
-// ---------- Service worker force update ----------
+// ---------- Force update (SW + cache) ----------
 byId('forceUpdateBtn')?.addEventListener('click', async ()=>{
   try{
     if('serviceWorker' in navigator){
@@ -270,15 +267,13 @@ byId('forceUpdateBtn')?.addEventListener('click', async ()=>{
 
 // ---------- Wire up ----------
 window.addEventListener('load', ()=>{
-  const passEl = byId('pass');
-
   // Låsskärm
-  byId('setPassBtn')    ?.addEventListener('click', ()=>setInitialPass(passEl.value));
-  byId('unlockBtn')     ?.addEventListener('click', ()=>unlock(passEl.value));
+  byId('setPassBtn')     ?.addEventListener('click', ()=>setInitialPass(passEl()?.value||''));
+  byId('unlockBtn')      ?.addEventListener('click', ()=>unlock(passEl()?.value||''));
   byId('wipeLocalOnLock')?.addEventListener('click', wipeAll);
 
   // CRUD
-  byId('newBtn')   ?.addEventListener('click', ()=>{ state.currentId=null; editor.innerHTML=''; dateLine.textContent=''; editor.focus(); });
+  byId('newBtn')   ?.addEventListener('click', ()=>{ state.currentId=null; byId('editor').innerHTML=''; byId('dateLine').textContent=''; byId('editor').focus(); });
   byId('saveBtn')  ?.addEventListener('click', saveEntry);
   byId('deleteBtn')?.addEventListener('click', delEntry);
   byId('lockBtn')  ?.addEventListener('click', lock);
@@ -296,18 +291,20 @@ window.addEventListener('load', ()=>{
   byId('importInput')?.addEventListener('change', e=>{ if(e.target.files[0]) importAll(e.target.files[0]); });
   byId('wipeBtn')   ?.addEventListener('click', wipeAll);
 
-  // Fontval (bara editor)
-  const fontSel = byId('fontSelect');
-  if(fontSel){
+  // Font (endast editor)
+  const fs = byId('fontSelect');
+  if(fs){
     const saved = localStorage.getItem('rd_font');
-    if(saved){ editor.style.fontFamily = saved; fontSel.value = saved; }
-    fontSel.addEventListener('change', e=>{
-      editor.style.fontFamily = e.target.value;
-      localStorage.setItem('rd_font', e.target.value);
+    if(saved){ byId('editor').style.fontFamily = saved; fs.value = saved; }
+    fs.addEventListener('change', e=>{
+      const f = e.target.value;
+      byId('editor').style.fontFamily = f;
+      localStorage.setItem('rd_font', f);
     });
   }
 
-  // Start
+  // Start i låst läge
   showLock();
+  setTimeout(()=>passEl()?.focus(), 60);
   console.log('✅ app.js init');
 });
