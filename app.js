@@ -1,266 +1,297 @@
-/* ===== Helpers ===== */
+// ===== Helpers =====
 const $ = s => document.querySelector(s);
-const byId = s => document.getElementById(s);
-
-function buf2hex(buf){ return [...new Uint8Array(buf)].map(x=>x.toString(16).padStart(2,'0')).join(''); }
-function hex2buf(hex){ const a=new Uint8Array(hex.length/2); for(let i=0;i<a.length;i++) a[i]=parseInt(hex.substr(i*2,2),16); return a.buffer; }
-const textEnc = new TextEncoder(), textDec = new TextDecoder();
-
-/* ===== IndexedDB ===== */
-let _db=null;
-function idb(){ if(_db) return Promise.resolve(_db);
-  return new Promise((res,rej)=>{
-    const req = indexedDB.open('retro-diary',1);
-    req.onupgradeneeded = e=>{
-      const d=e.target.result;
-      d.createObjectStore('entries',{keyPath:'id'});
-      d.createObjectStore('meta',{keyPath:'k'});
-    };
-    req.onsuccess = e=>{ _db=e.target.result; res(_db); };
-    req.onerror = e=>rej(e);
-  });
-}
-async function dbPut(store,obj){ const d=await idb(); return new Promise((res,rej)=>{ const tx=d.transaction(store,'readwrite'); tx.objectStore(store).put(obj); tx.oncomplete=()=>res(); tx.onerror=e=>rej(e); }); }
-async function dbGet(store,key){ const d=await idb(); return new Promise((res,rej)=>{ const tx=d.transaction(store); const rq=tx.objectStore(store).get(key); rq.onsuccess=()=>res(rq.result); rq.onerror=e=>rej(e); }); }
-async function dbAll(store){ const d=await idb(); return new Promise((res,rej)=>{ const tx=d.transaction(store); const rq=tx.objectStore(store).getAll(); rq.onsuccess=()=>res(rq.result||[]); rq.onerror=e=>rej(e); }); }
-async function dbDel(store,key){ const d=await idb(); return new Promise((res,rej)=>{ const tx=d.transaction(store,'readwrite'); tx.objectStore(store).delete(key); tx.oncomplete=()=>res(); tx.onerror=e=>rej(e); }); }
-async function dbClearAll(){ const d=await idb(); return new Promise((res,rej)=>{ const tx=d.transaction(['entries','meta'],'readwrite'); tx.objectStore('entries').clear(); tx.objectStore('meta').clear(); tx.oncomplete=()=>res(); tx.onerror=e=>rej(e); }); }
-
-/* ===== Crypto (PBKDF2 + AES-GCM) ===== */
-async function deriveKey(pass,saltHex){
-  const keyMat = await crypto.subtle.importKey('raw', textEnc.encode(pass), {name:'PBKDF2'}, false, ['deriveKey']);
-  return crypto.subtle.deriveKey(
-    {name:'PBKDF2', salt: hex2buf(saltHex), iterations: 200000, hash:'SHA-256'},
-    keyMat, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']
-  );
-}
-async function encObj(key,obj){
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, textEnc.encode(JSON.stringify(obj)));
-  return { iv:buf2hex(iv), ct:buf2hex(ct) };
-}
-async function decObj(key,wrap){
-  const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv:hex2buf(wrap.iv)}, key, hex2buf(wrap.ct));
-  return JSON.parse(textDec.decode(pt));
-}
-
-/* ===== State & refs ===== */
-const state = { key:null, currentId:null };
-const entriesUl = byId('entries');
+const byId = id => document.getElementById(id);
 const editor = byId('editor');
+const titleInput = byId('titleInput');
 const dateLine = byId('dateLine');
 
-let _autosaveTimer = null;
+const state = { key:null, currentId:null, saveTimer:null, currentTags:[] };
 
-/* ===== Utils ===== */
-function titleFrom(html){
-  const tmp=document.createElement('div'); tmp.innerHTML=html||'';
-  const firstLine=(tmp.textContent||'').trim().split(/\n/)[0].slice(0,80) || 'Anteckning';
-  return firstLine;
-}
-function previewFrom(html, max=80){
-  const tmp=document.createElement('div'); tmp.innerHTML=html||'';
-  const txt=(tmp.textContent||'').replace(/\s+/g,' ').trim();
-  return txt.slice(0,max)+(txt.length>max?'…':'');
-}
-function setStatus(msg){ byId('status').textContent = msg||''; }
+const debounce = (fn,ms)=>{ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms); }; };
+const autosave = debounce(()=>saveEntry(false), 800);
+
+function setStatus(t){ byId('status').textContent = t||''; }
 function showLock(){ document.body.classList.add('locked'); }
 function hideLock(){ document.body.classList.remove('locked'); }
 
-/* ===== Wrap-meta (salt + test) ===== */
-async function setWrapMeta(obj){ await dbPut('meta', {k:'wrap', salt:obj.salt, test:obj.test}); }
-async function getWrapMeta(){ return await dbGet('meta','wrap'); }
+// ===== Tema =====
+function applyTheme(mode){ document.body.classList.toggle('light', mode==='light'); localStorage.setItem('rd_theme', mode); }
+function toggleTheme(){ const m = localStorage.getItem('rd_theme')==='light'?'dark':'light'; applyTheme(m); }
+function applyEditorColors(){
+  const paper = localStorage.getItem('rd_paper') || '';
+  const ink   = localStorage.getItem('rd_ink')   || '';
+  if(paper) document.documentElement.style.setProperty('--paper', paper);
+  if(ink)   document.documentElement.style.setProperty('--ink',   ink);
+}
+function resetEditorColors(){
+  localStorage.removeItem('rd_paper'); localStorage.removeItem('rd_ink');
+  location.reload();
+}
 
-/* ===== Lock / Unlock ===== */
+// ===== IndexedDB (fallback) =====
+let idb=null;
+function dbOpen(){
+  return new Promise((res,rej)=>{
+    const r = indexedDB.open('retro-diary',2);
+    r.onupgradeneeded = e=>{
+      const db = e.target.result;
+      if(!db.objectStoreNames.contains('meta')) db.createObjectStore('meta',{keyPath:'k'});
+      if(!db.objectStoreNames.contains('entries')) db.createObjectStore('entries',{keyPath:'id'});
+    };
+    r.onsuccess = ()=>{ idb = r.result; res(); };
+    r.onerror = ()=>rej(r.error);
+  });
+}
+async function dbPut(store,obj){ if(!idb) await dbOpen(); return new Promise((res,rej)=>{ const tx=idb.transaction(store,'readwrite'); tx.objectStore(store).put(obj); tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error); }); }
+async function dbGet(store,key){ if(!idb) await dbOpen(); return new Promise((res,rej)=>{ const tx=idb.transaction(store,'readonly'); const q=tx.objectStore(store).get(key); q.onsuccess=()=>res(q.result||null); q.onerror=()=>rej(q.error); }); }
+async function dbAll(store){ if(!idb) await dbOpen(); return new Promise((res,rej)=>{ const out=[]; const tx=idb.transaction(store,'readonly'); const c=tx.objectStore(store).openCursor(); c.onsuccess=()=>{ const cur=c.result; if(cur){ out.push(cur.value); cur.continue(); } else res(out); }; c.onerror=()=>rej(c.error); }); }
+async function dbDel(store,key){ if(!idb) await dbOpen(); return new Promise((res,rej)=>{ const tx=idb.transaction(store,'readwrite'); tx.objectStore(store).delete(key); tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error); }); }
+async function dbClearAll(){ if(!idb) await dbOpen(); return new Promise((res,rej)=>{ const tx=idb.transaction(['meta','entries'],'readwrite'); tx.objectStore('meta').clear(); tx.objectStore('entries').clear(); tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error); }); }
+
+// ===== Crypto =====
+function hex2buf(h){ const a=new Uint8Array(h.length/2); for(let i=0;i<a.length;i++) a[i]=parseInt(h.substr(i*2,2),16); return a; }
+function buf2hex(b){ return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join(''); }
+async function deriveKey(pass, saltHex){
+  const enc = new TextEncoder();
+  const salt = hex2buf(saltHex);
+  const baseKey = await crypto.subtle.importKey('raw', enc.encode(pass), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2', salt, iterations:150000, hash:'SHA-256'}, baseKey, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']);
+}
+async function encObj(key, obj){ const iv = crypto.getRandomValues(new Uint8Array(12)); const data = new TextEncoder().encode(JSON.stringify(obj)); const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, data); return { iv: buf2hex(iv), ct: buf2hex(ct) }; }
+async function decObj(key, w){ const iv=hex2buf(w.iv), ct=hex2buf(w.ct); const buf=await crypto.subtle.decrypt({name:'AES-GCM', iv}, key, ct); return JSON.parse(new TextDecoder().decode(buf)); }
+
+// wrap-meta + fallback
+async function setWrapMeta(w){ await dbPut('meta', {k:'wrap', salt:w.salt, test:w.test}); localStorage.setItem('wrap', JSON.stringify(w)); }
+async function getWrapMeta(){ try{ const m=await dbGet('meta','wrap'); if(m) return m; }catch{} const r=localStorage.getItem('wrap'); return r?JSON.parse(r):null; }
+
+// ===== Lösenord =====
 async function setInitialPass(passRaw){
   try{
-    const pass = String(passRaw||'').trim();
-    if(!pass){ setStatus('Skriv ett lösenord.'); return; }
+    const pass = String(passRaw||'').trim(); if(!pass) return setStatus('Skriv ett lösenord.');
     const salt = buf2hex(crypto.getRandomValues(new Uint8Array(16)));
     const key  = await deriveKey(pass, salt);
     const test = await encObj(key, {ok:true});
-    await setWrapMeta({salt,test});
-    state.key=key; setStatus('Lösen satt ✔'); hideLock(); await renderList();
-  }catch(e){ setStatus('Kunde inte sätta lösen.'); }
+    await setWrapMeta({salt,test}); state.key=key;
+    setStatus('Lösen satt ✔'); hideLock(); await renderList();
+  }catch{ setStatus('Kunde inte sätta lösen.'); }
 }
 async function unlock(passRaw){
   try{
-    const pass = String(passRaw||'').trim();
-    if(!pass){ setStatus('Skriv ditt lösenord.'); return; }
-    const meta = await getWrapMeta();
-    if(!meta){ setStatus('Välj “Sätt nytt lösen” först.'); return; }
-    const key = await deriveKey(pass, meta.salt);
-    await decObj(key, meta.test); // verifiering
-    state.key=key; setStatus(''); hideLock(); await renderList();
-  }catch(e){ setStatus('Fel lösenord.'); }
+    const pass = String(passRaw||'').trim(); if(!pass) return setStatus('Skriv ditt lösenord.');
+    const meta = await getWrapMeta(); if(!meta?.salt||!meta?.test) return setStatus('Välj “Sätt nytt lösen” först.');
+    setStatus('Kontrollerar…'); const key = await deriveKey(pass, meta.salt); const probe = await decObj(key, meta.test);
+    if(!probe?.ok) throw new Error(); state.key=key; setStatus(''); hideLock(); await renderList();
+  }catch{ setStatus('Fel lösenord.'); }
 }
-function lock(){
-  state.key=null; state.currentId=null;
-  editor.innerHTML=''; dateLine.textContent='';
-  showLock(); setStatus('');
-  setTimeout(()=>byId('passInput')?.focus(),50);
+function lock(){ state.key=null; state.currentId=null; editor.innerHTML=''; titleInput.value=''; dateLine.textContent=''; state.currentTags=[]; renderTags(); showLock(); setStatus(''); setTimeout(()=>byId('passInput')?.focus(),50); }
+
+// ===== Taggar =====
+function renderTags(){
+  const c = byId('tagChips'); c.innerHTML='';
+  state.currentTags.forEach((t,i)=>{
+    const el=document.createElement('span'); el.className='chip'; el.innerHTML=`#${t} <span class="x" title="ta bort">×</span>`;
+    el.querySelector('.x').onclick=()=>{ state.currentTags.splice(i,1); renderTags(); autosave(); };
+    c.appendChild(el);
+  });
+}
+function ensureTagsInFilter(allEntries){
+  const set=new Set(); allEntries.forEach(e=>{ (e.tags||[]).forEach(t=>set.add(t)); });
+  const sel=byId('tagFilter'); const cur=sel.value; sel.innerHTML='<option value="">Alla taggar</option>' + [...set].sort().map(t=>`<option>${t}</option>`).join('');
+  sel.value=cur||'';
 }
 
-/* ===== CRUD ===== */
-async function saveEntry(){
-  if(!state.key){ alert('Lås upp först.'); return; }
-  const id   = state.currentId || Date.now();
-  const title= titleFrom(editor.innerHTML);
-  const obj  = { id, html: editor.innerHTML, date:new Date(id).toISOString().replace('T',' ').slice(0,19), title };
-  const wrap = await encObj(state.key, obj);
-  await dbPut('entries', { id, wrap, updated:Date.now(), title }); // title för snabb lista
+// ===== CRUD =====
+function entryTitle(){
+  const t = (titleInput.value||'').trim();
+  if(t) return t.slice(0,80);
+  const tmp=document.createElement('div'); tmp.innerHTML=editor.innerHTML||'';
+  return (tmp.textContent||'').trim().split(/\n/)[0].slice(0,80) || 'Anteckning';
+}
+async function saveEntry(manual){
+  if(!state.key) return;
+  const id = state.currentId || Date.now();
+  const data = {
+    id,
+    title: entryTitle(),
+    date: new Date().toLocaleString(),
+    html: editor.innerHTML,
+    tags: state.currentTags.slice()
+  };
+  const wrap = await encObj(state.key, data);
+  await dbPut('entries', { id, wrap, updated:Date.now() });
   state.currentId = id;
-  await renderList();
+  if(manual){ await renderList(); }
 }
-async function renderList(){
-  entriesUl.innerHTML='';
-  const all = (await dbAll('entries')).sort((a,b)=>(b.updated||b.id)-(a.updated||a.id));
-  for(const e of all){
-    let title = e.title;
-    let prev = '';
-    let dateS = new Date(e.id).toISOString().replace('T',' ').slice(0,19);
-
-    // saknas title? decrypta en gång -> spara tillbaka
-    if(!title && state.key){
-      try{
-        const dec = await decObj(state.key, e.wrap);
-        title = dec.title || titleFrom(dec.html);
-        prev  = previewFrom(dec.html, 80);
-        dateS = dec.date || dateS;
-        e.title = title;
-        await dbPut('entries', e);
-      }catch{}
-    }
-
-    // Om vi inte hade decryptat ovan: försök få en snabb preview genom att decrypta men bara om vi har key
-    if(!prev && state.key){
-      try{ const dec = await decObj(state.key, e.wrap); prev = previewFrom(dec.html, 80); }catch{}
-    }
-
-    const li = document.createElement('li');
-    li.innerHTML = `
-      <div class="li-title">${title || '(Tom sida)'}</div>
-      <div class="li-prev">${prev || ''}</div>
-      <div class="li-sub">${dateS}</div>`;
-    li.addEventListener('click', async ()=>{
-      const dec = await decObj(state.key, e.wrap);
-      state.currentId = dec.id;
-      editor.innerHTML = dec.html;
-      dateLine.textContent = dec.date;
-      editor.focus();
-    });
-    entriesUl.appendChild(li);
-  }
+async function newEntry(){
+  state.currentId=null; editor.innerHTML=''; titleInput.value=''; dateLine.textContent='';
+  state.currentTags=[]; renderTags(); editor.focus();
 }
 async function delEntry(){
   if(!state.key || !state.currentId) return;
   if(!confirm('Radera den här sidan?')) return;
   await dbDel('entries', state.currentId);
-  state.currentId=null; editor.innerHTML=''; dateLine.textContent='';
-  await renderList();
+  await newEntry(); await renderList();
+}
+async function renderList(){
+  const list = byId('entries'); list.innerHTML='';
+  const all = (await dbAll('entries')).sort((a,b)=> (b.updated||b.id)-(a.updated||a.id));
+  ensureTagsInFilter(all);
+  const q = (byId('searchInput').value||'').toLowerCase();
+  const tf = (byId('tagFilter').value||'').trim();
+
+  for(const e of all){
+    let obj;
+    try{ obj = await decObj(state.key, e.wrap); }catch{ continue; }
+
+    // sök & tagfilter
+    if(q){
+      const hay = (obj.title+' '+obj.html.replace(/<[^>]+>/g,' ')).toLowerCase();
+      if(!hay.includes(q)) continue;
+    }
+    if(tf && !(obj.tags||[]).includes(tf)) continue;
+
+    const li=document.createElement('li');
+    li.innerHTML = `<div><strong>${obj.title||'(utan titel)'}</strong></div>
+                    <div style="opacity:.75">${obj.date}</div>`;
+    li.onclick = ()=>{
+      state.currentId = obj.id;
+      editor.innerHTML = obj.html;
+      titleInput.value = obj.title||'';
+      dateLine.textContent = obj.date;
+      state.currentTags = (obj.tags||[]).slice();
+      renderTags();
+      editor.focus();
+    };
+    list.appendChild(li);
+  }
 }
 
-/* ===== Import / Export / Wipe ===== */
+// ===== Export/Import/Wipe =====
 async function exportAll(){
-  const entries = await dbAll('entries');
-  const meta    = await getWrapMeta();
+  const entries = await dbAll('entries'); const meta = await getWrapMeta();
   const blob = new Blob([JSON.stringify({meta,entries})], {type:'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href=url; a.download='retro-diary.json'; a.click();
-  URL.revokeObjectURL(url);
+  const url = URL.createObjectURL(blob); const a=document.createElement('a');
+  a.href=url; a.download='retro-diary.json'; a.click(); URL.revokeObjectURL(url);
 }
 async function importAll(file){
-  const txt = await file.text();
-  const data = JSON.parse(txt);
-  if(!data.meta || !data.entries){ alert('Felaktig fil.'); return; }
-  await dbPut('meta', {k:'wrap', ...data.meta});
+  const txt = await file.text(); const data=JSON.parse(txt);
+  if(!data.meta||!data.entries) return alert('Felaktig fil.');
+  await setWrapMeta(data.meta);
   for(const e of data.entries) await dbPut('entries', e);
   alert('Importerad.'); await renderList();
 }
 async function wipeAll(){
   if(!confirm('Rensa ALL lokal data?')) return;
-  await dbClearAll();
-  state.key=null; state.currentId=null; editor.innerHTML=''; dateLine.textContent='';
-  await renderList(); showLock(); setStatus('Allt rensat.');
+  await dbClearAll(); localStorage.removeItem('wrap');
+  state.key=null; await newEntry(); await renderList(); showLock(); setStatus('Allt rensat.');
 }
 
-/* ===== Toolbar ===== */
-function exec(cmd,val=null){ document.execCommand(cmd,false,val); editor.focus(); }
-function makeLink(){
-  const url = prompt('Länk (inkl. https://):');
-  if(!url) return;
-  exec('createLink', url);
+// ===== Toolbar / redigering =====
+function exec(cmd, val=null){ document.execCommand(cmd, false, val); editor.focus(); }
+function applyHeading(tag){ exec('formatBlock', tag.toUpperCase()); }
+function createLink(){ const url=prompt('Länk (inkl. https://):','https://'); if(url) exec('createLink', url); }
+function insertHR(){ document.execCommand('insertHorizontalRule',false,null); }
+function insertImage(){
+  const choice = prompt('Skriv URL eller lämna tomt för att välja en bildfil:','');
+  if(choice){ exec('insertImage', choice); return; }
+  const input=document.createElement('input'); input.type='file'; input.accept='image/*';
+  input.onchange=async e=>{
+    const f=e.target.files[0]; if(!f) return;
+    const reader=new FileReader(); reader.onload=()=>exec('insertImage', reader.result); reader.readAsDataURL(f);
+  };
+  input.click();
+}
+function insertSymbol(){
+  const preset = "• — – — ★ ✿ ❦ ♥ ☙ ☾ ☼ ✨ ☘ ♫ § ¶ † ‡ ∞ → ← ↑ ↓ ✓ ❧ ❝ ❞";
+  const s = prompt("Skriv/klistra in symbol/emoji (tips):\n"+preset+"\n","★");
+  if(s){ document.execCommand('insertText',false,s); }
 }
 
-/* ===== Fonts ===== */
-function loadFontsToSelect(){
-  const sel = byId('fontSelect');
-  sel.innerHTML = '';
-  (window.FONT_DB||[]).forEach(f=>{
-    const opt=document.createElement('option');
-    opt.value=f.value; opt.textContent=f.label;
-    sel.appendChild(opt);
-  });
-  // Läs sparat val
-  const saved = localStorage.getItem('rd_font');
-  if(saved){ editor.style.fontFamily = saved; sel.value = saved; }
-  sel.addEventListener('change', e=>{
-    const ff = e.target.value;
-    editor.style.fontFamily = ff;
-    localStorage.setItem('rd_font', ff);
-  });
+function populateFontSelect(){
+  const sel = byId('fontSelect'); sel.innerHTML = window.FONT_DB.map(f=>`<option value="${f.css}">${f.label}</option>`).join('');
+  const saved = localStorage.getItem('rd_font_css') || window.FONT_DB[0].css;
+  sel.value = saved; editor.style.fontFamily = saved;
+  sel.addEventListener('change', e=>{ const css=e.target.value; editor.style.fontFamily=css; localStorage.setItem('rd_font_css', css); editor.focus(); });
+}
+function initToolbar(){
+  byId('boldBtn')     .addEventListener('click', ()=>exec('bold'));
+  byId('italicBtn')   .addEventListener('click', ()=>exec('italic'));
+  byId('underlineBtn').addEventListener('click', ()=>exec('underline'));
+  byId('strikeBtn')   .addEventListener('click', ()=>exec('strikeThrough'));
+
+  byId('alignLeftBtn')  .addEventListener('click', ()=>exec('justifyLeft'));
+  byId('alignCenterBtn').addEventListener('click', ()=>exec('justifyCenter'));
+  byId('alignRightBtn') .addEventListener('click', ()=>exec('justifyRight'));
+
+  byId('headingSel').addEventListener('change', e=>applyHeading(e.target.value));
+  byId('ulBtn').addEventListener('click', ()=>exec('insertUnorderedList'));
+  byId('olBtn').addEventListener('click', ()=>exec('insertOrderedList'));
+  byId('hrBtn').addEventListener('click', insertHR);
+
+  byId('colorBtn').addEventListener('input', e=>exec('foreColor', e.target.value));
+  byId('bgBtn')   .addEventListener('input', e=>exec('hiliteColor', e.target.value));
+
+  byId('linkBtn').addEventListener('click', createLink);
+  byId('imgBtn') .addEventListener('click', insertImage);
+  byId('symBtn') .addEventListener('click', insertSymbol);
+
+  byId('undoBtn').addEventListener('click', ()=>exec('undo'));
+  byId('redoBtn').addEventListener('click', ()=>exec('redo'));
+
+  populateFontSelect();
 }
 
-/* ===== Menu ===== */
+// ===== Meny / uppdatering =====
 function toggleMenu(){
-  const m = byId('menu');
-  m.classList.toggle('open');
+  const m=byId('menu'); m.classList.toggle('open');
   m.setAttribute('aria-hidden', m.classList.contains('open')?'false':'true');
 }
-
-/* ===== Force Update (rensa SW + Cache) ===== */
-byId('forceUpdateBtn')?.addEventListener('click', async ()=>{
+async function forceUpdate(){
   try{
     if('serviceWorker' in navigator){
-      const regs = await navigator.serviceWorker.getRegistrations();
+      const regs=await navigator.serviceWorker.getRegistrations();
       await Promise.all(regs.map(r=>r.unregister()));
     }
     if('caches' in window){
-      const names = await caches.keys();
-      await Promise.all(names.map(n=>caches.delete(n)));
+      const names=await caches.keys(); await Promise.all(names.map(n=>caches.delete(n)));
     }
-    alert('Appen uppdateras – laddar om...');
-    location.reload();
+    alert('Appen uppdateras – laddar om…'); location.reload();
   }catch(e){ alert('Kunde inte uppdatera: '+(e?.message||e)); }
-});
+}
 
-/* ===== Wire up ===== */
+// ===== Wire up =====
 window.addEventListener('load', ()=>{
-  // Låsskärm
-  byId('setPassBtn')   .addEventListener('click', ()=>setInitialPass(byId('passInput').value));
-  byId('unlockBtn')    .addEventListener('click', ()=>unlock(byId('passInput').value));
+  // Tema
+  applyTheme(localStorage.getItem('rd_theme')||'dark');
+  applyEditorColors();
+  byId('themeToggle').addEventListener('click', toggleTheme);
+  byId('paperColor').addEventListener('input', e=>{ localStorage.setItem('rd_paper', e.target.value); document.documentElement.style.setProperty('--paper', e.target.value); });
+  byId('inkColor').addEventListener('input',   e=>{ localStorage.setItem('rd_ink',   e.target.value); document.documentElement.style.setProperty('--ink',   e.target.value); });
+  byId('themeReset').addEventListener('click', resetEditorColors);
+
+  // Lås
+  byId('setPassBtn').addEventListener('click', ()=>setInitialPass(byId('passInput').value));
+  byId('unlockBtn') .addEventListener('click', ()=>unlock(byId('passInput').value));
   byId('wipeLocalOnLock').addEventListener('click', wipeAll);
 
-  // CRUD
-  byId('newBtn')   .addEventListener('click', ()=>{ state.currentId=null; editor.innerHTML=''; dateLine.textContent=''; editor.focus(); });
-  byId('saveBtn')  .addEventListener('click', saveEntry);
+  // Editor/CRUD
+  byId('newBtn').addEventListener('click', newEntry);
+  byId('saveBtn').addEventListener('click', ()=>saveEntry(true));
   byId('deleteBtn').addEventListener('click', delEntry);
-  byId('lockBtn')  .addEventListener('click', lock);
+  byId('lockBtn').addEventListener('click', lock);
+  editor.addEventListener('input', autosave);
+  titleInput.addEventListener('input', autosave);
 
-  // Toolbar kommandon
-  $('#toolbar').addEventListener('click', e=>{
-    const btn = e.target.closest('button');
-    if(!btn) return;
-    const c = btn.getAttribute('data-cmd');
-    if(!c) return;
-    exec(c);
+  // Taggar
+  byId('tagInput').addEventListener('keydown', e=>{
+    if(e.key==='Enter'){
+      const v=e.target.value.trim(); if(v && !state.currentTags.includes(v)){ state.currentTags.push(v); renderTags(); autosave(); }
+      e.target.value='';
+    }
   });
-  byId('ulBtn').addEventListener('click', ()=>exec('insertUnorderedList'));
-  byId('olBtn').addEventListener('click', ()=>exec('insertOrderedList'));
-  byId('colorBtn').addEventListener('input', e=>exec('foreColor', e.target.value));
-  byId('hiliteBtn').addEventListener('input', e=>exec('hiliteColor', e.target.value));
-  byId('linkBtn').addEventListener('click', makeLink);
+
+  // Toolbar
+  initToolbar();
 
   // Meny
   byId('menuToggle').addEventListener('click', toggleMenu);
@@ -268,19 +299,12 @@ window.addEventListener('load', ()=>{
   byId('importBtn').addEventListener('click', ()=>byId('importInput').click());
   byId('importInput').addEventListener('change', e=>{ if(e.target.files[0]) importAll(e.target.files[0]); });
   byId('wipeBtn').addEventListener('click', wipeAll);
+  byId('forceUpdateBtn').addEventListener('click', forceUpdate);
 
-  // Font-knapp
-  loadFontsToSelect();
+  // Sök & tagfilter
+  byId('searchInput').addEventListener('input', renderList);
+  byId('tagFilter').addEventListener('change', renderList);
 
-  // Autospara efter 3 sek utan input
-  editor.addEventListener('input', ()=>{
-    if(!state.key) return;
-    clearTimeout(_autosaveTimer);
-    _autosaveTimer = setTimeout(()=>{ saveEntry().catch(()=>{}); }, 3000);
-  });
-  // Spara när man försöker lämna
-  window.addEventListener('beforeunload', ()=>{ if(state.key && editor.innerHTML) saveEntry(); });
-
-  // Start i låst läge
+  // Start
   showLock();
 });
