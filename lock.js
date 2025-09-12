@@ -1,42 +1,40 @@
-function $(id){ return document.getElementById(id); }
-
-function setStatus(t){ const el=$('status'); if(el) el.textContent=t||''; }
-function showLock(){ $('lockscreen')?.classList.add('show'); $('lockScreen')?.classList.add('show'); }
-function hideLock(){ $('lockscreen')?.classList.remove('show'); $('lockScreen')?.classList.remove('show'); }
+function setStatus(t){ const el=document.getElementById('status'); if(el) el.textContent=t||''; }
+function showLock(){ document.body.classList.add('locked'); }
+function hideLock(){ document.body.classList.remove('locked'); }
 
 async function setInitialPass(passRaw){
   try{
-    const pass=String(passRaw||'').trim(); if(!pass) return setStatus('Skriv ett lösenord.');
-    const saltHex = Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b=>b.toString(16).padStart(2,'0')).join('');
+    const pass=String(passRaw||'').trim();
+    if(!pass){ setStatus('Skriv ett lösenord.'); return; }
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const saltHex = Array.from(salt).map(b=>b.toString(16).padStart(2,'0')).join('');
     const key  = await deriveKey(pass, saltHex);
     const test = await encObj(key, {ok:true});
-    await dbPut('meta', {k:'wrap', salt:saltHex, test});
-    localStorage.setItem('wrap', JSON.stringify({k:'wrap', salt:saltHex, test}));
-    window.AppState.key = key;
-    setStatus('Lösen satt ✔'); hideLock();
+    await setWrapMeta({k:'wrap', salt:saltHex, test});
+    window.AppState.key=key;
+    setStatus('Lösen satt ✔'); hideLock(); await renderList();
   }catch(e){ setStatus('Kunde inte sätta lösen.'); }
-}
-
-async function getWrapMeta(){
-  const m = await dbGet('meta','wrap'); if(m) return m;
-  const raw = localStorage.getItem('wrap'); return raw?JSON.parse(raw):null;
 }
 
 async function unlock(passRaw){
   try{
-    const pass=String(passRaw||'').trim(); if(!pass) return setStatus('Skriv ditt lösenord.');
-    const meta=await getWrapMeta(); if(!meta || !meta.salt || !meta.test) return setStatus('Välj “Sätt nytt lösen” först.');
+    const pass=String(passRaw||'').trim();
+    if(!pass){ setStatus('Skriv ditt lösenord.'); return; }
+    const meta=await getWrapMeta();
+    if(!meta || !meta.salt || !meta.test){ setStatus('Välj “Sätt nytt lösen” först.'); return; }
     setStatus('Kontrollerar…');
     const key=await deriveKey(pass, meta.salt);
     const probe=await decObj(key, meta.test);
-    if(!probe || probe.ok!==true) throw new Error('Fel lösenord');
-    window.AppState.key = key; setStatus(''); hideLock();
+    if(!probe || probe.ok!==true) throw new Error('Test-decrypt misslyckades');
+    window.AppState.key=key; setStatus(''); hideLock(); await renderList();
   }catch(e){ setStatus('Upplåsning misslyckades.'); }
 }
 
 function lock(){
-  window.AppState.key=null; window.AppState.currentId=null;
-  $('editor').innerHTML=''; $('titleInput').value=''; $('dateLine').textContent='';
+  const st=window.AppState||{};
+  st.key=null; st.currentId=null;
+  const ed=document.getElementById('editor'), dl=document.getElementById('dateLine');
+  if(ed) ed.innerHTML=''; if(dl) dl.textContent='';
   showLock(); setStatus('');
-  setTimeout(()=>$('passInput')?.focus(), 50);
+  setTimeout(()=>document.getElementById('passInput')?.focus(), 50);
 }
