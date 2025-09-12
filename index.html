@@ -6,8 +6,8 @@
   <title>Retro Diary</title>
 
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="styles.css">      <!-- huvud-CSS som importerar delarna -->
-  <link id="themeLink" rel="stylesheet" href="theme_light.css"> <!-- tema (växlas i app.js) -->
+  <link rel="stylesheet" href="styles.css">
+  <link id="themeLink" rel="stylesheet" href="theme_light.css">
 </head>
 <body class="locked">
   <!-- Menyknapp -->
@@ -29,12 +29,10 @@
     <!-- Höger (editor) -->
     <section class="page" id="rightPage">
       <div id="toolbar">
-        <!-- textformat -->
         <button id="boldBtn" class="btn"><b>B</b></button>
         <button id="italicBtn" class="btn"><i>I</i></button>
         <button id="underlineBtn" class="btn"><u>U</u></button>
 
-        <!-- block / rubriker -->
         <select id="blockSelect" title="Block">
           <option value="p">Brödtext</option>
           <option value="h1">Rubrik 1</option>
@@ -43,26 +41,18 @@
           <option value="blockquote">Citat</option>
         </select>
 
-        <!-- färger -->
-        <label class="color-swatch" title="Textfärg">
-          <input id="foreColor" type="color">
-        </label>
-        <label class="color-swatch" title="Markering">
-          <input id="hiliteColor" type="color" value="#fff9a8">
-        </label>
+        <label class="color-swatch" title="Textfärg"><input id="foreColor" type="color"></label>
+        <label class="color-swatch" title="Markering"><input id="hiliteColor" type="color" value="#fff9a8"></label>
 
-        <!-- listor + alignment -->
         <button id="ulBtn" class="btn">• Lista</button>
         <button id="olBtn" class="btn">1. Lista</button>
         <button id="leftBtn" class="btn">⟸</button>
         <button id="centerBtn" class="btn">⇔</button>
         <button id="rightBtn" class="btn">⟹</button>
 
-        <!-- länkar -->
         <button id="linkBtn" class="btn">Länk</button>
         <button id="unlinkBtn" class="btn">Bryt</button>
 
-        <!-- font & storlek -->
         <select id="fontFamily" title="Font" style="min-width:180px"></select>
         <select id="fontSize" title="Storlek">
           <option value="14px">14</option>
@@ -74,7 +64,6 @@
           <option value="28px">28</option>
         </select>
 
-        <!-- media -->
         <button id="btnImage" class="btn">🖼️ Bild</button>
         <button id="btnImgSmaller" class="btn">➖</button>
         <button id="btnImgBigger" class="btn">➕</button>
@@ -107,6 +96,9 @@
       <option value="dark">Mörkt</option>
     </select>
 
+    <!-- Ny knapp: Minnesläge -->
+    <button id="memoryBtn" class="btn">Minnesläge</button>
+
     <button id="wipeBtn" class="btn danger">Rensa ALL lokal data</button>
   </aside>
 
@@ -137,6 +129,7 @@
   <script src="storage.js"></script>
   <script src="lock.js"></script>
   <script src="editor.js"></script>
+  <script src="memory.js"></script>   <!-- NY -->
   <script src="app.js"></script>
 
   <script>
@@ -145,4 +138,4 @@
     }
   </script>
 </body>
-  </html>
+</html>
