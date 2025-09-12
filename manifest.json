@@ -1,8 +1,9 @@
 {
   "name": "Retro Diary",
   "short_name": "Diary",
-  "description": "Retroinspirerad krypterad dagbok med Word-liknande verktyg.",
-  "start_url": "/index.html",
+  "description": "En retroinspirerad, lokalt krypterad dagbok.",
+  "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#111111",
   "theme_color": "#b33",
