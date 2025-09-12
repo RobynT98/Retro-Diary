@@ -11,3 +11,14 @@ body.theme-dark #editor {
   background: #222;
   color: var(--text);
 }
+/* ====== Mörkt tema (ej minnesläge) ====== */
+body.theme-dark:not(.memory-mode){
+  background:#0f0f10 url("stars.jpg") center/cover fixed;
+}
+body.theme-dark .page{
+  background:#161616; color:#eee; border-color:#333;
+}
+body.theme-dark #editor{
+  background:#1b1b1b; color:#eee; border-color:#333;
+}
+body.theme-dark .searchRow input{background:#202020; color:#fff; border-color:#333}
