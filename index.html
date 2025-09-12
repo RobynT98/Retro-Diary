@@ -2,60 +2,87 @@
 <html lang="sv">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Retro Diary</title>
-
-  <!-- PWA -->
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#3a241a"/>
-
-  <!-- Google Fonts: 16 familjer (matchar fonts_db.js) -->
-  <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=IM+Fell+English&family=Dancing+Script&family=Roboto+Slab:wght@400;700&family=Merriweather:wght@400;700&family=Playfair+Display:wght@400;700&family=Lora:wght@400;700&family=Crimson+Text:wght@400;700&family=Cardo:wght@400;700&family=Spectral:wght@400;700&family=Kalam:wght@300;400;700&family=Courgette&family=Handlee&family=Cormorant+Garamond:wght@400;700&family=Source+Serif+4:wght@400;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
-
-  <link rel="stylesheet" href="styles.css?v=fonts1">
+  <meta name="theme-color" content="#2b1a14" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="styles.css?v=book15" />
 </head>
 <body class="locked">
-
   <!-- Menyknapp -->
-  <button id="menuToggle" class="menu-btn" aria-label="Meny">☰</button>
+  <button id="menuToggle" class="menu-toggle" aria-label="Meny">☰</button>
+
+  <!-- Snabbknappar -->
+  <div class="float-actions">
+    <button id="themeToggle" title="Dark/Light">🌓</button>
+    <button id="forceUpdateBtn" title="Rensa cache och ladda om">⟳</button>
+  </div>
 
   <!-- Bok -->
   <div class="book">
-    <!-- Vänster sida: innehåll -->
+    <!-- Vänster: lista/sök/taggar -->
     <section class="page" id="leftPage">
       <h2>Innehåll</h2>
+
+      <div class="search-row">
+        <input id="searchInput" placeholder="Sök titel eller text…" />
+        <select id="tagFilter"><option value="">Alla taggar</option></select>
+      </div>
+
       <ul id="entries" class="entries"></ul>
     </section>
 
-    <!-- Höger sida: editor -->
+    <!-- Höger: editor -->
     <section class="page" id="rightPage">
-      <div id="toolbar" class="toolbar">
-        <button data-cmd="bold"><b>B</b></button>
-        <button data-cmd="italic"><i>I</i></button>
-        <button data-cmd="underline"><u>U</u></button>
 
-        <button data-cmd="justifyLeft">⟸</button>
-        <button data-cmd="justifyCenter">≡</button>
-        <button data-cmd="justifyRight">⟹</button>
-
-        <button id="ulBtn">• List</button>
-        <button id="olBtn">1. List</button>
-
-        <input id="colorBtn" type="color" title="Textfärg"/>
-
-        <button id="linkBtn" title="Länk">🔗</button>
-
-        <!-- Font-knapp -->
-        <label class="font-label">Font:
-          <select id="fontSelect"></select>
-        </label>
-
-        <!-- Bakgrundsmarkering -->
-        <input id="hiliteBtn" type="color" value="#fff2b3" title="Markera"/>
+      <div class="meta-row">
+        <input id="titleInput" class="title" maxlength="80" placeholder="Titel…" />
+        <div id="dateLine" class="date-line"></div>
       </div>
 
-      <div id="dateLine" class="muted"></div>
-      <div id="editor" class="editor" contenteditable="true" spellcheck="true"></div>
+      <div id="toolbar" class="toolbar">
+        <button id="boldBtn"><b>B</b></button>
+        <button id="italicBtn"><i>I</i></button>
+        <button id="underlineBtn"><u>U</u></button>
+        <button id="strikeBtn">S</button>
+
+        <button id="alignLeftBtn"  title="Vänster">⇤</button>
+        <button id="alignCenterBtn" title="Centrera">≡</button>
+        <button id="alignRightBtn" title="Höger">⇥</button>
+
+        <select id="headingSel" title="Rubrik">
+          <option value="p">Brödtext</option>
+          <option value="h1">Rubrik 1</option>
+          <option value="h2">Rubrik 2</option>
+          <option value="h3">Rubrik 3</option>
+          <option value="blockquote">Citat</option>
+          <option value="pre">Kod</option>
+        </select>
+
+        <button id="ulBtn">· Lista</button>
+        <button id="olBtn">1. Lista</button>
+        <button id="hrBtn">— Linje</button>
+
+        <input id="colorBtn" type="color" title="Textfärg" />
+        <input id="bgBtn"    type="color" title="Markeringsfärg" />
+
+        <button id="linkBtn" title="Länk">🔗</button>
+        <button id="imgBtn"  title="Infoga bild">🖼️</button>
+        <button id="symBtn"  title="Infoga symbol/emoji">😊</button>
+
+        <button id="undoBtn" title="Ångra">↶</button>
+        <button id="redoBtn" title="Gör om">↷</button>
+
+        <label class="font-label">Font:</label>
+        <select id="fontSelect"></select>
+      </div>
+
+      <div id="editor" contenteditable="true" spellcheck="true"></div>
+
+      <div class="tag-row">
+        <input id="tagInput" placeholder="Lägg till tagg… (Enter)" />
+        <div id="tagChips" class="chips"></div>
+      </div>
 
       <div id="actions" class="actions">
         <button id="newBtn">Ny sida</button>
@@ -70,16 +97,23 @@
   <aside id="menu" aria-hidden="true">
     <h2>Meny</h2>
     <button id="exportBtn">Exportera (.json)</button>
-    <input id="importInput" type="file" accept="application/json" hidden>
+    <input id="importInput" type="file" accept="application/json" hidden />
     <button id="importBtn">Importera (.json)</button>
     <button id="wipeBtn" class="danger">Rensa ALL lokal data</button>
+
+    <h3 class="mt">Tema</h3>
+    <div class="theme-row">
+      <label>Editor-papper</label><input id="paperColor" type="color" />
+      <label>Textfärg</label><input id="inkColor" type="color" />
+      <button id="themeReset">Återställ</button>
+    </div>
   </aside>
 
   <!-- Låsskärm -->
   <div id="lockscreen" aria-hidden="false">
     <div class="card">
-      <h2>🔒 Retro Diary</h2>
-      <input id="passInput" type="password" placeholder="Lösenord">
+      <h2> 🔏 Retro Diary</h2>
+      <input id="passInput" type="password" placeholder="Lösenord" />
       <div class="row">
         <button id="setPassBtn">Sätt nytt lösen</button>
         <button id="unlockBtn">Lås upp</button>
@@ -89,15 +123,12 @@
     </div>
   </div>
 
-  <!-- Tvinga cache-refresh -->
-  <button id="forceUpdateBtn" title="Rensa cache och ladda om">⟳ Uppdatera app</button>
-
-  <script src="fonts_db.js?v=fonts1"></script>
-  <script src="app.js?v=fonts1"></script>
+  <script src="fonts_db.js?v=2"></script>
+  <script src="app.js?v=book15"></script>
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').catch(()=>{});
+      navigator.serviceWorker.register('sw.js?v=book15').catch(()=>{});
     }
   </script>
 </body>
-</html>
+  </html>
