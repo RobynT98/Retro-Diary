@@ -6,45 +6,84 @@
   <title>Retro Diary</title>
 
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#8b0000">
+  <meta name="theme-color" content="#2b1a14" />
 
-  <link rel="stylesheet" href="styles.css?v=book-fontdb-1">
+  <!-- Bas-typsnitt (UI). Redaktörens typsnitt väljs dynamiskt via fonts.js -->
+  <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=IM+Fell+English&display=swap" rel="stylesheet">
 
-  <!-- Fonts DB (måste ligga före app.js) -->
-  <script src="fonts.js"></script>
-  <!-- Ladda alla Google-fonts i FONT_DB dynamiskt -->
-  <script>
-    (function injectGoogleFonts(){
-      try{
-        const href = (typeof buildGoogleFontsHref === 'function')
-          ? buildGoogleFontsHref(FONT_DB)
-          : 'https://fonts.googleapis.com/css2?family=Special+Elite&display=swap';
-        const link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = href;
-        document.head.appendChild(link);
-      }catch(e){}
-    })();
-  </script>
+  <link rel="stylesheet" href="styles.css?v=bookX" />
 </head>
 <body class="locked">
 
   <!-- Menyknapp -->
   <button id="menuToggle" aria-label="Meny">☰</button>
 
-  <!-- Bok -->
+  <!-- Boklayout -->
   <div class="book">
-    <div class="page" id="leftPage">
+    <!-- Vänstersida: Innehåll -->
+    <section class="page" id="leftPage">
       <h2>Innehåll</h2>
       <ul id="entries"></ul>
-    </div>
+    </section>
 
-    <div class="page" id="rightPage">
-      <div id="toolbar">
-        <button id="boldBtn"><b>B</b></button>
-        <button id="italicBtn"><i>I</i></button>
-        <button id="underlineBtn"><u>U</u></button>
-        <input id="colorBtn" type="color" aria-label="Textfärg"/>
+    <!-- Högersida: Editor -->
+    <section class="page" id="rightPage">
+      <!-- Verktygsrad -->
+      <div id="toolbar" class="toolbar">
+        <!-- Stil -->
+        <button class="btn" id="boldBtn" title="Fet (Ctrl+B)"><span>B</span></button>
+        <button class="btn" id="italicBtn" title="Kursiv (Ctrl+I)"><span>I</span></button>
+        <button class="btn" id="underlineBtn" title="Understruken (Ctrl+U)"><span>U</span></button>
+        <button class="btn" id="strikeBtn" title="Överstrykning"><span>S</span></button>
+
+        <span class="divider"></span>
+
+        <!-- Block/rubrik -->
+        <label class="selectwrap" title="Rubriknivå">
+          <select id="blockSelect">
+            <option value="p">Brödtext</option>
+            <option value="h1">Rubrik 1</option>
+            <option value="h2">Rubrik 2</option>
+            <option value="h3">Rubrik 3</option>
+            <option value="blockquote">Citat</option>
+            <option value="pre">Kod</option>
+          </select>
+        </label>
+
+        <span class="divider"></span>
+
+        <!-- Listor -->
+        <button class="btn" id="ulBtn" title="Punktlista">• List</button>
+        <button class="btn" id="olBtn" title="Numrerad lista">1. List</button>
+
+        <span class="divider"></span>
+
+        <!-- Justering -->
+        <button class="btn" id="leftBtn"   title="Vänsterjustera">⟸</button>
+        <button class="btn" id="centerBtn" title="Centrera">⟷</button>
+        <button class="btn" id="rightBtn"  title="Högerjustera">⟹</button>
+        <button class="btn" id="justifyBtn" title="Justera">≋</button>
+
+        <span class="divider"></span>
+
+        <!-- Färger -->
+        <label class="swatch" title="Textfärg"><input id="colorBtn" type="color"/></label>
+        <label class="swatch" title="Markering"><input id="hiliteBtn" type="color" value="#fff2a8"/></label>
+
+        <span class="divider"></span>
+
+        <!-- Länk, städ & ångra/gör om -->
+        <button class="btn" id="linkBtn"  title="Infoga länk">🔗</button>
+        <button class="btn" id="clearBtn" title="Ta bort formatering">⟲</button>
+        <button class="btn" id="undoBtn"  title="Ångra (Ctrl+Z)">↶</button>
+        <button class="btn" id="redoBtn"  title="Gör om (Ctrl+Y)">↷</button>
+
+        <span class="divider"></span>
+
+        <!-- Font (från fonts.js) -->
+        <label class="selectwrap" title="Typsnitt (endast editor)">
+          <select id="fontSelect"></select>
+        </label>
       </div>
 
       <div id="dateLine"></div>
@@ -56,7 +95,7 @@
         <button id="deleteBtn" class="danger">Radera</button>
         <button id="lockBtn">Lås</button>
       </div>
-    </div>
+    </section>
   </div>
 
   <!-- Sidomeny -->
@@ -64,14 +103,10 @@
     <h2>Meny</h2>
 
     <button id="exportBtn">Exportera (.json)</button>
-
     <input id="importInput" type="file" accept="application/json" hidden>
     <button id="importBtn">Importera (.json)</button>
 
     <button id="wipeBtn" class="danger">Rensa ALL lokal data</button>
-
-    <label for="fontSelect">Typsnitt (endast editor):</label>
-    <select id="fontSelect"></select>
   </aside>
 
   <!-- Låsskärm -->
@@ -88,14 +123,15 @@
     </div>
   </div>
 
-  <!-- Uppdatera (rensar SW + cache) -->
+  <!-- Force update -->
   <button id="forceUpdateBtn" title="Rensa cache och ladda om">⟳ Uppdatera app</button>
 
-  <script src="app.js?v=book-fontdb-1"></script>
+  <script src="fonts.js?v=bookX"></script>
+  <script src="app.js?v=bookX"></script>
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js?v=book-fontdb-1').catch(()=>{});
+      navigator.serviceWorker.register('sw.js?v=bookX').catch(()=>{});
     }
   </script>
 </body>
-</html>
+          </html>
