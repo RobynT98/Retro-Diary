@@ -244,7 +244,7 @@ async function regenRecoveryWrap(dek){
     await supabase.from('meta').upsert({ user_id: currentUser.id, wrap_recovery:{saltHex:toHex(salt),payload:enc} });
   }
   return rcPretty;
-  }
+}
 /* ========================== Entry crypto ========================== */
 async function encryptWithDEK(plainU8){
   const key = await crypto.subtle.importKey('raw', state.dek, 'AES-GCM', false, ['encrypt']);
@@ -389,7 +389,7 @@ function newEntry(){
   dateLine.textContent = now.toLocaleDateString('sv-SE',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   stamp.textContent = 'Ej sparad';
   editor.focus();
-        }
+    }
 /* ========================== Export / Import ========================== */
 async function exportAll(){
   if(!state.dek){ alert('Lås upp först.'); return; }
@@ -490,7 +490,7 @@ async function applyReset(){
   }catch(err){
     out.textContent = (err && err.message) || 'Fel återställningskod.';
   }
-}
+    }
 /* ========================== Biometri (WebAuthn, lokal) ========================== */
 async function bioAvailable(){
   return !!(window.PublicKeyCredential && navigator.credentials);
@@ -745,3 +745,4 @@ window.addEventListener('load', async ()=>{
   // Start i låst läge
   lock();
 });
+                                                                                                   }
