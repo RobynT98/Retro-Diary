@@ -1,6 +1,64 @@
-/* Mörkt tema – invertera paneler, behåll pergament i editor */
-body{ background:#0e0e0e; }
-.page{ background:#1a1a1a; }
-#editor{ background:#222; color:#eee; }
-.titleInput{ background:#2a2a2a; color:#fff; border-color:#333; }
-#menu{ background:#101010; }
+/* ====== Dark theme overrides ====== */
+
+/* bakgrund som i “vanliga” mörka läget (inte minne) */
+body.theme-dark {
+  background: #121212 url("stars.jpg") center/cover fixed no-repeat; /* valfritt: ta bort stars om du vill */
+  color: #eae6dd;
+}
+
+/* vänster/höger “sidor” */
+body.theme-dark .page{
+  background: #1b1b1b;           /* ersätter parchment */
+  border-color: #2a2a2a;
+  box-shadow: 0 6px 18px rgba(0,0,0,.35);
+}
+
+/* rubriker */
+body.theme-dark h2{
+  color:#ffeeda;
+  text-shadow: 0 1px 0 #000;
+}
+
+/* sök + list */
+body.theme-dark .searchRow input{
+  background:#222; color:#eee; border-color:#444;
+}
+body.theme-dark #entries li{
+  background:#1f1f1f; border-color:#3a3a3a; color:#eae6dd;
+}
+body.theme-dark #entries li.fav{
+  background:#3a2b12; border-color:#b9862e;
+}
+
+/* toolbar-blur */
+body.theme-dark #toolbar{
+  background: linear-gradient(0deg, rgba(20,20,20,.85), rgba(20,20,20,.65));
+  border-bottom-color:#2b2b2b;
+}
+
+/* editor */
+body.theme-dark #editor{
+  background:#151515;
+  color:#efeae2;
+  border-color:#2a2a2a;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.04), 0 1px 2px rgba(0,0,0,.4);
+}
+
+/* —— TITEL (fixar “osynlig”) —— */
+body.theme-dark .titleInput{
+  background:#222; 
+  color:#f3efe8;
+  border-color:#3a3a3a;
+}
+body.theme-dark .titleInput::placeholder{ color:#a7a7a7; }
+
+/* actions-raden */
+body.theme-dark #actions{ border-color:#2a2a2a; }
+
+/* sidomenyn */
+body.theme-dark #menu{
+  background:#0f0f0f; color:#f0ece3;
+}
+body.theme-dark #menu select{
+  background:#151515; color:#eee; border-color:#333;
+}
