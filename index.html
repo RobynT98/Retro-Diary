@@ -1,72 +1,70 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="sv">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Retro Diary (lite)</title>
-  <link rel="stylesheet" href="styles.css?v=5">
+  <title>Retro Diary Lite</title>
+  <link rel="stylesheet" href="styles.css?v=6">
 </head>
 <body class="locked">
-  <div id="frame">
 
-    <!-- Titlebar -->
-    <div class="titlebar">
-      <div class="logo">Retro Diary</div>
-      <div class="actions">
-        <button id="newBtn" class="big">Ny sida</button>
-        <button id="lockBtn" class="big">Lås</button>
-        <button id="menuBtn">☰</button>
-        <div id="menuDrop" hidden>
-          <button id="exportBtn">Exportera</button>
-          <button id="importBtn">Importera</button>
-          <button id="wipeLocal">Rensa allt lokalt</button>
-        </div>
-      </div>
+  <!-- Låsskärm -->
+  <div id="lockscreen">
+    <h2>🔒 Retro Diary</h2>
+    <input id="pass" type="password" placeholder="Lösenord">
+    <div>
+      <button id="unlockBtn" class="big">Lås upp</button>
+      <button id="setPassBtn" class="big">Sätt nytt lösenord</button>
     </div>
-
-    <!-- Editor -->
-    <div id="editorWrap">
-      <div id="toolbar">
-        <button data-cmd="bold">B</button>
-        <button data-cmd="italic">I</button>
-        <button data-cmd="underline">U</button>
-        <button data-cmd="strikeThrough">S</button>
-        <button data-cmd="formatBlock:h1">H1</button>
-        <button data-cmd="formatBlock:h2">H2</button>
-        <button data-cmd="insertUnorderedList">• List</button>
-        <button data-cmd="insertOrderedList">1. List</button>
-      </div>
-      <div id="editor" contenteditable="true"></div>
-      <div class="entry-actions">
-        <button id="saveBtn" class="big">Spara</button>
-        <button id="deleteBtn" class="big danger">Radera</button>
-      </div>
-      <div id="entries"></div>
-    </div>
-
-    <!-- Lock Screen -->
-    <div id="lockscreen">
-      <div class="lockbox">
-        <h2>🔒 Lås upp dagboken</h2>
-        <p>Dagboken krypteras lokalt med detta lösenord.</p>
-        <input id="pass" type="password" placeholder="Lösenord">
-        <button id="unlockBtn" class="big">Lås upp</button>
-        <div id="status" class="status"></div>
-
-        <!-- Extra reset/wipe on lock -->
-        <div class="tiny" style="margin-top:.5rem">
-          Glömt lösen? <br>
-          <button id="wipeLocalOnLock" class="danger">Rensa ALL lokal data</button>
-        </div>
-      </div>
-    </div>
-
+    <button id="wipeLocalOnLock" class="danger">Rensa ALL lokal data</button>
+    <p id="status"></p>
   </div>
 
-  <script src="app.js?v=5" defer></script>
+  <!-- Editor -->
+  <div id="app" hidden>
+    <header>
+      <button id="menuBtn">☰</button>
+      <h1>Retro Diary</h1>
+    </header>
+
+    <!-- Toolbar -->
+    <div id="toolbar">
+      <button id="boldBtn"><b>B</b></button>
+      <button id="italicBtn"><i>I</i></button>
+      <button id="underlineBtn"><u>U</u></button>
+      <input id="colorBtn" type="color">
+    </div>
+
+    <!-- Editorfält -->
+    <div id="dateLine"></div>
+    <div id="editor" contenteditable="true"></div>
+
+    <!-- Actions -->
+    <div class="actions">
+      <button id="newEntryBtn" class="big">Ny sida</button>
+      <button id="saveBtn" class="big">Spara</button>
+      <button id="delBtn" class="big danger">Radera</button>
+      <button id="lockBtn" class="big">Lås</button>
+    </div>
+
+    <!-- Lista med sidor -->
+    <ul id="entries"></ul>
+
+    <!-- Meny -->
+    <div id="menu">
+      <h3>Meny</h3>
+      <button id="exportBtn">Exportera</button>
+      <input id="importFile" type="file" accept="application/json">
+      <button id="wipeLocalBtn" class="danger">Rensa allt</button>
+    </div>
+  </div>
+
+  <!-- Script -->
+  <script src="app.js?v=6"></script>
   <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js?v=5');
+    // Service worker
+    if('serviceWorker' in navigator){
+      navigator.serviceWorker.register('sw.js?v=6');
     }
   </script>
 </body>
