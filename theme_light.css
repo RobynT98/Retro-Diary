@@ -12,3 +12,8 @@ body.theme-light #editor {
   background: #fff;
   color: var(--text);
 }
+/* ====== Ljust tema ====== */
+body:not(.memory-mode){
+  background: url("leather.jpg") center/cover fixed #3a241c;
+}
+#rightPage #editor{background:#fffdf8}
