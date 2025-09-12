@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="sv">
 <head>
   <meta charset="utf-8" />
@@ -8,55 +8,55 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#8b0000">
 
-  <!-- Basstil – fontlänkar förvalda laddas dynamiskt i app.js -->
-  <link rel="stylesheet" href="styles.css?v=titles-fonts">
+  <link rel="stylesheet" href="styles.css?v=book-fontdb-1">
+
+  <!-- Fonts DB (måste ligga före app.js) -->
+  <script src="fonts.js"></script>
+  <!-- Ladda alla Google-fonts i FONT_DB dynamiskt -->
+  <script>
+    (function injectGoogleFonts(){
+      try{
+        const href = (typeof buildGoogleFontsHref === 'function')
+          ? buildGoogleFontsHref(FONT_DB)
+          : 'https://fonts.googleapis.com/css2?family=Special+Elite&display=swap';
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = href;
+        document.head.appendChild(link);
+      }catch(e){}
+    })();
+  </script>
 </head>
 <body class="locked">
 
   <!-- Menyknapp -->
-  <button id="menuToggle" class="menu-toggle" aria-label="Meny">☰</button>
+  <button id="menuToggle" aria-label="Meny">☰</button>
 
   <!-- Bok -->
   <div class="book">
-    <!-- Vänstersida: Innehåll -->
-    <section class="page" id="leftPage">
+    <div class="page" id="leftPage">
       <h2>Innehåll</h2>
+      <ul id="entries"></ul>
+    </div>
 
-      <div class="listbar">
-        <input id="searchInput" type="search" placeholder="Sök titel eller text…" />
-        <button id="newBtnSmall" title="Ny sida">＋</button>
-      </div>
-
-      <ul id="entries" class="entries" aria-live="polite"></ul>
-    </section>
-
-    <!-- Högersida: Editor -->
-    <section class="page" id="rightPage">
+    <div class="page" id="rightPage">
       <div id="toolbar">
-        <button id="boldBtn" title="Fet">B</button>
-        <button id="italicBtn" title="Kursiv">I</button>
-        <button id="underlineBtn" title="Understryk">U</button>
+        <button id="boldBtn"><b>B</b></button>
+        <button id="italicBtn"><i>I</i></button>
+        <button id="underlineBtn"><u>U</u></button>
         <input id="colorBtn" type="color" aria-label="Textfärg"/>
-        <select id="alignSelect" title="Justering">
-          <option value="left">Vänster</option>
-          <option value="center">Centrerad</option>
-          <option value="right">Höger</option>
-          <option value="justify">Marginaljusterad</option>
-        </select>
       </div>
-
-      <!-- Titelrad (kan döpas/ändras) -->
-      <input id="titleInput" type="text" placeholder="Titel…" />
 
       <div id="dateLine"></div>
       <div id="editor" contenteditable="true" spellcheck="true"></div>
 
       <div id="actions">
+        <button id="newBtn">Ny sida</button>
         <button id="saveBtn">Spara</button>
         <button id="deleteBtn" class="danger">Radera</button>
         <button id="lockBtn">Lås</button>
       </div>
-    </section>
+    </div>
   </div>
 
   <!-- Sidomeny -->
@@ -64,18 +64,14 @@
     <h2>Meny</h2>
 
     <button id="exportBtn">Exportera (.json)</button>
+
     <input id="importInput" type="file" accept="application/json" hidden>
     <button id="importBtn">Importera (.json)</button>
+
     <button id="wipeBtn" class="danger">Rensa ALL lokal data</button>
 
-    <label for="fontSelect">Typsnitt (editor):</label>
+    <label for="fontSelect">Typsnitt (endast editor):</label>
     <select id="fontSelect"></select>
-
-    <label for="themeSelect">Tema:</label>
-    <select id="themeSelect">
-      <option value="parchment">Pergament (ljus)</option>
-      <option value="leather-dark">Läder (mörk)</option>
-    </select>
   </aside>
 
   <!-- Låsskärm -->
@@ -95,11 +91,11 @@
   <!-- Uppdatera (rensar SW + cache) -->
   <button id="forceUpdateBtn" title="Rensa cache och ladda om">⟳ Uppdatera app</button>
 
-  <script src="app.js?v=titles-fonts"></script>
+  <script src="app.js?v=book-fontdb-1"></script>
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js?v=titles-fonts').catch(()=>{});
+      navigator.serviceWorker.register('sw.js?v=book-fontdb-1').catch(()=>{});
     }
   </script>
 </body>
-        </html>
+</html>
