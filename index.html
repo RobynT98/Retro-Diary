@@ -114,5 +114,17 @@
       navigator.serviceWorker.register('sw.js?v=gallery1').catch(()=>{});
     }
   </script>
+  <script>
+  console.log("index: laddar app.js …");
+</script>
+<script src="app.js?build=2025-09-12"></script>
+<script>
+  // Visa tydligt i konsolen om app.js inte körts
+  setTimeout(()=>{
+    if(!window.__APP_WIRED__) {
+      alert("app.js verkar inte ha laddats. Tryck 'Uppdatera app' för att rensa cache.");
+    }
+  }, 800);
+</script>
 </body>
 </html>
