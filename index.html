@@ -1,103 +1,80 @@
 <!DOCTYPE html>
 <html lang="sv">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Retro Diary</title>
-  <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="styles.css">
 
-  <!-- Google Fonts med många fonter -->
-  <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=IM+Fell+English&family=Dancing+Script&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Playfair+Display:wght@400;600&family=Lora:ital,wght@0,400;1,400&family=Crimson+Pro:wght@400;600&family=Cardo:ital@0;1&family=Spectral:ital,wght@0,400;1,400&family=Cormorant+Garamond:wght@400;600&family=Cinzel:wght@400;600&family=Merriweather:wght@400;700&family=Roboto+Slab:wght@400;600&family=Noto+Serif:wght@400;600&family=Great+Vibes&family=Patrick+Hand&family=Caveat:wght@400;600&display=swap" rel="stylesheet">
+  <!-- PWA (frivilligt; funkar även utan) -->
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Typsnitt och stil -->
+  <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=IM+Fell+English&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=fix1">
 </head>
+
+<!-- Starta i låst läge -->
 <body class="locked">
 
-  <!-- Låsskärm -->
-  <div id="lockscreen" class="overlay">
+  <!-- LÅSSKÄRM -->
+  <div class="lockscreen" id="lockscreen">
     <div class="card">
-      <h1>🔒 Retro Diary</h1>
-      <input type="password" id="pass" placeholder="Lösenord">
-      <div class="buttons">
-        <button id="setPass">Sätt nytt lösen</button>
-        <button id="unlock">Lås upp</button>
-        <button id="wipe" class="danger">Rensa data</button>
+      <h2>🔒 Retro Diary</h2>
+      <input id="passInput" type="password" placeholder="Lösenord" autocomplete="current-password">
+      <div class="row">
+        <button id="setPassBtn">Sätt nytt lösen</button>
+        <button id="unlockBtn">Lås upp</button>
       </div>
-      <div id="status"></div>
+      <button id="wipeLocalOnLock" class="danger">Rensa ALL lokal data</button>
+      <div id="status" aria-live="polite"></div>
     </div>
   </div>
 
-  <!-- Själva boken -->
-  <div id="book" class="book hidden">
-    <!-- Meny-knapp -->
-    <button id="menuBtn" aria-label="Meny">☰</button>
+  <!-- DAGBOKEN -->
+  <div class="book" id="book" style="display:none;">
+    <section class="page" id="leftPage">
+      <h2>Innehåll</h2>
+      <ul id="entries"></ul>
+    </section>
 
-    <!-- Sidomeny -->
-    <aside id="menu" class="menu hidden">
-      <h2>Meny</h2>
-      <button id="export">Exportera JSON</button>
-      <button id="import">Importera JSON</button>
-      <button id="clearAll" class="danger">Rensa ALL lokal data</button>
+    <section class="page" id="rightPage">
+      <div id="toolbar">
+        <button id="boldBtn"><b>B</b></button>
+        <button id="italicBtn"><i>I</i></button>
+        <button id="underlineBtn"><u>U</u></button>
+        <input id="colorBtn" type="color" aria-label="Textfärg">
+      </div>
 
-      <h3>Typsnitt:</h3>
-      <select id="fontSelect">
-        <!-- Retro / skrivmaskin -->
-        <option value="'Special Elite', cursive">Special Elite (Skrivmaskin)</option>
-
-        <!-- Gammaldags serif -->
-        <option value="'IM Fell English', serif">IM Fell English</option>
-        <option value="'EB Garamond', serif">EB Garamond</option>
-        <option value="'Cardo', serif">Cardo</option>
-        <option value="'Cormorant Garamond', serif">Cormorant Garamond</option>
-        <option value="'Cinzel', serif">Cinzel</option>
-        <option value="'Crimson Pro', serif">Crimson Pro</option>
-        <option value="'Playfair Display', serif">Playfair Display</option>
-        <option value="'Lora', serif">Lora</option>
-        <option value="'Spectral', serif">Spectral</option>
-        <option value="'Merriweather', serif">Merriweather</option>
-        <option value="'Noto Serif', serif">Noto Serif</option>
-        <option value="'Roboto Slab', serif">Roboto Slab</option>
-
-        <!-- Handstil -->
-        <option value="'Dancing Script', cursive">Dancing Script</option>
-        <option value="'Great Vibes', cursive">Great Vibes</option>
-        <option value="'Patrick Hand', cursive">Patrick Hand</option>
-        <option value="'Caveat', cursive">Caveat</option>
-
-        <!-- System fallback -->
-        <option value="serif">Serif (system)</option>
-        <option value="sans-serif">Sans-serif (system)</option>
-      </select>
-    </aside>
-
-    <!-- Sidorna -->
-    <div id="page">
       <div id="dateLine"></div>
-      <div id="editor" contenteditable="true"></div>
-    </div>
+      <div id="editor" contenteditable="true" spellcheck="true"></div>
 
-    <!-- Toolbar -->
-    <div class="toolbar">
-      <button onclick="execCmd('bold')" title="Fet">B</button>
-      <button onclick="execCmd('italic')" title="Kursiv">/</button>
-      <button onclick="execCmd('underline')" title="Understruken">U</button>
-      <button onclick="changeColor()" title="Textfärg 🎨">🎨</button>
-    </div>
-
-    <!-- Bottenknappar -->
-    <div class="actions">
-      <button id="newPage">Ny sida</button>
-      <button id="savePage">Spara</button>
-      <button id="deletePage" class="danger">Radera</button>
-      <button id="lockBtn">Lås</button>
-    </div>
+      <div id="actions">
+        <button id="newBtn">Ny sida</button>
+        <button id="saveBtn">Spara</button>
+        <button id="deleteBtn" class="danger">Radera</button>
+        <button id="lockBtn">Lås</button>
+      </div>
+    </section>
   </div>
 
-  <!-- Uppdateringsknapp -->
-  <button id="updateApp">⟳ Uppdatera app</button>
+  <!-- Sidomeny (enkel) -->
+  <button id="menuToggle" aria-label="Meny">☰</button>
+  <aside id="menu" aria-hidden="true">
+    <h2>Meny</h2>
+    <button id="exportBtn">Exportera (.json)</button>
+    <input id="importInput" type="file" accept="application/json" hidden>
+    <button id="importBtn">Importera (.json)</button>
+    <button id="wipeBtn" class="danger">Rensa ALL lokal data</button>
+  </aside>
 
-  <!-- Debug -->
-  <div id="debug"></div>
+  <!-- Force update (rensar SW/cache) -->
+  <button id="forceUpdateBtn" title="Rensa cache och ladda om">⟳ Uppdatera app</button>
 
-  <script src="app.js?v=15"></script>
+  <script src="app.js?v=fix1"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(()=>{});
+    }
+  </script>
 </body>
 </html>
