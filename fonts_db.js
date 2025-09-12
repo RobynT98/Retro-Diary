@@ -43,10 +43,9 @@ window.FONT_DB = [
   {name:"DM Serif Text", css:"DM+Serif+Text:ital@0;1", stack:"'DM Serif Text', serif"}
 ];
 
-// Ladda CSS för en font vid behov
-window.loadFontCSS = (cssName)=>{
-  if(!cssName) return;
-  if(document.querySelector(`link[data-font="${cssName}"]`)) return;
+
+  window.loadFontCSS = (cssName)=>{
+  if(document.querySelector('link[data-font="'+cssName+'"]')) return;
   const l=document.createElement('link');
   l.rel='stylesheet';
   l.href=`https://fonts.googleapis.com/css2?family=${cssName}&display=swap`;
