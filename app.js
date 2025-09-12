@@ -137,6 +137,16 @@ async function unlock(){
     statusEl.textContent = 'Kunde inte låsa upp.';
   }
 }
+function lock() {
+  document.body.classList.add('locked');
+  currentId = null;
+  $('#editor').innerHTML = '';
+  $('#entries').innerHTML = '';
+  $('#status').textContent = '';
+
+  // Viktigt: fokusera lösenordsfältet när låst
+  setTimeout(()=>$('#pass')?.focus(), 50);
+}
 
 /* ========== CRUD ========== */
 function newEntry(){
@@ -279,7 +289,11 @@ window.addEventListener('load', async ()=>{
   $('#wipeLocalBtn')?.addEventListener('click', wipeLocal);
 
   $('#menuBtn')?.addEventListener('click', ()=>{
+  if (document.body.classList.contains('locked')) return; // blockera när låst
+  const d = $('#menuDrop'); d.hidden = !d.hidden;
+});
     const d=$('#menuDrop'); d.hidden = !d.hidden;
+ $('#wipeLocalOnLock')?.addEventListener('click', wipeLocal);
   });
   document.body.addEventListener('click', e=>{
     if(e.target.id==='menuBtn' || e.target.closest('.dropdown')) return;
