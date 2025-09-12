@@ -4,37 +4,83 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Retro Diary</title>
-
-  <!-- PWA -->
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#8b0000">
-
-  <!-- Fonts & CSS -->
-  <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=IM+Fell+English&family=Dancing+Script&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css?v=book12">
+  <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=IM+Fell+English&family=Dancing+Script&display=swap" rel="stylesheet">
 </head>
 <body class="locked">
-
   <!-- Menyknapp -->
   <button id="menuToggle" aria-label="Meny">☰</button>
 
-  <!-- Boken -->
+  <!-- Bok -->
   <div class="book">
-    <!-- Vänstersida: innehåll -->
     <div class="page" id="leftPage">
       <h2>Innehåll</h2>
       <ul id="entries"></ul>
     </div>
 
-    <!-- Högersida: editor -->
     <div class="page" id="rightPage">
       <div id="toolbar">
-        <button id="boldBtn"      title="Fet"><b>B</b></button>
-        <button id="italicBtn"    title="Kursiv"><i>I</i></button>
-        <button id="underlineBtn" title="Understreck"><u>U</u></button>
-        <input  id="colorBtn" type="color" aria-label="Textfärg"/>
+        <button id="boldBtn"><b>B</b></button>
+        <button id="italicBtn"><i>I</i></button>
+        <button id="underlineBtn"><u>U</u></button>
+        <input id="colorBtn" type="color" aria-label="Textfärg"/>
       </div>
 
+      <div id="dateLine"></div>
+      <div id="editor" contenteditable="true" spellcheck="true"></div>
+
+      <div id="actions">
+        <button id="newBtn">Ny sida</button>
+        <button id="saveBtn">Spara</button>
+        <button id="deleteBtn" class="danger">Radera</button>
+        <button id="lockBtn">Lås</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sidomeny -->
+  <aside id="menu" aria-hidden="true">
+    <h2>Meny</h2>
+    <button id="exportBtn">Exportera (.json)</button>
+    <input id="importInput" type="file" accept="application/json" hidden>
+    <button id="importBtn">Importera (.json)</button>
+    <button id="wipeBtn" class="danger">Rensa ALL lokal data</button>
+    <label for="fontSelect">Typsnitt (endast editor):</label>
+    <select id="fontSelect">
+      <option value="'Special Elite', cursive">Special Elite</option>
+      <option value="'IM Fell English', serif">IM Fell English</option>
+      <option value="'Dancing Script', cursive">Dancing Script</option>
+      <option value="serif">Serif</option>
+      <option value="sans-serif">Sans-serif</option>
+    </select>
+  </aside>
+
+  <!-- Låsskärm -->
+  <div id="lockscreen" aria-hidden="false">
+    <div class="card">
+      <h2>🔒 Retro Diary</h2>
+      <input id="passInput" type="password" placeholder="Lösenord">
+      <div class="row">
+        <button id="setPassBtn">Sätt nytt lösen</button>
+        <button id="unlockBtn">Lås upp</button>
+      </div>
+      <button id="wipeLocalOnLock" class="danger">Rensa ALL lokal data</button>
+      <div id="status" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <!-- Uppdatera (rensar SW + cache) -->
+  <button id="forceUpdateBtn" title="Rensa cache och ladda om">⟳ Uppdatera app</button>
+
+  <script src="app.js?v=book12"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js?v=book12').catch(()=>{});
+    }
+  </script>
+</body>
+</html>
       <div id="dateLine"></div>
       <div id="editor" contenteditable="true" spellcheck="true"></div>
 
@@ -184,7 +230,7 @@
   <script>
     // Registrera service worker
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("sw.js?v=book11");
+      navigator.serviceWorker.register("sw.js?v=book16");
     }
   </script>
 </body>
