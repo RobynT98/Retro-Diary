@@ -1,0 +1,48 @@
+.book{
+  display:flex; gap:0;
+  max-width:980px; width:min(96vw,980px);
+  margin: clamp(12px,3vw,24px) auto;
+  border-radius:10px; overflow:hidden;
+  box-shadow:0 22px 50px rgba(0,0,0,.55), 0 0 0 2px #000 inset;
+}
+.page{
+  flex:1 1 50%;
+  min-height:72vh;
+  padding: clamp(12px,2.5vw,22px);
+  background: var(--parchment) center/cover, #f6f0dc;
+  border-left:1px solid rgba(0,0,0,.08);
+  position:relative;
+}
+.page::after{
+  content:""; position:absolute; inset:8px;
+  border:1px solid #c2b59b; opacity:.6; pointer-events:none;
+}
+
+#leftPage h2{ margin:6px 0 10px; font-family:'IM Fell English',serif; }
+.searchRow{ display:flex; gap:8px; margin-bottom:8px; }
+#entries{ margin:0; padding:0; list-style:none; max-height: calc(72vh - 86px); overflow:auto; }
+#entries li{
+  padding:10px 12px; margin:6px 0;
+  border:1px dashed rgba(0,0,0,.2);
+  background: rgba(255,255,255,.35);
+  border-radius:6px; cursor:pointer; transition:.15s ease;
+}
+#entries li:hover{ background: rgba(255,255,255,.55); transform:translateY(-1px); }
+
+#menuToggle{
+  position:fixed; top:14px; left:14px; z-index:1200;
+  background:#1d1d1d; color:#fff; border:1px solid #444; border-radius:8px; padding:8px 10px; cursor:pointer;
+}
+#menu{
+  position:fixed; top:0; right:-300px; width:300px; height:100%;
+  background:#151515; color:#fff; border-left:1px solid #000;
+  padding:18px; transition:right .28s ease; z-index:1100; display:flex; flex-direction:column; gap:12px;
+}
+#menu.open{ right:0; }
+#menu h2{ margin:6px 0 10px; color:#ffdddd; }
+#menu select{ padding:8px; border-radius:8px; border:1px solid #700; background:#0f0f0f; color:#fff; }
+
+@media (max-width:860px){
+  .book{ flex-direction:column; }
+  #entries{ max-height:260px; }
+}
