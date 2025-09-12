@@ -2,7 +2,7 @@
 <html lang="sv">
 <head>
   <link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#8b0000">
+  <meta name="theme-color" content="#8b0000">
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Retro Diary</title>
@@ -78,13 +78,24 @@
       <p id="status"></p>
     </div>
   </div>
-  <button id="forceUpdateBtn">🔧 Uppdatera app</button>
-<script>
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("/sw.js")
-    .catch(err => console.error("SW fel:", err));
-}
-</script>
-<script src="app.js?v=book8"></script>
+
+  <!-- Tvångsuppdateringsknapp -->
+  <button id="forceUpdateBtn"
+    style="position:fixed; bottom:14px; right:14px; z-index:3001;
+           background:#222; color:#fff; border:1px solid #555;
+           padding:.5rem .75rem; border-radius:8px; opacity:.85">
+    🔧 Uppdatera app
+  </button>
+
+  <!-- Service Worker -->
+  <script>
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/sw.js")
+      .catch(err => console.error("SW fel:", err));
+  }
+  </script>
+
+  <!-- Appscript -->
+  <script src="app.js?v=book9"></script>
 </body>
-                                            </html>
+  </html>
