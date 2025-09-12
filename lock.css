@@ -1,27 +1,15 @@
-/* ====== Låsskärm ====== */
-.lock{
-  position:fixed; inset:0; z-index:70;
-  display:flex; align-items:center; justify-content:center;
-  background: rgba(0,0,0,.65);
-  backdrop-filter: blur(2px);
+#lockscreen{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; z-index:9999; background:rgba(0,0,0,.75); }
+body.locked .book{ display:none !important; }
+body.locked #lockscreen{ display:flex !important; }
+
+#lockscreen .card{
+  width:min(520px,92vw);
+  background:#111; color:#fff; border:1px solid #3a0f0f; border-radius:12px;
+  padding:22px; text-align:center; box-shadow:0 12px 40px rgba(0,0,0,.7);
 }
-.lock .card{
-  width:min(520px, 92vw);
-  background: url("parchment.jpg") center/cover #fffdf6;
-  border:1px solid #d9c8b8; border-radius:18px;
-  box-shadow:0 10px 30px rgba(0,0,0,.45);
-  padding:22px;
-  text-align:center;
+#lockscreen input{
+  width:100%; padding:12px 14px; border:1px solid #444; border-radius:8px; margin:10px 0 12px;
+  background:#eef1ff; color:#111; font-size:16px;
 }
-.lock .card h2{
-  margin:4px 0 14px;
-  font-family:'IM Fell English', serif;
-  font-size:28px; color:#2a211a;
-  text-shadow:0 1px 0 #fff;
-}
-.lock input{
-  width:100%; padding:12px; border-radius:12px; border:1px solid #cbb; background:#fff7f0;
-}
-.lock .row{display:flex; gap:10px; justify-content:center; margin-top:10px}
-.lock .btn{min-width:130px}
-.lock p#status{margin:10px 0 0; color:#7a5f50}
+#status{ margin-top:8px; color:#ffd2d2; font-size:14px; }
+#lockscreen .row{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
