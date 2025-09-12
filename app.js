@@ -668,7 +668,9 @@ window.addEventListener('load', async ()=>{
   $('#signupBtn')?.addEventListener('click', signUp);
   $('#signinBtn')?.addEventListener('click', signIn);
   $('#logoutBtn')?.addEventListener('click', signOut);
-
+$('#bioRegisterBtn')?.addEventListener('click', bioRegister);
+$('#bioUnlockBtn')?.addEventListener('click', bioUnlock);
+$('#bioDisableBtn')?.addEventListener('click', bioDisable);
   // CRUD
   $('#newEntryBtn').onclick = newEntry;
   $('#saveBtn').onclick = saveCurrent;
