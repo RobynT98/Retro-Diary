@@ -258,12 +258,14 @@ window.addEventListener('load', ()=>{
   const passEl = byId('pass');
 
   // Låsskärm
-  byId('setPassBtn')    ?.addEventListener('click', ()=>setInitialPass(passEl.value));
-  byId('unlockBtn')     ?.addEventListener('click', ()=>unlock(passEl.value));
+  byId('setPassBtn')     ?.addEventListener('click', ()=>setInitialPass(passEl.value));
+  byId('unlockBtn')      ?.addEventListener('click', ()=>unlock(passEl.value));
   byId('wipeLocalOnLock')?.addEventListener('click', wipeAll);
 
   // Editor/CRUD
-  byId('newBtn')   ?.addEventListener('click', ()=>{ state.currentId=null; editor.innerHTML=''; dateLine.textContent=''; editor.focus(); });
+  byId('newBtn')   ?.addEventListener('click', ()=>{
+    state.currentId=null; editor.innerHTML=''; dateLine.textContent=''; editor.focus();
+  });
   byId('saveBtn')  ?.addEventListener('click', saveEntry);
   byId('deleteBtn')?.addEventListener('click', delEntry);
   byId('lockBtn')  ?.addEventListener('click', lock);
@@ -278,7 +280,9 @@ window.addEventListener('load', ()=>{
   byId('menuToggle')?.addEventListener('click', toggleMenu);
   byId('exportBtn') ?.addEventListener('click', exportAll);
   byId('importBtn') ?.addEventListener('click', ()=>byId('importInput').click());
-  byId('importInput')?.addEventListener('change', e=>{ if(e.target.files[0]) importAll(e.target.files[0]); });
+  byId('importInput')?.addEventListener('change', e=>{
+    if(e.target.files[0]) importAll(e.target.files[0]);
+  });
   byId('wipeBtn')   ?.addEventListener('click', wipeAll);
 
   // Font (endast editor)
@@ -287,10 +291,29 @@ window.addEventListener('load', ()=>{
     const saved = localStorage.getItem('rd_font');
     if(saved){ editor.style.fontFamily = saved; fontSel.value = saved; }
     fontSel.addEventListener('change', e=>{
-      editor.style.fontFamily = e.target.value;
-      localStorage.setItem('rd_font', e.target.value);
+      const font = e.target.value;
+      editor.style.fontFamily = font;
+      localStorage.setItem('rd_font', font);
     });
   }
+
+  // 🔧 Tvinga uppdatering (avregistrera SW + töm cache)
+  byId('forceUpdateBtn')?.addEventListener('click', async ()=>{
+    try{
+      if('serviceWorker' in navigator){
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r=>r.unregister()));
+      }
+      if('caches' in window){
+        const names = await caches.keys();
+        await Promise.all(names.map(n=>caches.delete(n)));
+      }
+      alert('Appen uppdateras – laddar om...');
+      location.reload(true);
+    }catch(e){
+      alert('Kunde inte uppdatera: ' + (e?.message||e));
+    }
+  });
 
   // Start i låst läge
   showLock();
