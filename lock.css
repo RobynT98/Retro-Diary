@@ -1,15 +1,27 @@
-#lockScreen {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: #222;
-  color: #fff;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-  z-index: 2000;
+/* ====== Låsskärm ====== */
+.lock{
+  position:fixed; inset:0; z-index:70;
+  display:flex; align-items:center; justify-content:center;
+  background: rgba(0,0,0,.65);
+  backdrop-filter: blur(2px);
 }
+.lock .card{
+  width:min(520px, 92vw);
+  background: url("parchment.jpg") center/cover #fffdf6;
+  border:1px solid #d9c8b8; border-radius:18px;
+  box-shadow:0 10px 30px rgba(0,0,0,.45);
+  padding:22px;
+  text-align:center;
+}
+.lock .card h2{
+  margin:4px 0 14px;
+  font-family:'IM Fell English', serif;
+  font-size:28px; color:#2a211a;
+  text-shadow:0 1px 0 #fff;
+}
+.lock input{
+  width:100%; padding:12px; border-radius:12px; border:1px solid #cbb; background:#fff7f0;
+}
+.lock .row{display:flex; gap:10px; justify-content:center; margin-top:10px}
+.lock .btn{min-width:130px}
+.lock p#status{margin:10px 0 0; color:#7a5f50}
