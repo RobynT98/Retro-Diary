@@ -1,11 +1,11 @@
 {
   "name": "Retro Diary",
   "short_name": "Diary",
-  "description": "Krypterad retro-dagbok (PWA) med sök, taggar, fonter och teman.",
-  "start_url": "/index.html",
+  "description": "Krypterad retrodagbok med minnesläge, bilder/ljud, offline & PWA.",
+  "start_url": "/Retro-Diary/index.html",
   "display": "standalone",
-  "background_color": "#2b1a14",
-  "theme_color": "#2b1a14",
+  "background_color": "#111111",
+  "theme_color": "#b87333",
   "orientation": "portrait",
   "icons": [
     { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
