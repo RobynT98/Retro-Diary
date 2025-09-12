@@ -1,201 +1,98 @@
-/* =========================
-   Retro Diary Lite - Book Style
-   ========================= */
 :root {
-  --fg: #eee;
-  --accent: #d33;
-  --accent2: #555;
-
-  /* Texturer */
-  --parchment: url("assets/parchment.jpg");
-  --leather: url("assets/leather.jpg");
-
-  --font-body: "IM Fell English", serif;
+  --leather: url("leather.jpg");
+  --parchment: url("parchment.jpg");
+  --accent: #b33;
 }
 
-/* Grund */
 body {
   margin: 0;
-  background: var(--leather) center/cover fixed;
-  font-family: var(--font-body);
-  color: var(--fg);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
+  font-family: 'Special Elite', cursive;
+  background: var(--leather) center/cover;
+  color: #111;
 }
 
-/* Bokram */
 .book {
-  width: 90%;
-  max-width: 1000px;
-  height: 90%;
-  background: var(--leather) center/cover;
-  border: 5px solid #3a1c0a;
-  border-radius: 12px;
-  box-shadow: 0 0 40px rgba(0,0,0,0.7), inset 0 0 50px rgba(0,0,0,0.6);
   display: flex;
-  position: relative;
+  max-width: 900px;
+  margin: 2rem auto;
+  box-shadow: 0 0 30px rgba(0,0,0,0.6);
+  border-radius: 8px;
   overflow: hidden;
 }
 
-/* Sidor */
 .page {
   flex: 1;
-  margin: 10px;
+  padding: 1rem;
   background: var(--parchment) center/cover;
-  border: 2px solid #b48a58;
-  border-radius: 8px;
-  box-shadow: inset 0 0 25px rgba(0,0,0,0.4);
-  padding: 1rem;
-  overflow-y: auto;
-  color: #222;
-  font-size: 1.1rem;
-  line-height: 1.6;
+  min-height: 70vh;
 }
 
-/* Editor = högra sidan */
 #editor {
-  min-height: 100%;
-  outline: none;
-}
-
-/* Toolbar */
-#toolbar {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 0.8rem;
-}
-#toolbar button {
-  background: #333;
-  border: 1px solid var(--accent2);
-  color: var(--fg);
-  padding: 0.3rem 0.6rem;
-  border-radius: 4px;
-  cursor: pointer;
-}
-#toolbar button:hover {
-  background: var(--accent2);
-}
-
-/* Actions */
-#actions {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  margin-top: 1rem;
-}
-#actions button {
-  padding: 0.5rem 1rem;
-  border: 1px solid var(--accent2);
-  border-radius: 4px;
-  background: #333;
-  color: var(--fg);
-  font-weight: bold;
-  cursor: pointer;
-}
-#actions button:hover {
-  background: var(--accent2);
-}
-#actions .danger {
-  background: #600;
-  border-color: #900;
-  color: #fff;
-}
-#actions .danger:hover {
-  background: #900;
-}
-
-/* Menyflik */
-#menu {
-  position: absolute;
-  top: 0;
-  right: -260px;
-  width: 240px;
-  height: 100%;
-  background: rgba(20,20,20,0.95);
-  border-left: 3px solid var(--accent);
+  min-height: 60vh;
+  background: rgba(255,255,240,0.8);
   padding: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  transition: right 0.3s ease;
-  z-index: 1000;
-}
-#menu.open {
-  right: 0;
-}
-#menu h2 {
-  margin-top: 0;
-  font-size: 1.2rem;
-  border-bottom: 1px solid var(--accent2);
-  padding-bottom: 0.5rem;
-  color: var(--accent);
-}
-#menu button,
-#menu select {
-  background: #333;
-  border: 1px solid var(--accent2);
-  color: var(--fg);
-  padding: 0.4rem 0.6rem;
-  border-radius: 4px;
-  cursor: pointer;
-}
-#menu button:hover,
-#menu select:hover {
-  background: var(--accent2);
+  font-size: 1rem;
+  line-height: 1.5;
+  border: 1px solid #ccc;
+  box-shadow: inset 0 0 8px rgba(0,0,0,0.2);
 }
 
-/* Låsskärm */
+#toolbar button {
+  background: #222;
+  color: white;
+  border: 1px solid #555;
+  padding: 0.3rem 0.6rem;
+  cursor: pointer;
+}
+
+#actions button, #lockscreen button, #menu button {
+  margin: 0.2rem;
+  padding: 0.5rem 1rem;
+  background: var(--accent);
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
 #lockscreen {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.85);
+  background: #111;
+  color: white;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  z-index: 2000;
-}
-#lockscreen .card {
-  background: #222;
-  padding: 1.5rem;
-  border-radius: 8px;
-  border: 2px solid var(--accent);
-  width: 300px;
-  text-align: center;
-}
-#lockscreen input {
-  width: 100%;
-  padding: 0.4rem;
-  margin: 0.6rem 0;
-  border: 1px solid var(--accent2);
-  border-radius: 4px;
-  background: #111;
-  color: var(--fg);
-}
-#lockscreen button {
-  padding: 0.5rem 1rem;
-  margin-top: 0.6rem;
-  border: 1px solid var(--accent2);
-  border-radius: 4px;
-  background: #333;
-  color: var(--fg);
-  cursor: pointer;
-}
-#lockscreen button:hover {
-  background: var(--accent2);
-}
-#lockscreen .danger {
-  background: #600;
-  border-color: #900;
-  color: #fff;
-}
-#lockscreen .danger:hover {
-  background: #900;
+  z-index: 999;
 }
 
-/* Scrollbars */
-::-webkit-scrollbar { width: 10px; }
-::-webkit-scrollbar-track { background: #222; }
-::-webkit-scrollbar-thumb { background: var(--accent2); }
-::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+body.locked .book,
+body.locked #menuToggle,
+body.locked #menu {
+  display: none;
+}
+
+#menuToggle {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 200;
+  background: #222;
+  color: white;
+  border: none;
+  padding: 0.5rem;
+}
+
+#menu {
+  position: fixed;
+  top: 0;
+  right: -260px;
+  width: 250px;
+  height: 100%;
+  background: #222;
+  color: white;
+  padding: 1rem;
+  transition: right 0.3s;
+  z-index: 150;
+}
+#menu.open { right: 0; }
