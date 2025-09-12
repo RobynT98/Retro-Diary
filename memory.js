@@ -1,46 +1,55 @@
-function setTheme(name){
-  const link = document.getElementById('themeLink');
-  if(!link) return;
-  link.href = name==='dark' ? 'theme_dark.css' : 'theme_light.css';
-  document.body.classList.toggle('theme-dark', name==='dark');
-  document.body.classList.toggle('theme-light', name!=='dark');
-  localStorage.setItem('theme', name);
+// memory.js — robust toggling + persistence för Minnesläge
+
+const MEM_KEY = 'memoryMode';      // "on" | "off"
+const THEME_KEY = 'theme';         // "light" | "dark"  (matchar din themes.js)
+
+function applyMemoryMode(isOn) {
+  const body = document.body;
+  if (isOn) body.classList.add('memory-mode');
+  else body.classList.remove('memory-mode');
+
+  // låt minnesläget respektera nuvarande tema
+  const theme = localStorage.getItem(THEME_KEY) || 
+                (body.classList.contains('theme-dark') ? 'dark' : 'light');
+  body.classList.toggle('theme-dark', theme === 'dark');
+  body.classList.toggle('theme-light', theme === 'light');
+
+  // spegla ev. checkbox/knapp-status (om du visar ett state)
+  const btn = document.getElementById('memoryBtn');
+  if (btn) btn.setAttribute('aria-pressed', isOn ? 'true' : 'false');
 }
 
-function toggleMemory(){
-  document.body.classList.toggle('memory-mode');
-  localStorage.setItem('memoryMode', document.body.classList.contains('memory-mode')?'1':'0');
+// Init när DOM är redo (eller om scriptet laddas sist med defer)
+function initMemoryMode() {
+  // 1) Återställ sparat läge
+  applyMemoryMode(localStorage.getItem(MEM_KEY) === 'on');
+
+  // 2) Event delegation: funkar även om menyn/knappen renderas senare
+  document.addEventListener('click', (e) => {
+    const t = e.target.closest('#memoryBtn');
+    if (!t) return;
+    const isOn = !document.body.classList.contains('memory-mode');
+    localStorage.setItem(MEM_KEY, isOn ? 'on' : 'off');
+    applyMemoryMode(isOn);
+  });
+
+  // 3) Om temat ändras via en <select id="themeSelect">, synka minnesläget
+  const sel = document.getElementById('themeSelect');
+  if (sel) {
+    sel.addEventListener('change', () => {
+      const v = sel.value === 'Mörkt' || sel.value === 'dark' ? 'dark' : 'light';
+      localStorage.setItem(THEME_KEY, v);
+      applyMemoryMode(localStorage.getItem(MEM_KEY) === 'on');
+    });
+  }
+
+  // 4) Safety log
+  console.debug('[memory] ready; mode =', localStorage.getItem(MEM_KEY));
 }
 
-// snabbknapp i toolbar (om du vill trigga därifrån)
-document.getElementById('quickThemeBtn')?.addEventListener('click', ()=>{
-  const sel=document.getElementById('themeSelect');
-  if(!sel) return;
-  sel.value = sel.value==='dark' ? 'light' : 'dark';
-  sel.dispatchEvent(new Event('change'));
-});
-/* Gemensamt för minnesläge */
-body.memory-mode{
-  background: url("stars.jpg") center/cover fixed #05060c;
+// Kör både direkt (om filen ligger sist med defer) och på DOMContentLoaded (fallback)
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initMemoryMode);
+} else {
+  initMemoryMode();
 }
-
-/* Minnesläge + mörkt */
-body.memory-mode.theme-dark #editor{
-  background: rgba(0,0,0,.72); color:#f5f2e9;
-  box-shadow: 0 0 0 1px rgba(255,255,255,.06) inset, 0 10px 26px rgba(0,0,0,.45);
-}
-
-/* Minnesläge + ljust */
-body.memory-mode.theme-light #editor{
-  background: url("paper_faded.jpg") center/cover #fffdf8;
-  color:#2b2b2b;
-  box-shadow: 0 0 0 1px rgba(255,255,255,.6) inset, 0 10px 26px rgba(0,0,0,.18);
-}
-
-/* Mjukare UI i minnesläge */
-body.memory-mode button,
-body.memory-mode select,
-body.memory-mode input{
-  border-radius: 10px;
-  opacity: .97;
-    }
