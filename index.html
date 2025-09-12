@@ -1,67 +1,60 @@
-<!DOCTYPE html>
-<html lang="sv" data-theme="dark">
+<!doctype html>
+<html lang="sv">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Retro Diary</title>
+
   <link rel="manifest" href="manifest.json">
-  <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=IM+Fell+English&family=Dancing+Script&family=Merriweather:wght@400;700&family=Roboto+Slab:wght@400;700&family=Patrick+Hand&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=book13">
+  <meta name="theme-color" content="#8b0000">
+
+  <!-- Basstil – fontlänkar förvalda laddas dynamiskt i app.js -->
+  <link rel="stylesheet" href="styles.css?v=titles-fonts">
 </head>
 <body class="locked">
 
   <!-- Menyknapp -->
-  <button id="menuToggle" aria-label="Meny">☰</button>
+  <button id="menuToggle" class="menu-toggle" aria-label="Meny">☰</button>
 
-  <!-- Boken -->
+  <!-- Bok -->
   <div class="book">
+    <!-- Vänstersida: Innehåll -->
     <section class="page" id="leftPage">
       <h2>Innehåll</h2>
-      <ul id="entries"></ul>
+
+      <div class="listbar">
+        <input id="searchInput" type="search" placeholder="Sök titel eller text…" />
+        <button id="newBtnSmall" title="Ny sida">＋</button>
+      </div>
+
+      <ul id="entries" class="entries" aria-live="polite"></ul>
     </section>
 
+    <!-- Högersida: Editor -->
     <section class="page" id="rightPage">
-      <!-- Toolbar -->
       <div id="toolbar">
-        <button id="undoBtn" title="Ångra">↶</button>
-        <button id="redoBtn" title="Gör om">↷</button>
-        <span class="sep"></span>
-
-        <button id="boldBtn" title="Fet"><b>B</b></button>
-        <button id="italicBtn" title="Kursiv"><i>I</i></button>
-        <button id="underlineBtn" title="Understruken"><u>U</u></button>
-        <button id="clearBtn" title="Rensa formatering">⨉</button>
-        <input id="colorBtn" type="color" aria-label="Textfärg" title="Textfärg"/>
-
-        <span class="sep"></span>
-        <button id="h1Btn" title="Rubrik 1">H1</button>
-        <button id="h2Btn" title="Rubrik 2">H2</button>
-        <button id="pBtn"  title="Brödtext">¶</button>
-
-        <span class="sep"></span>
-        <button id="ulBtn" title="Punktlista">• List</button>
-        <button id="olBtn" title="Numrerad lista">1. List</button>
-        <button id="quoteBtn" title="Citat">“”</button>
-
-        <span class="sep"></span>
-        <button id="leftBtn" title="Vänster">⟸</button>
-        <button id="centerBtn" title="Center">⟂</button>
-        <button id="rightBtn" title="Höger">⟹</button>
-
-        <span class="sep"></span>
-        <button id="linkBtn" title="Länk">🔗</button>
-        <button id="unlinkBtn" title="Ta bort länk">⛓︎</button>
+        <button id="boldBtn" title="Fet">B</button>
+        <button id="italicBtn" title="Kursiv">I</button>
+        <button id="underlineBtn" title="Understryk">U</button>
+        <input id="colorBtn" type="color" aria-label="Textfärg"/>
+        <select id="alignSelect" title="Justering">
+          <option value="left">Vänster</option>
+          <option value="center">Centrerad</option>
+          <option value="right">Höger</option>
+          <option value="justify">Marginaljusterad</option>
+        </select>
       </div>
+
+      <!-- Titelrad (kan döpas/ändras) -->
+      <input id="titleInput" type="text" placeholder="Titel…" />
 
       <div id="dateLine"></div>
       <div id="editor" contenteditable="true" spellcheck="true"></div>
 
       <div id="actions">
-        <button id="newBtn">Ny sida</button>
         <button id="saveBtn">Spara</button>
         <button id="deleteBtn" class="danger">Radera</button>
         <button id="lockBtn">Lås</button>
-        <span id="saveStatus" class="save-ok" hidden>Sparat ✓</span>
       </div>
     </section>
   </div>
@@ -73,25 +66,16 @@
     <button id="exportBtn">Exportera (.json)</button>
     <input id="importInput" type="file" accept="application/json" hidden>
     <button id="importBtn">Importera (.json)</button>
-
     <button id="wipeBtn" class="danger">Rensa ALL lokal data</button>
 
-    <label for="fontSelect">Typsnitt (endast editor):</label>
-    <select id="fontSelect">
-      <option value="'Special Elite', cursive">Special Elite</option>
-      <option value="'IM Fell English', serif">IM Fell English</option>
-      <option value="'Dancing Script', cursive">Dancing Script</option>
-      <option value="'Merriweather', serif">Merriweather</option>
-      <option value="'Roboto Slab', serif">Roboto Slab</option>
-      <option value="'Patrick Hand', cursive">Patrick Hand</option>
-      <option value="serif">Serif</option>
-      <option value="sans-serif">Sans-serif</option>
-      <option value="monospace">Monospace</option>
-    </select>
+    <label for="fontSelect">Typsnitt (editor):</label>
+    <select id="fontSelect"></select>
 
-    <label class="row">
-      <input type="checkbox" id="themeToggle" checked> Mörkt tema
-    </label>
+    <label for="themeSelect">Tema:</label>
+    <select id="themeSelect">
+      <option value="parchment">Pergament (ljus)</option>
+      <option value="leather-dark">Läder (mörk)</option>
+    </select>
   </aside>
 
   <!-- Låsskärm -->
@@ -108,14 +92,14 @@
     </div>
   </div>
 
-  <!-- Force update -->
+  <!-- Uppdatera (rensar SW + cache) -->
   <button id="forceUpdateBtn" title="Rensa cache och ladda om">⟳ Uppdatera app</button>
 
-  <script src="app.js?v=book13"></script>
+  <script src="app.js?v=titles-fonts"></script>
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js?v=book13').catch(()=>{});
+      navigator.serviceWorker.register('sw.js?v=titles-fonts').catch(()=>{});
     }
   </script>
 </body>
-                                             </html>
+        </html>
