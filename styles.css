@@ -1,159 +1,77 @@
-/* ================= Retro Diary – styles.css ================= */
-
-/* --------- Variabler --------- */
 :root{
-  --ink:#1a120b;
   --leather:url("leather.jpg");
   --paper:url("parchment.jpg");
-  --btnA:#c94141;
-  --btnB:#a02b2b;
-  --btnShadow:#7f2222;
-  --panel:#111;
-  --panelBorder:#444;
+  --ink:#1a120b;
+  --btnA:#c94141; --btnB:#a02b2b; --btnShadow:#7f2222;
 }
 
-/* --------- Bas --------- */
-*{ box-sizing:border-box; }
-html,body{ height:100%; }
-body{
-  margin:0;
-  font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-  color:var(--ink);
-  background:#2b1a14 var(--leather) center/cover fixed;
-}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:#2b1a14 var(--leather) center/cover fixed;color:var(--ink);
+  font-family:'Special Elite','IM Fell English',serif}
 
-/* --------- Bok-ram --------- */
-.book{
-  max-width:980px;
-  width:min(96vw,980px);
-  margin:18px auto;
-  border-radius:10px;
-  overflow:hidden;
-}
+/* Bok & sidor */
+.book{max-width:980px;width:min(96vw,980px);margin:18px auto;border-radius:10px;overflow:hidden}
+.page{position:relative;padding:18px;min-height:62vh;background:var(--paper) center/cover}
+.page::after{content:"";position:absolute;inset:8px;border:1px solid rgba(156,136,112,.7);pointer-events:none;opacity:.8}
 
-/* En enkel “page”-yta – bakgrund sätts i HTML via inline style */
-.page{
-  position:relative;
-  padding:18px;
-  min-height:62vh;
-}
+.title{width:100%;padding:10px 12px;margin:4px 0;border:1px solid rgba(0,0,0,.2);border-radius:8px;background:rgba(255,255,240,.85);font-size:18px}
+#dateLine{opacity:.7;margin:4px 0 8px}
 
-/* Dekorativ inre ram */
-.page::after{
-  content:"";
-  position:absolute; inset:8px;
-  border:1px solid rgba(156,136,112,.7); pointer-events:none; opacity:.8;
-}
+#entries{list-style:none;margin:0;padding:0;max-height:62vh;overflow:auto}
+#entries li{padding:10px 12px;margin:6px 0;border:1px dashed rgba(0,0,0,.25);background:rgba(255,255,255,.35);border-radius:6px;cursor:pointer;transition:.15s}
+#entries li:hover{background:rgba(255,255,255,.55);transform:translateY(-1px)}
 
-/* --------- Innehållslistan --------- */
-#entries{
-  list-style:none; margin:0; padding:0;
-  max-height:62vh; overflow:auto;
-}
-#entries li{
-  padding:10px 12px; margin:6px 0;
-  border:1px dashed rgba(0,0,0,.25);
-  background:rgba(255,255,255,.35);
-  border-radius:6px; cursor:pointer; transition:.15s ease;
-}
-#entries li:hover{
-  background:rgba(255,255,255,.55);
-  transform:translateY(-1px);
-}
+#toolbar.row{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+#toolbar button, #actions button, #menu button, #lockscreen button{
+  appearance:none;border:none;border-radius:10px;padding:10px 14px;font-weight:700;color:#fff;
+  background:linear-gradient(var(--btnA),var(--btnB));box-shadow:0 2px 0 var(--btnShadow);cursor:pointer}
+#toolbar button:active{transform:translateY(1px);box-shadow:none}
+#toolbar input[type="color"]{width:42px;height:38px;border-radius:8px;border:1px solid #333;background:#222;padding:0;cursor:pointer}
+#toolbar select{border-radius:8px;padding:8px 10px;border:1px solid rgba(0,0,0,.2);background:#fff}
 
-/* --------- Editor & verktygsrad --------- */
-#toolbar{ display:flex; gap:8px; margin:10px 0; flex-wrap:wrap; }
-#toolbar button{
-  appearance:none; border:none; border-radius:8px;
-  padding:10px 14px; font-weight:700; color:#fff;
-  background:linear-gradient(var(--btnA),var(--btnB));
-  box-shadow:0 2px 0 var(--btnShadow); cursor:pointer;
-}
-#toolbar button:active{ transform:translateY(1px); box-shadow:none; }
+#editor{min-height:55vh;padding:16px 18px;outline:none;background:rgba(255,255,240,.92);
+  border:1px solid rgba(0,0,0,.15);border-radius:8px;
+  box-shadow:inset 0 2px 12px rgba(0,0,0,.12), 0 1px 0 rgba(255,255,255,.35);
+  font-size:17px;line-height:1.65}
+#editor img.resizable{max-width:100%;height:auto;border-radius:6px}
+#editor img.selected{outline:3px dashed #a66;outline-offset:2px}
 
-#colorBtn{
-  width:42px; height:38px; border-radius:8px; border:1px solid #333;
-  background:#222; cursor:pointer; padding:0;
-}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.danger{background:linear-gradient(#b02828,#7f1e1e)!important}
 
-#dateLine{ opacity:.7; margin:6px 0 8px; }
+/* Meny */
+#menuToggle{position:fixed;top:12px;left:12px;z-index:1200;background:#111;color:#fff;border:1px solid #444;border-radius:8px;padding:8px 10px;cursor:pointer}
+#menu{position:fixed;top:0;right:-280px;width:260px;height:100%;background:#111;color:#fff;border-left:1px solid #000;padding:16px;transition:right .25s;z-index:1100;display:flex;flex-direction:column;gap:10px}
+#menu.open{right:0}
+#menu h2{margin:6px 0 6px;color:#ffdddd}
+#menu textarea{width:100%;border-radius:8px;border:1px solid #333;background:#000;color:#eee;padding:8px}
 
-#editor{
-  min-height:55vh;
-  padding:16px 18px; outline:none;
-  background:rgba(255,255,240,.9);
-  border:1px solid rgba(0,0,0,.15); border-radius:8px;
-  box-shadow: inset 0 2px 12px rgba(0,0,0,.12), 0 1px 0 rgba(255,255,255,.35);
-  font-size:17px; line-height:1.6;
-}
+/* Lås */
+#lockscreen{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.75);z-index:9999}
+#lockscreen .card{width:min(520px,92vw);background:#111;color:#fff;border:1px solid #3a0f0f;border-radius:12px;padding:22px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.7)}
+#lockscreen input{width:100%;padding:12px 14px;border:1px solid #444;border-radius:8px;margin:10px 0 12px;background:#000;color:#fff;font-size:16px}
+#status{margin-top:8px;color:#ffd2d2;font-size:14px}
 
-/* --------- Knapprad under editor --------- */
-.row{ display:flex; gap:10px; flex-wrap:wrap; }
-#actions button,
-#menu button,
-#lockscreen button{
-  appearance:none; border:none; border-radius:8px;
-  padding:10px 14px; font-weight:700; color:#fff;
-  background:linear-gradient(var(--btnA),var(--btnB));
-  box-shadow:0 2px 0 var(--btnShadow); cursor:pointer;
-}
-#actions .danger,
-#menu .danger,
-#lockscreen .danger{
-  background:linear-gradient(#b02828,#7f1e1e);
-}
+/* Modal/galleri */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:1201}
+.modal.show{display:flex}
+.modal-card{width:min(900px,92vw);max-height:82vh;overflow:auto;background:#151515;color:#f0f0f0;border:1px solid #333;border-radius:12px;padding:12px}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.thumb{background:#222;border:1px solid #333;border-radius:8px;padding:6px;display:flex;flex-direction:column;gap:6px;align-items:center}
+.thumb img{width:100%;height:100px;object-fit:cover;border-radius:6px}
+.thumb .meta{font-size:12px;opacity:.8}
 
-/* --------- Menyknapp & sidomeny --------- */
-#menuToggle{
-  position:fixed; top:12px; left:12px; z-index:1200;
-  background:#111; color:#fff; border:1px solid #444; border-radius:8px;
-  padding:8px 10px; cursor:pointer;
-}
-#menu{
-  position:fixed; top:0; right:-280px; width:260px; height:100%;
-  background:#111; color:#fff; border-left:1px solid #000;
-  padding:16px; transition:right .25s ease; z-index:1100;
-  display:flex; flex-direction:column; gap:10px;
-}
-#menu.open{ right:0; }
-#menu h2{ margin:6px 0 10px; color:#ffdddd; }
+/* Always-on update */
+#forceUpdateBtn{position:fixed;bottom:12px;right:12px;z-index:1300;background:#222;color:#fff;border:1px solid #c33;border-radius:6px;padding:8px 10px;font-size:13px;opacity:.9;cursor:pointer}
+#forceUpdateBtn:hover{opacity:1}
 
-/* --------- Låsskärm --------- */
-#lockscreen{
-  position:fixed; inset:0; display:none;
-  align-items:center; justify-content:center; z-index:9999;
-  background:rgba(0,0,0,.75);
-}
-#lockscreen .card{
-  width:min(520px,92vw);
-  background:#111; color:#fff;
-  border:1px solid #3a0f0f; border-radius:12px;
-  padding:22px; text-align:center;
-  box-shadow:0 12px 40px rgba(0,0,0,.7);
-}
-#lockscreen h2{ margin:0 0 14px; }
-#lockscreen input{
-  width:100%; padding:12px 14px; border:1px solid #444; border-radius:8px;
-  margin:10px 0 12px; background:#000; color:#fff; font-size:16px;
-}
-#status{ margin-top:8px; color:#ffd2d2; font-size:14px; }
+/* Dark editor variant */
+body[data-theme="dark"] #editor{background:rgba(30,28,24,.92);color:#f1e9d2}
+body[data-theme="dark"] .title{background:#27241f;color:#f1e9d2;border-color:#3b332a}
 
-/* --------- Force update – synlig alltid --------- */
-#forceUpdateBtn{
-  position:fixed; bottom:12px; right:12px; z-index:1300;
-  background:#222; color:#fff; border:1px solid #c33; border-radius:6px;
-  padding:8px 10px; font-size:13px; opacity:.9; cursor:pointer;
-}
-#forceUpdateBtn:hover{ opacity:1; }
-
-/* --------- Scrollbars (WebKit) --------- */
-::-webkit-scrollbar{ width:10px; }
-::-webkit-scrollbar-thumb{ background:#6c4f3d; border-radius:6px; }
-::-webkit-scrollbar-thumb:hover{ background:#875; }
-
-/* --------- Responsivt --------- */
 @media (max-width:860px){
-  .book{ width:96vw; }
-  #editor{ min-height:46vh; }
-  #entries{ max-height:40vh; }
-  }
+  #editor{min-height:46vh}
+  #entries{max-height:40vh}
+                  }
