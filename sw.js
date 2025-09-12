@@ -1,4 +1,4 @@
-const CACHE_NAME = "retro-diary-v1";
+const CACHE_NAME = "retro-diary-v2";
 const ASSETS = [
   "index.html",
   "styles.css?v=1",
