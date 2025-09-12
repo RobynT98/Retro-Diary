@@ -1,229 +1,114 @@
-// ===== Helper =====
+// helpers
 const $ = sel => document.querySelector(sel);
+const encoder = new TextEncoder(), decoder = new TextDecoder();
 
-// IndexedDB fallback till localStorage
-const DB_NAME = 'retro-diary';
-let db;
-function openDB() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 1);
-    req.onupgradeneeded = e => {
-      db = e.target.result;
-      db.createObjectStore('entries', { keyPath: 'id', autoIncrement: true });
-      db.createObjectStore('meta');
-    };
-    req.onsuccess = e => { db = e.target.result; resolve(); };
-    req.onerror = e => reject(e);
-  });
+let state = { key:null, entries:[], currentId:null };
+
+function showStatus(msg){ $('#status').textContent = msg; }
+function showLock(){
+  document.body.classList.add('locked');
+  $('#lockscreen').style.display = 'flex';
+  $('#app').hidden = true;
 }
-async function put(store, key, val) {
-  return new Promise((res, rej) => {
-    const tx = db.transaction(store, 'readwrite');
-    tx.objectStore(store).put(val, key);
-    tx.oncomplete = () => res();
-    tx.onerror = e => rej(e);
-  });
-}
-async function get(store, key) {
-  return new Promise((res, rej) => {
-    const tx = db.transaction(store, 'readonly');
-    const req = tx.objectStore(store).get(key);
-    req.onsuccess = () => res(req.result);
-    req.onerror = e => rej(e);
-  });
-}
-async function getAll(store) {
-  return new Promise((res, rej) => {
-    const tx = db.transaction(store, 'readonly');
-    const req = tx.objectStore(store).getAll();
-    req.onsuccess = () => res(req.result);
-    req.onerror = e => rej(e);
-  });
-}
-async function del(store, key) {
-  return new Promise((res, rej) => {
-    const tx = db.transaction(store, 'readwrite');
-    tx.objectStore(store).delete(key);
-    tx.oncomplete = () => res();
-    tx.onerror = e => rej(e);
-  });
-}
-async function clear(store) {
-  return new Promise((res, rej) => {
-    const tx = db.transaction(store, 'readwrite');
-    tx.objectStore(store).clear();
-    tx.oncomplete = () => res();
-    tx.onerror = e => rej(e);
-  });
+function hideLock(){
+  document.body.classList.remove('locked');
+  $('#lockscreen').style.display = 'none';
+  $('#app').hidden = false;
 }
 
-// ===== Crypto =====
-const enc = new TextEncoder();
-const dec = new TextDecoder();
-
-function buf2hex(buf) {
-  return [...new Uint8Array(buf)]
-    .map(x => x.toString(16).padStart(2, '0')).join('');
+// crypto
+async function deriveKey(pass,salt){
+  const keyMat = await crypto.subtle.importKey("raw", encoder.encode(pass), "PBKDF2", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:100000,hash:"SHA-256"}, keyMat, {name:"AES-GCM",length:256}, false, ["encrypt","decrypt"]);
 }
-function hex2u8(hex) {
-  return new Uint8Array(hex.match(/.{2}/g).map(b => parseInt(b, 16)));
-}
-
-async function deriveKey(pass, salt) {
-  const keyMat = await crypto.subtle.importKey('raw', enc.encode(pass), 'PBKDF2', false, ['deriveKey']);
-  return crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
-    keyMat,
-    { name: 'AES-GCM', length: 256 },
-    false,
-    ['encrypt','decrypt']
-  );
-}
-async function encObj(key, obj) {
+async function encObj(key,obj){
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const data = enc.encode(JSON.stringify(obj));
-  const ct = await crypto.subtle.encrypt({ name:'AES-GCM', iv }, key, data);
-  return { iv: buf2hex(iv), ct: buf2hex(ct) };
+  const ct = await crypto.subtle.encrypt({name:"AES-GCM",iv}, key, encoder.encode(JSON.stringify(obj)));
+  return {iv:Array.from(iv),ct:Array.from(new Uint8Array(ct))};
 }
-async function decObj(key, wrap) {
-  const iv = hex2u8(wrap.iv);
-  const ct = hex2u8(wrap.ct);
-  const pt = await crypto.subtle.decrypt({ name:'AES-GCM', iv }, key, ct);
-  return JSON.parse(dec.decode(pt));
+async function decObj(key,wrap){
+  const iv = new Uint8Array(wrap.iv), ct = new Uint8Array(wrap.ct);
+  const pt = await crypto.subtle.decrypt({name:"AES-GCM",iv}, key, ct);
+  return JSON.parse(decoder.decode(pt));
 }
 
-// ===== State =====
-let currentKey = null;
-let currentEntry = null;
-
-// ===== Lock / Unlock =====
-async function setInitialPass() {
-  const pass = $('#pass').value.trim();
-  if (!pass) return $('#status').textContent = 'Inget lösenord angivet.';
-  const salt = crypto.getRandomValues(new Uint8Array(16));
-  const key = await deriveKey(pass, salt);
-  const testWrap = await encObj(key, { test:'ok' });
-  await put('meta','wrap',{ salt:buf2hex(salt), test:testWrap });
-  currentKey = key;
-  hideLock();
-  renderList();
+// wrap-meta
+async function setWrapMeta(meta){
+  localStorage.setItem("wrap-meta", JSON.stringify(meta));
 }
-
-async function unlock() {
-  const pass = $('#pass').value.trim();
-  const meta = await get('meta','wrap');
-  if (!meta) return $('#status').textContent = 'Inget lösen sparat.';
-  try {
-    const key = await deriveKey(pass, hex2u8(meta.salt));
-    await decObj(key, meta.test);
-    currentKey = key;
-    hideLock();
-    renderList();
-  } catch(e) {
-    $('#status').textContent = 'Fel lösenord.';
-  }
+async function getWrapMeta(){
+  const raw = localStorage.getItem("wrap-meta");
+  return raw ? JSON.parse(raw) : null;
 }
-
-function lock() {
-  currentKey = null;
-  $('#editor').innerHTML = '';
-  $('#entriesList').innerHTML = '';
+async function clearAll(){
+  localStorage.clear();
+  state={key:null,entries:[],currentId:null};
   showLock();
 }
 
-function showLock(){ $('#lockscreen').style.display='flex'; }
-function hideLock(){ $('#lockscreen').style.display='none'; $('#app').hidden=false; }
-
-// ===== Entries =====
-async function renderList() {
-  const list = $('#entriesList');
-  list.innerHTML='';
-  const entries = await getAll('entries');
-  for(const e of entries){
-    const li = document.createElement('li');
-    li.textContent = e.title || 'Namnlös';
-    li.onclick = async ()=>{
-      currentEntry = e;
-      const plain = await decObj(currentKey, e.wrap);
-      $('#editor').innerHTML = plain.html;
-    };
-    list.appendChild(li);
-  }
-}
-
-async function saveEntry() {
-  const html = $('#editor').innerHTML;
-  const title = html.replace(/<[^>]+>/g,'').slice(0,20);
-  const wrap = await encObj(currentKey, { html });
-  if(currentEntry){
-    await put('entries', currentEntry.id, { ...currentEntry, title, wrap });
-  } else {
-    await put('entries', Date.now(), { id:Date.now(), title, wrap });
-  }
-  currentEntry = null;
-  $('#editor').innerHTML='';
+// lock/unlock
+async function setPass(){
+  const pass = $('#pass').value.trim();
+  if(!pass) return showStatus("Måste ange lösenord");
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  state.key = await deriveKey(pass,salt);
+  const test = await encObj(state.key,{t:"ok"});
+  await setWrapMeta({salt:Array.from(salt),test});
+  hideLock();
   renderList();
 }
-async function deleteEntry(){
-  if(currentEntry){
-    await del('entries', currentEntry.id);
-    currentEntry=null;
-    $('#editor').innerHTML='';
+async function unlock(){
+  const pass = $('#pass').value.trim();
+  const meta = await getWrapMeta();
+  if(!meta) return showStatus("Inget lösen satt");
+  const key = await deriveKey(pass,new Uint8Array(meta.salt));
+  try{
+    await decObj(key,meta.test);
+    state.key = key;
+    hideLock();
     renderList();
-  }
+  }catch(e){ showStatus("Fel lösen"); }
 }
+function lock(){ state.key=null; showLock(); }
 
-// ===== Import / Export / Wipe =====
-async function exportData(){
-  const entries = await getAll('entries');
-  const blob = new Blob([JSON.stringify(entries)],{type:'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href=url; a.download='retro-diary.json'; a.click();
-  URL.revokeObjectURL(url);
+// entries
+function renderList(){
+  const list = $('#entries');
+  list.innerHTML = "<h2>Innehåll</h2>"+state.entries.map(e=>`<div>${e.title}</div>`).join("");
 }
-async function importData(file){
-  const text = await file.text();
-  const arr = JSON.parse(text);
-  for(const e of arr){ await put('entries', e.id, e); }
+function newEntry(){ state.currentId = Date.now(); $('#editor').innerHTML=""; }
+async function saveEntry(){
+  if(!state.key) return;
+  const id = state.currentId || Date.now();
+  const content = $('#editor').innerHTML;
+  const title = content.slice(0,20);
+  const wrap = await encObj(state.key,{id,content});
+  state.entries.push({id,title,wrap});
   renderList();
 }
-async function wipeAll(){
-  await clear('entries'); await clear('meta');
-  location.reload();
+function deleteEntry(){
+  state.entries = state.entries.filter(e=>e.id!==state.currentId);
+  $('#editor').innerHTML="";
+  renderList();
 }
 
-// ===== UI Wiring =====
-window.addEventListener('load', async ()=>{
-  await openDB();
-
-  $('#setPassBtn').onclick=setInitialPass;
+// ui events
+window.addEventListener('load',()=>{
+  $('#setPassBtn').onclick=setPass;
   $('#unlockBtn').onclick=unlock;
-  $('#lockBtn').onclick=lock;
+  $('#wipeBtn').onclick=clearAll;
+  $('#newBtn').onclick=newEntry;
   $('#saveBtn').onclick=saveEntry;
-  $('#newBtn').onclick=()=>{ currentEntry=null; $('#editor').innerHTML=''; };
   $('#deleteBtn').onclick=deleteEntry;
-  $('#exportBtn').onclick=exportData;
-  $('#importBtn').onclick=()=>$('#importInput').click();
-  $('#importInput').onchange=e=>importData(e.target.files[0]);
-  $('#wipeBtn').onclick=wipeAll;
-  $('#wipeLocalOnLock').onclick=wipeAll;
-
-  $('#menuToggle').onclick=()=>$('#menu').classList.toggle('show');
-
-  $('#fontSelect').onchange=e=>{
-    $('#editor').style.fontFamily=e.target.value;
-    localStorage.setItem('rd_font', e.target.value);
-  };
-  const savedFont=localStorage.getItem('rd_font');
-  if(savedFont) $('#editor').style.fontFamily=savedFont;
-
-  $('#forceUpdateBtn').onclick=async()=>{
-    if('serviceWorker' in navigator){
-      const regs = await navigator.serviceWorker.getRegistrations();
-      for(const r of regs) await r.unregister();
-    }
+  $('#lockBtn').onclick=lock;
+  $('#forceUpdateBtn').onclick=()=>{
     caches.keys().then(keys=>keys.forEach(k=>caches.delete(k)));
+    if(navigator.serviceWorker) navigator.serviceWorker.getRegistration().then(r=>r&&r.unregister());
     location.reload(true);
   };
+
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('sw.js?v=book13');
+  }
+  showLock();
 });
