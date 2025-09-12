@@ -1,4 +1,4 @@
-const CACHE_NAME = "retro-diary-v27"; // <-- bumpad version
+const CACHE_NAME = "retro-diary-v29"; // <-- bumpad version
 const CORE_ASSETS = [
   "/", 
   "index.html",
