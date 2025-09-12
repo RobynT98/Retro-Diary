@@ -1,8 +1,8 @@
-const CACHE_NAME = "retro-diary-book11";
+const CACHE_NAME = "retro-diary-book12";
 const ASSETS = [
   "/",
   "/index.html",
-  "/styles.css?v=book10",
+  "/styles.css?v=book11",
   "/app.js?v=book10",
   "/leather.jpg",
   "/parchment.jpg",
