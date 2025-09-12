@@ -1,6 +1,9 @@
+/* styles.css */
 @import url("base.css");
 @import url("layout.css");
 @import url("toolbar.css");
 @import url("editor.css");
 @import url("lock.css");
-@import url("gallery.css"); /* kan vara tom tills vidare */
+@import url("gallery.css");
+/* Sista raden – låt denna dominera */
+@import url("modern.css");
