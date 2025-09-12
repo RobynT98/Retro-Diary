@@ -6,7 +6,7 @@
   <title>Retro Diary</title>
 
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="styles.css?v=media2">
+  <link rel="stylesheet" href="styles.css?v=gallery1">
   <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=IM+Fell+English&display=swap" rel="stylesheet">
   <script defer src="fonts_db.js"></script>
 </head>
@@ -20,7 +20,6 @@
     </div>
 
     <div class="page" id="rightPage">
-      <!-- Toolbar -->
       <div id="toolbar">
         <button data-cmd="bold"><b>B</b></button>
         <button data-cmd="italic"><i>I</i></button>
@@ -40,13 +39,11 @@
         <button id="linkBtn">🔗</button>
         <button id="imgBtn">🖼️</button>
         <button id="audBtn">🎵</button>
-
-        <label class="fontLabel">Font:
-          <select id="fontSelect"></select>
-        </label>
+        <label class="fontLabel">Font: <select id="fontSelect"></select></label>
         <button id="hrBtn">— Linje</button>
         <button id="undoBtn">↶</button>
         <button id="redoBtn">↷</button>
+        <button id="galleryBtn">🗂️ Galleri</button>
       </div>
 
       <div id="dateLine"></div>
@@ -59,13 +56,12 @@
         <button id="lockBtn">Lås</button>
       </div>
 
-      <!-- dolda inputs för filval -->
+      <!-- dolda inputs -->
       <input id="pickImage" type="file" accept="image/*" hidden>
       <input id="pickAudio" type="file" accept="audio/*" hidden>
     </div>
   </div>
 
-  <!-- Meny -->
   <aside id="menu" aria-hidden="true">
     <h2>Meny</h2>
     <button id="exportBtn">Exportera (.json)</button>
@@ -88,12 +84,34 @@
     </div>
   </div>
 
+  <!-- Galleri modal -->
+  <div id="galleryModal" class="modal" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Galleri (den här sidan)</h3>
+        <button id="galleryClose">✕</button>
+      </div>
+      <div class="gallery-grid" id="galleryGrid"></div>
+      <div class="gallery-tools">
+        <button id="galAdd">➕ Lägg till bild</button>
+        <select id="galSize">
+          <option value="size-s">Liten</option>
+          <option value="size-m" selected>Mellan</option>
+          <option value="size-f">Full</option>
+        </select>
+        <button id="galApply">Använd storlek</button>
+        <button id="galScale">Skala ner…</button>
+        <button id="galDelete" class="danger">Radera</button>
+      </div>
+    </div>
+  </div>
+
   <button id="forceUpdateBtn" title="Rensa cache och ladda om">⟳ Uppdatera app</button>
 
-  <script defer src="app.js?v=media2"></script>
+  <script defer src="app.js?v=gallery1"></script>
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js?v=media2').catch(()=>{});
+      navigator.serviceWorker.register('sw.js?v=gallery1').catch(()=>{});
     }
   </script>
 </body>
