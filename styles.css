@@ -178,3 +178,7 @@ input[type=password] {
   color: var(--muted);
   padding: .3rem .8rem;
 }
+body.locked #menuBtn,
+body.locked #menuDrop {
+  display: none !important;
+  }
