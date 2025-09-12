@@ -1,96 +1,42 @@
-// ================= Retro Diary - app.js (Pages/Mobile Safe) =================
+/* ============================ Retro Diary – app.js ============================ */
+/* --------------------------- Små hjälpare ----------------------------------- */
+const $ = (sel) => document.querySelector(sel);
+const byId = (id) => document.getElementById(id);
 
-// ---------- Små helpers ----------
-const $ = s => document.querySelector(s);
-const byId = s => document.getElementById(s);
-const enc = new TextEncoder();
-const dec = new TextDecoder();
+function setStatus(msg){ const s=byId('status'); if(s) s.textContent=msg||''; }
+function passEl(){ return byId('pass'); }
 
-function passEl(){ return byId('passInput') || byId('pass'); }
-function entriesEl(){ return byId('entries') || byId('entriesList'); }
-
-function setStatus(msg){ const el = byId('status'); if(el) el.textContent = msg || ''; }
-function showLock(){ byId('lockscreen')?.classList.add('lock'); document.body.classList.add('locked'); }
-function hideLock(){ byId('lockscreen')?.classList.remove('lock'); document.body.classList.remove('locked'); }
-
-// Uint8Array <-> hex
-function buf2hex(buf){ return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join(''); }
-function hex2u8(hex){ const a=new Uint8Array(hex.length/2); for(let i=0;i<a.length;i++) a[i]=parseInt(hex.substr(i*2,2),16); return a; }
-
-// Debugbanderoll + timeout
-function debugBanner(msg){
-  let el = document.getElementById('rd-debug');
-  if(!el){
-    el = document.createElement('div');
-    el.id = 'rd-debug';
-    el.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:99999;background:#300;color:#fdd;padding:.4rem .6rem;font:12px monospace';
-    document.body.appendChild(el);
+/* Debugbanner (syns längst ned) */
+(function ensureDebugBar(){
+  if(!byId('debugBar')){
+    const pre=document.createElement('pre');
+    pre.id='debugBar';
+    pre.style.cssText='position:fixed;left:0;right:0;bottom:0;margin:0;background:#300;color:#fdd;padding:4px 8px;font:12px/1.2 monospace;z-index:99999;white-space:pre-wrap;max-height:25vh;overflow:auto';
+    pre.textContent='DEBUG: …';
+    document.addEventListener('DOMContentLoaded',()=>document.body.appendChild(pre),{once:true});
   }
-  el.textContent = 'DEBUG: ' + msg;
+})();
+function debugBanner(msg){
+  const pre = byId('debugBar'); if(!pre) return;
+  pre.textContent = String(msg||'');
 }
+
+/* Timeout wrapper för att inte fastna på vissa mobiler */
 function withTimeout(promise, ms, label='op'){
-  let t; const timeout = new Promise((_,rej)=> t=setTimeout(()=>rej(new Error(label+' timeout')), ms));
-  return Promise.race([promise.finally(()=>clearTimeout(t)), timeout]);
-}
-function isHex(str){ return typeof str==='string' && /^[0-9a-fA-F]+$/.test(str); }
-
-// ---------- IndexedDB ----------
-let _db;
-function openDB(){
-  if(_db) return Promise.resolve(_db);
-  return new Promise((res,rej)=>{
-    const r = indexedDB.open('retro-diary', 1);
-    r.onupgradeneeded = e=>{
-      const d = e.target.result;
-      if(!d.objectStoreNames.contains('meta'))    d.createObjectStore('meta',{keyPath:'k'});
-      if(!d.objectStoreNames.contains('entries')) d.createObjectStore('entries',{keyPath:'id'});
-    };
-    r.onsuccess = e=>{ _db=e.target.result; res(_db); };
-    r.onerror   = ()=>rej(r.error);
-  });
-}
-async function dbPut(store,obj){
-  const d = await openDB();
-  return new Promise((res,rej)=>{
-    const tx=d.transaction(store,'readwrite'); tx.objectStore(store).put(obj);
-    tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error);
-  });
-}
-async function dbGet(store,key){
-  const d = await openDB();
-  return new Promise((res,rej)=>{
-    const tx=d.transaction(store,'readonly'); const rq=tx.objectStore(store).get(key);
-    rq.onsuccess=()=>res(rq.result||null); rq.onerror=()=>rej(rq.error);
-  });
-}
-async function dbAll(store){
-  const d = await openDB();
-  return new Promise((res,rej)=>{
-    const tx=d.transaction(store,'readonly'); const rq=tx.objectStore(store).getAll();
-    rq.onsuccess=()=>res(rq.result||[]); rq.onerror=()=>rej(rq.error);
-  });
-}
-async function dbDel(store,key){
-  const d = await openDB();
-  return new Promise((res,rej)=>{
-    const tx=d.transaction(store,'readwrite'); tx.objectStore(store).delete(key);
-    tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error);
-  });
-}
-async function dbClearAll(){
-  const d = await openDB();
-  return new Promise((res,rej)=>{
-    const tx=d.transaction(['meta','entries'],'readwrite');
-    tx.objectStore('meta').clear(); tx.objectStore('entries').clear();
-    tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error);
-  });
+  let t; const timer = new Promise((_,rej)=>{ t=setTimeout(()=>rej(new Error(label+' timeout')), ms);});
+  return Promise.race([promise.finally(()=>clearTimeout(t)), timer]);
 }
 
-// ---------- Crypto (PBKDF2 + AES-GCM) ----------
+/* ============================ Crypto ======================================== */
+function buf2hex(buf){ return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join(''); }
+function hex2buf(hex){ const a=new Uint8Array(hex.length/2); for(let i=0;i<a.length;i++) a[i]=parseInt(hex.substr(i*2,2),16); return a.buffer; }
+
 async function deriveKey(pass, saltHex){
+  const salt = typeof saltHex==='string' ? hex2buf(saltHex) : saltHex;
+  const enc = new TextEncoder();
   const mat = await crypto.subtle.importKey('raw', enc.encode(pass), {name:'PBKDF2'}, false, ['deriveKey']);
   return crypto.subtle.deriveKey(
-    {name:'PBKDF2', salt:hex2u8(saltHex), iterations:200000, hash:'SHA-256'},
+    {name:'PBKDF2', salt, iterations:200000, hash:'SHA-256'},
     mat,
     {name:'AES-GCM', length:256},
     false,
@@ -98,61 +44,164 @@ async function deriveKey(pass, saltHex){
   );
 }
 async function encObj(key, obj){
-  const iv   = crypto.getRandomValues(new Uint8Array(12));
-  const data = enc.encode(JSON.stringify(obj));
-  const ct   = await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, data);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const data = new TextEncoder().encode(JSON.stringify(obj));
+  const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, data);
   return { iv: buf2hex(iv), ct: buf2hex(ct) };
 }
-// Viktigt för mobil/webviews: skicka ArrayBuffer till decrypt
 async function decObj(key, wrap){
-  if(!wrap || !wrap.iv || !wrap.ct) throw new Error('Ogiltig wrap');
-  const ivU8 = hex2u8(wrap.iv);
-  const ctU8 = hex2u8(wrap.ct);
-  const pt   = await crypto.subtle.decrypt({name:'AES-GCM', iv: ivU8}, key, ctU8.buffer);
-  return JSON.parse(dec.decode(pt));
+  const iv = hex2buf(String(wrap.iv||'')); 
+  const ct = hex2buf(String(wrap.ct||'')); 
+  const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv}, key, ct);
+  return JSON.parse(new TextDecoder().decode(pt));
 }
 
-// ---------- Wrap/Meta (fallback) ----------
-async function setWrapMeta(obj){
-  try { await dbPut('meta', { k:'wrap', salt: obj.salt, test: obj.test }); }
-  catch { localStorage.setItem('wrap', JSON.stringify({ k:'wrap', salt: obj.salt, test: obj.test })); }
+/* ============================ IndexedDB (med fallback) ======================= */
+let _db;
+function dbOpen(){
+  if(_db) return Promise.resolve(_db);
+  return new Promise((res,rej)=>{
+    const req = indexedDB.open('retro-diary', 1);
+    req.onupgradeneeded = e=>{
+      const d = e.target.result;
+      if(!d.objectStoreNames.contains('entries')) d.createObjectStore('entries',{keyPath:'id'});
+      if(!d.objectStoreNames.contains('meta'))    d.createObjectStore('meta',{keyPath:'k'});
+    };
+    req.onsuccess = e=>{ _db=e.target.result; res(_db); };
+    req.onerror   = ()=>rej(req.error||new Error('IDB open error'));
+  });
 }
-async function getWrapMeta(){
-  try{ const m = await dbGet('meta','wrap'); if(m && m.salt && m.test) return m; }catch{}
-  const raw = localStorage.getItem('wrap'); if(!raw) return null;
-  try{ const m = JSON.parse(raw); return (m && m.salt && m.test) ? m : null; }catch{ return null; }
+async function dbPut(store, obj){
+  try{
+    const db = await dbOpen();
+    await new Promise((res,rej)=>{
+      const tx=db.transaction(store,'readwrite');
+      tx.objectStore(store).put(obj);
+      tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error);
+    });
+  }catch{ // fallback localStorage
+    if(store==='meta') localStorage.setItem(obj.k, JSON.stringify(obj));
+    if(store==='entries') localStorage.setItem('e:'+obj.id, JSON.stringify(obj));
+  }
 }
-function normalizeWrap(meta){
-  if(!meta) return null;
-  if(meta.test && meta.test.cipher && !meta.test.ct){ meta.test.ct = meta.test.cipher; delete meta.test.cipher; }
-  return meta;
+async function dbGet(store, key){
+  try{
+    const db = await dbOpen();
+    return await new Promise((res,rej)=>{
+      const tx=db.transaction(store); const req=tx.objectStore(store).get(key);
+      req.onsuccess=()=>res(req.result||null); req.onerror=()=>rej(req.error);
+    });
+  }catch{
+    if(store==='meta'){ const raw=localStorage.getItem(key); return raw?JSON.parse(raw):null; }
+    if(store==='entries'){ const raw=localStorage.getItem('e:'+key); return raw?JSON.parse(raw):null; }
+    return null;
+  }
 }
-function validateWrap(meta){
-  if(!meta) return 'saknar wrap';
-  if(!meta.salt || !isHex(meta.salt) || meta.salt.length < 16) return 'felaktig salt';
-  if(!meta.test || !isHex(meta.test.iv||'') || !isHex(meta.test.ct||'')) return 'felaktigt test';
+async function dbAll(store){
+  try{
+    const db = await dbOpen();
+    return await new Promise((res,rej)=>{
+      const tx=db.transaction(store); const req=tx.objectStore(store).getAll();
+      req.onsuccess=()=>res(req.result||[]); req.onerror=()=>rej(req.error);
+    });
+  }catch{
+    const out=[];
+    if(store==='entries'){
+      for(const k of Object.keys(localStorage)){
+        if(k.startsWith('e:')) try{ out.push(JSON.parse(localStorage.getItem(k))); }catch{}
+      }
+    }
+    return out;
+  }
+}
+async function dbDel(store, key){
+  try{
+    const db = await dbOpen();
+    await new Promise((res,rej)=>{
+      const tx=db.transaction(store,'readwrite'); tx.objectStore(store).delete(key);
+      tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error);
+    });
+  }catch{
+    if(store==='entries') localStorage.removeItem('e:'+key);
+  }
+}
+async function dbClearAll(){
+  try{
+    const db = await dbOpen();
+    await new Promise((res,rej)=>{
+      const tx=db.transaction(['entries','meta'],'readwrite');
+      tx.objectStore('entries').clear();
+      tx.objectStore('meta').clear();
+      tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error);
+    });
+  }catch{
+    Object.keys(localStorage).forEach(k=>{ if(k==='wrap'||k.startsWith('e:')) localStorage.removeItem(k); });
+  }
+}
+
+/* ============================ Wrap-meta (lösen) ============================= */
+function normalizeWrap(m){
+  if(!m) return null;
+  // tillåt både {k:'wrap',salt,test:{iv,ct}} och {salt, test}
+  if(m.k && m.k!=='wrap') return null;
+  if(m.test && m.test.iv && m.test.ct && typeof m.salt==='string') return m;
   return null;
 }
+function validateWrap(m){
+  if(!m) return 'saknas';
+  if(typeof m.salt!=='string' || m.salt.length<32) return 'ogiltig salt';
+  if(!m.test || typeof m.test.iv!=='string' || typeof m.test.ct!=='string') return 'ogiltig test';
+  return null;
+}
+async function setWrapMeta(obj){
+  await dbPut('meta', obj);            // IDB eller fallback sätter båda
+}
+async function getWrapMeta(){
+  const m = await dbGet('meta','wrap');
+  if(m) return m;
+  const raw = localStorage.getItem('wrap');
+  return raw ? JSON.parse(raw) : null;
+}
+async function clearWrapMeta(){
+  await dbClearAll();
+  localStorage.removeItem('wrap');
+}
 
-// ---------- State ----------
+/* ============================ UI: låsskärm ================================== */
+function showLock(){
+  const l = byId('lockscreen'); if(!l) return;
+  l.style.display='flex'; l.removeAttribute('aria-hidden');
+}
+function hideLock(){
+  const l = byId('lockscreen'); if(!l) return;
+  l.style.display='none'; l.setAttribute('aria-hidden','true');
+}
+
+/* ============================ State ========================================= */
 const state = { key:null, currentId:null };
 
-// ---------- Lås / lås upp ----------
+/* ============================ Lösen – sätt / lås upp ======================== */
 async function setInitialPass(passRaw){
   try{
     const pass = String(passRaw||'').trim();
     if(!pass){ setStatus('Skriv ett lösenord.'); return; }
+
     const salt = buf2hex(crypto.getRandomValues(new Uint8Array(16)));
-    const key  = await deriveKey(pass, salt);
-    const test = await encObj(key, { ok:true, v:'book11' });
-    await setWrapMeta({ salt, test });
+    const key  = await withTimeout(deriveKey(pass, salt), 8000, 'deriveKey');
+    const test = await withTimeout(encObj(key, {ok:true}), 8000, 'encrypt');
+
+    const wrap = { k:'wrap', salt, test };
+    await setWrapMeta(wrap);
+    localStorage.setItem('wrap', JSON.stringify(wrap)); // dubbelspar för äldre mobiler
+
     state.key = key;
-    setStatus('Lösen satt ✔'); hideLock(); await renderList();
-    debugBanner(`wrap sparad: salt=${salt.length} iv=${test.iv.length} ct=${test.ct.length}`);
+    setStatus('Lösen satt ✔');
+    debugBanner(`DEBUG: wrap sparad: salt=${salt.length} iv=${test.iv.length} ct=${test.ct.length}`);
+    hideLock();
+    await renderList();
   }catch(e){
-    setStatus('Kunde inte sätta lösen. ' + (e?.message||e));
+    setStatus('Kunde inte sätta lösen.');
     debugBanner('setInitialPass ERROR: '+(e?.message||e));
-    console.error('setInitialPass', e);
   }
 }
 
@@ -174,7 +223,11 @@ async function unlock(passRaw){
     if(!probe || probe.ok!==true) throw new Error('Test-decrypt misslyckades');
 
     state.key = key;
-    setStatus(''); hideLock(); await renderList();
+    setStatus('');
+    hideLock();
+    await renderList();
+    $('#editor')?.focus();
+    passEl()?.value='';
     debugBanner('unlock OK');
   }catch(e){
     const msg = (e && e.message) ? e.message : String(e);
@@ -188,52 +241,42 @@ function lock(){
   state.key=null; state.currentId=null;
   const ed = byId('editor'); if(ed) ed.innerHTML='';
   const dl = byId('dateLine'); if(dl) dl.textContent='';
-  showLock(); setStatus('');
+  setStatus('');
+  showLock();
   setTimeout(()=>passEl()?.focus(), 50);
 }
 
-// ---------- Entries ----------
+/* ============================ Sidor (CRUD) ================================== */
 function titleFrom(html){
   const tmp=document.createElement('div'); tmp.innerHTML=html||'';
-  return (tmp.textContent||'').trim().split(/\n/)[0].slice(0,80) || 'Anteckning';
+  const t=(tmp.textContent||'').trim().split(/\n/)[0];
+  return (t||'Anteckning').slice(0,80);
 }
 async function saveEntry(){
   if(!state.key){ alert('Lås upp först.'); return; }
-  const ed = byId('editor'); const dl = byId('dateLine');
-  const id   = state.currentId || Date.now();
-  const obj  = { id, html: ed.innerHTML, date: new Date().toLocaleString('sv-SE'), title: titleFrom(ed.innerHTML) };
+  const ed = byId('editor');
+  const id  = state.currentId || Date.now();
+  const obj = { id, html:ed.innerHTML, date:new Date().toLocaleString('sv-SE'), title:titleFrom(ed.innerHTML) };
   const wrap = await encObj(state.key, obj);
-  await dbPut('entries', { id, wrap, updated: Date.now() });
+  await dbPut('entries', { id, wrap, updated:Date.now() });
   state.currentId = id;
-  if(dl) dl.textContent = obj.date;
   await renderList();
 }
 async function renderList(){
-  const list = entriesEl(); if(!list) return;
-  const ed = byId('editor'), dl = byId('dateLine');
-  list.innerHTML = '';
+  const list = byId('entriesList'); if(!list) return;
+  list.innerHTML='';
   const all = (await dbAll('entries')).sort((a,b)=> (b.updated||b.id)-(a.updated||a.id));
   for(const e of all){
     const li=document.createElement('li');
-    try{
-      if(state.key){
-        const peek = await decObj(state.key, e.wrap);
-        li.textContent = `${new Date(e.updated||e.id).toLocaleDateString('sv-SE')} — ${peek.title}`;
-        li.addEventListener('click', async ()=>{
-          const decd = await decObj(state.key, e.wrap);
-          state.currentId = decd.id;
-          if(ed) ed.innerHTML = decd.html;
-          if(dl) dl.textContent = decd.date;
-          ed?.focus();
-        });
-      }else{
-        li.textContent = new Date(e.updated||e.id).toLocaleString('sv-SE');
-        li.style.opacity = '.7';
-      }
-    }catch{
-      li.textContent = new Date(e.updated||e.id).toLocaleString('sv-SE');
-      li.style.opacity = '.7';
-    }
+    li.textContent = new Date(e.updated||e.id).toLocaleString('sv-SE');
+    li.tabIndex = 0;
+    li.addEventListener('click', async ()=>{
+      const dec = await decObj(state.key, e.wrap);
+      state.currentId = dec.id;
+      byId('editor').innerHTML = dec.html;
+      byId('dateLine').textContent = dec.date;
+      byId('editor').focus();
+    });
     list.appendChild(li);
   }
 }
@@ -245,43 +288,45 @@ async function delEntry(){
   await renderList();
 }
 
-// ---------- Export / Import / Wipe ----------
+/* ============================ Export / Import ================================ */
 async function exportAll(){
   const entries = await dbAll('entries');
   const meta    = await getWrapMeta();
-  const blob = new Blob([JSON.stringify({meta, entries})], {type:'application/json'});
-  const url  = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href=url; a.download='retro-diary.json'; a.click();
+  const blob = new Blob([JSON.stringify({meta,entries})], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download='retro-diary.json'; a.click();
   URL.revokeObjectURL(url);
 }
 async function importAll(file){
-  const txt  = await file.text();
-  const data = JSON.parse(txt);
-  if(!data?.meta || !data?.entries) return alert('Felaktig fil.');
+  const text = await file.text();
+  const data = JSON.parse(text||'{}');
+  if(!data.meta || !data.entries) return alert('Ogiltig fil.');
   await setWrapMeta(data.meta);
+  localStorage.setItem('wrap', JSON.stringify(data.meta)); // även lokalt
   for(const e of data.entries) await dbPut('entries', e);
-  alert('Import klar.');
-  await renderList();
+  alert('Importerad.'); await renderList();
 }
+
+/* ============================ Wipe ========================================== */
 async function wipeAll(){
   if(!confirm('Rensa ALL lokal data?')) return;
   await dbClearAll(); localStorage.removeItem('wrap');
   state.key=null; state.currentId=null;
-  const ed = byId('editor'), dl = byId('dateLine');
-  if(ed) ed.innerHTML=''; if(dl) dl.textContent='';
+  byId('editor').innerHTML=''; byId('dateLine').textContent='';
   await renderList(); showLock(); setStatus('Allt rensat.');
 }
 
-// ---------- Meny & toolbar ----------
+/* ============================ Meny & verktyg ================================= */
 function toggleMenu(){
   const m = byId('menu'); if(!m) return;
   m.classList.toggle('open');
-  m.setAttribute('aria-hidden', m.classList.contains('open') ? 'false' : 'true');
+  m.setAttribute('aria-hidden', m.classList.contains('open')?'false':'true');
 }
-function execCmd(cmd,val=null){ document.execCommand(cmd,false,val); }
+function execCmd(cmd, val=null){ document.execCommand(cmd,false,val); }
 
-// ---------- Force update (SW + cache) ----------
-byId('forceUpdateBtn')?.addEventListener('click', async ()=>{
+/* Forcera uppdatering (SW + caches) */
+async function forceUpdate(){
   try{
     if('serviceWorker' in navigator){
       const regs = await navigator.serviceWorker.getRegistrations();
@@ -293,22 +338,18 @@ byId('forceUpdateBtn')?.addEventListener('click', async ()=>{
     }
     alert('Appen uppdateras – laddar om…');
     location.reload(true);
-  }catch(e){
-    alert('Kunde inte uppdatera: ' + (e?.message||e));
-  }
-});
+  }catch(e){ alert('Kunde inte uppdatera: '+(e?.message||e)); }
+}
 
-// ---------- Wire up ----------
+/* ============================ Event wiring ================================== */
 window.addEventListener('load', ()=>{
   // Låsskärm
-  byId('setPassBtn')     ?.addEventListener('click', ()=>setInitialPass(passEl()?.value||''));
-  byId('unlockBtn')      ?.addEventListener('click', ()=>unlock(passEl()?.value||''));
+  byId('setPassBtn')   ?.addEventListener('click', ()=>setInitialPass(passEl().value));
+  byId('unlockBtn')    ?.addEventListener('click', ()=>unlock(passEl().value));
   byId('wipeLocalOnLock')?.addEventListener('click', wipeAll);
 
-  // CRUD
-  byId('newBtn')   ?.addEventListener('click', ()=>{
-    state.currentId=null; byId('editor').innerHTML=''; byId('dateLine').textContent=''; byId('editor').focus();
-  });
+  // Editor/CRUD
+  byId('newBtn')   ?.addEventListener('click', ()=>{ state.currentId=null; byId('editor').innerHTML=''; byId('dateLine').textContent=''; byId('editor').focus(); });
   byId('saveBtn')  ?.addEventListener('click', saveEntry);
   byId('deleteBtn')?.addEventListener('click', delEntry);
   byId('lockBtn')  ?.addEventListener('click', lock);
@@ -319,27 +360,36 @@ window.addEventListener('load', ()=>{
   byId('underlineBtn')?.addEventListener('click', ()=>execCmd('underline'));
   byId('colorBtn')    ?.addEventListener('input', e=>execCmd('foreColor', e.target.value));
 
-  // Meny & import/export
+  // Meny
   byId('menuToggle')?.addEventListener('click', toggleMenu);
   byId('exportBtn') ?.addEventListener('click', exportAll);
   byId('importBtn') ?.addEventListener('click', ()=>byId('importInput').click());
   byId('importInput')?.addEventListener('change', e=>{ if(e.target.files[0]) importAll(e.target.files[0]); });
   byId('wipeBtn')   ?.addEventListener('click', wipeAll);
 
-  // Font (endast editor)
-  const fs = byId('fontSelect');
-  if(fs){
+  // Font (bara editor)
+  const fontSel = byId('fontSelect');
+  if(fontSel){
     const saved = localStorage.getItem('rd_font');
-    if(saved){ byId('editor').style.fontFamily = saved; fs.value = saved; }
-    fs.addEventListener('change', e=>{
-      const f = e.target.value;
-      byId('editor').style.fontFamily = f;
-      localStorage.setItem('rd_font', f);
+    if(saved){ byId('editor').style.fontFamily = saved; fontSel.value = saved; }
+    fontSel.addEventListener('change', e=>{
+      byId('editor').style.fontFamily = e.target.value;
+      localStorage.setItem('rd_font', e.target.value);
     });
   }
 
-  // Start i låst läge
+  // Uppdatera-app knapp
+  byId('forceUpdateBtn')?.addEventListener('click', forceUpdate);
+
+  // Börja i låst läge
   showLock();
-  setTimeout(()=>passEl()?.focus(), 60);
-  console.log('✅ app.js init');
+  setTimeout(()=>passEl()?.focus(), 50);
+
+  // Registrera service worker (om finns)
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  }
+
+  debugBanner('READY');
 });
+/* ============================================================================ */
