@@ -4,73 +4,69 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Retro Diary (lite)</title>
-  <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="styles.css?v=lite1">
+  <link rel="stylesheet" href="styles.css?v=5">
 </head>
-<body>
-  <div class="frame">
-    <header class="titlebar">
-      <h1>Retro Diary</h1>
+<body class="locked">
+  <div id="frame">
+
+    <!-- Titlebar -->
+    <div class="titlebar">
+      <div class="logo">Retro Diary</div>
       <div class="actions">
-        <button id="newEntryBtn" class="big">Ny sida</button>
-        <button id="menuBtn">⋮</button>
+        <button id="newBtn" class="big">Ny sida</button>
         <button id="lockBtn" class="big">Lås</button>
+        <button id="menuBtn">☰</button>
+        <div id="menuDrop" hidden>
+          <button id="exportBtn">Exportera</button>
+          <button id="importBtn">Importera</button>
+          <button id="wipeLocal">Rensa allt lokalt</button>
+        </div>
       </div>
-    </header>
+    </div>
 
-    <main id="editorWrap">
-      <div id="editor" contenteditable="true"></div>
-
-      <div id="toolbar" class="toolbar">
+    <!-- Editor -->
+    <div id="editorWrap">
+      <div id="toolbar">
         <button data-cmd="bold">B</button>
         <button data-cmd="italic">I</button>
         <button data-cmd="underline">U</button>
         <button data-cmd="strikeThrough">S</button>
-        <button data-cmd="formatBlock" data-value="h1">H1</button>
-        <button data-cmd="formatBlock" data-value="h2">H2</button>
-        <button data-cmd="insertParagraph">¶</button>
+        <button data-cmd="formatBlock:h1">H1</button>
+        <button data-cmd="formatBlock:h2">H2</button>
         <button data-cmd="insertUnorderedList">• List</button>
         <button data-cmd="insertOrderedList">1. List</button>
-        <button data-cmd="createLink">🔗</button>
-        <button data-cmd="removeFormat">Rensa</button>
       </div>
-
-      <div class="toolbar">
+      <div id="editor" contenteditable="true"></div>
+      <div class="entry-actions">
         <button id="saveBtn" class="big">Spara</button>
-        <button id="deleteBtn" class="danger big">Radera</button>
+        <button id="deleteBtn" class="big danger">Radera</button>
       </div>
-
-      <div class="stamp" id="stamp"></div>
-    </main>
-  </div>
-
-  <!-- 🔒 Låsskärm -->
-  <div class="lockscreen" id="lockscreen">
-    <div class="lockcard">
-      <h2>🔒 Lås upp dagboken</h2>
-      <p class="hint">Dagboken krypteras lokalt med detta lösenord.</p>
-      <fieldset>
-        <legend>Lösenord</legend>
-        <div class="field">
-          <input id="pass" type="password" autocomplete="current-password" placeholder="Dagbokens lösenord">
-        </div>
-        <div class="field">
-          <button id="unlockBtn" class="big">Lås upp</button>
-        </div>
-        <div class="status" id="status"></div>
-        <div class="tiny" style="opacity:.8">
-          Glömt lösen? Du kan alltid rensa allt lokalt i menyn.
-        </div>
-      </fieldset>
+      <div id="entries"></div>
     </div>
+
+    <!-- Lock Screen -->
+    <div id="lockscreen">
+      <div class="lockbox">
+        <h2>🔒 Lås upp dagboken</h2>
+        <p>Dagboken krypteras lokalt med detta lösenord.</p>
+        <input id="pass" type="password" placeholder="Lösenord">
+        <button id="unlockBtn" class="big">Lås upp</button>
+        <div id="status" class="status"></div>
+
+        <!-- Extra reset/wipe on lock -->
+        <div class="tiny" style="margin-top:.5rem">
+          Glömt lösen? <br>
+          <button id="wipeLocalOnLock" class="danger">Rensa ALL lokal data</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 
-  <script src="app.js?v=lite1" defer></script>
+  <script src="app.js?v=5" defer></script>
   <script>
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js');
-      });
+      navigator.serviceWorker.register('sw.js?v=5');
     }
   </script>
 </body>
