@@ -129,24 +129,28 @@
         </fieldset>
 
         <fieldset>
-          <legend>Dagbokens lösen (kryptering)</legend>
-          <div class="field">
-            <input id="pass" type="password" autocomplete="current-password" placeholder="Dagbokens lösenord">
-          </div>
-          <div class="field">
-            <button id="unlockBtn">Lås upp</button>
-            <button id="bioUnlockBtn" class="ghost">Biometrisk upplåsning</button>
-          </div>
-          <button id="bioRegisterBtn">Aktivera biometri</button>
-<button id="bioUnlockBtn">Lås upp med biometri</button>
-<button id="bioDisableBtn">Stäng av biometri</button>
-          <div class="status" id="status"></div>
-          <div class="tiny">
-            <button id="useRecoveryBtn" class="linklike">Har återställningskod?</button>
-          </div>
+  <legend>Dagbokens lösen (kryptering)</legend>
+
+  <div class="field">
+    <input id="pass" type="password" autocomplete="current-password" placeholder="Dagbokens lösenord">
+  </div>
+
+  <div class="field">
+    <button id="unlockBtn">Lås upp</button>
+    <button id="bioUnlockBtn" class="ghost">Lås upp med biometri</button>
+  </div>
+
+  <div class="field">
+    <button id="bioRegisterBtn">Aktivera biometri</button>
+    <button id="bioDisableBtn">Stäng av biometri</button>
+  </div>
+
+  <div class="status" id="status"></div>
+
+  <div class="tiny">
+    <button id="useRecoveryBtn" class="linklike">Har återställningskod?</button>
+  </div>
         </fieldset>
-      </div>
-    </div>
 
     <!-- Återställ/byt dagbokslösen med återställningskod -->
     <dialog id="resetDialog">
