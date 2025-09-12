@@ -1,15 +1,9 @@
-const CACHE_NAME = "retro-diary-book15";
+const CACHE_NAME = "retro-diary-mem1";
 const ASSETS = [
-  "./",
-  "./index.html",
-  "./styles.css?v=book15",
-  "./app.js?v=book15",
-  "./fonts_db.js?v=2",
-  "./leather.jpg",
-  "./parchment.jpg",
-  "./manifest.json",
-  "./icon-192.png",
-  "./icon-512.png"
+  "./","./index.html",
+  "./styles.css?v=mem1","./app.js?v=mem1","./fonts_db.js?v=mem1",
+  "./leather.jpg","./parchment.jpg",
+  "./manifest.json","./icon-192.png","./icon-512.png"
 ];
 
 self.addEventListener("install", e=>{
@@ -21,7 +15,9 @@ self.addEventListener("activate", e=>{
 self.addEventListener("fetch", e=>{
   e.respondWith(
     fetch(e.request).then(res=>{
-      const copy=res.clone(); caches.open(CACHE_NAME).then(c=>c.put(e.request, copy)); return res;
+      const copy=res.clone();
+      caches.open(CACHE_NAME).then(c=>c.put(e.request, copy));
+      return res;
     }).catch(()=>caches.match(e.request))
   );
 });
