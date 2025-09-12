@@ -750,6 +750,9 @@ window.addEventListener('load', async ()=>{
   currentUser = session?.user || null;
   if($('#authStatus')) $('#authStatus').textContent = currentUser ? 'Inloggad.' : 'Inte inloggad.';
 
+  document.body.insertAdjacentHTML("beforeend", 
+  `<button id="testBtn">Test</button>`);
+document.getElementById("testBtn").onclick = ()=>alert("Knappen lever!");
   // Start i låst läge
   lock();
 });
