@@ -7,7 +7,10 @@
 
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="styles.css">
+  <!-- Bas-tema; byts mellan light/dark via JS genom att uppdatera href -->
   <link id="themeLink" rel="stylesheet" href="theme_light.css">
+  <!-- Minnesläge-stilar (behöver alltid vara laddad) -->
+  <link rel="stylesheet" href="theme_memory.css">
 </head>
 <body class="locked">
   <!-- Menyknapp -->
@@ -96,8 +99,8 @@
       <option value="dark">Mörkt</option>
     </select>
 
-    <!-- Ny knapp: Minnesläge -->
-    <button id="memoryBtn" class="btn">Minnesläge</button>
+    <!-- Minnesläge-knapp -->
+    <button id="memoryBtn" class="btn" aria-pressed="false">Minnesläge</button>
 
     <button id="wipeBtn" class="btn danger">Rensa ALL lokal data</button>
   </aside>
@@ -123,14 +126,14 @@
   <!-- Force-update -->
   <button id="forceUpdateBtn" title="Rensa cache och ladda om">⟳ Uppdatera app</button>
 
-  <!-- JS: ordningen är viktig -->
-  <script src="fonts_db.js"></script>
-  <script src="crypto.js"></script>
-  <script src="storage.js"></script>
-  <script src="lock.js"></script>
-  <script src="editor.js"></script>
-  <script src="memory.js"></script>   <!-- NY -->
-  <script src="app.js"></script>
+  <!-- JS (defer så allt alltid hinner renderas) -->
+  <script src="fonts_db.js" defer></script>
+  <script src="crypto.js" defer></script>
+  <script src="storage.js" defer></script>
+  <script src="lock.js" defer></script>
+  <script src="editor.js" defer></script>
+  <script src="memory.js" defer></script>
+  <script src="app.js" defer></script>
 
   <script>
     if ('serviceWorker' in navigator) {
@@ -138,4 +141,4 @@
     }
   </script>
 </body>
-</html>
+  </html>
