@@ -1,253 +1,150 @@
-/* =========================
-   Retro Diary - Styles
-   ========================= */
-
-:root {
-  --leather-bg: url("leather.jpg");
-  --parchment-bg: url("parchment.jpg");
-  --accent: #a11;
-  --text: #222;
-  --light: #fdf8e4;
+:root{
+  --leather: url("leather.jpg");
+  --parchment: url("parchment.jpg");
+  --accent:#b33;
+  --ink:#1a120b;
+  --paper: rgba(255,255,240,.88);
 }
 
-body {
-  margin: 0;
-  font-family: 'Special Elite', cursive;
-  background: var(--leather-bg) center/cover no-repeat fixed;
-  color: var(--text);
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family:'Special Elite', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  background: var(--leather) center/cover fixed #2b1a14;
+  color: var(--ink);
 }
 
-/* =========================
-   Book layout
-   ========================= */
-.book {
-  display: flex;
-  max-width: 900px;
-  width: 95%;
-  height: 80vh;
-  box-shadow: 0 0 25px rgba(0,0,0,0.8);
-  border-radius: 12px;
-  overflow: hidden;
+/* Bok */
+.book{
+  display:flex;
+  gap:0;
+  max-width:980px;
+  width:min(96vw,980px);
+  margin: clamp(12px,3vw,24px) auto;
+  border-radius:10px;
+  overflow:hidden;
+  box-shadow:0 22px 50px rgba(0,0,0,.55), 0 0 0 2px #000 inset;
+}
+.page{
+  flex:1 1 50%;
+  min-height:72vh;
+  padding: clamp(12px,2.5vw,22px);
+  background: var(--parchment) center/cover, #f6f0dc;
+  border-left:1px solid rgba(0,0,0,.08);
+  position:relative;
+}
+.page::after{
+  content:"";
+  position:absolute; inset:8px;
+  border:1px solid #c2b59b; opacity:.6; pointer-events:none;
 }
 
-.page {
-  flex: 1;
-  background: var(--parchment-bg) center/cover no-repeat;
-  padding: 1rem;
-  overflow-y: auto;
-  border: 1px solid #5a3a2b;
+#leftPage h2{
+  margin:6px 0 10px;
+  font-family:'IM Fell English',serif;
+}
+#entries{
+  margin:0; padding:0; list-style:none;
+  max-height: calc(72vh - 48px);
+  overflow:auto;
+}
+#entries li{
+  padding:10px 12px; margin:6px 0;
+  border:1px dashed rgba(0,0,0,.2);
+  background: rgba(255,255,255,.35);
+  border-radius:6px; cursor:pointer; transition:.15s ease;
+}
+#entries li:hover{ background: rgba(255,255,255,.55); transform:translateY(-1px); }
+
+/* Toolbar + editor */
+#toolbar{ display:flex; gap:8px; margin-bottom:10px; }
+#toolbar button{
+  background:#222;color:#fff;border:1px solid #444;border-radius:6px;
+  padding:6px 10px;font-weight:700;cursor:pointer;box-shadow:0 2px 0 rgba(0,0,0,.35);
+}
+#toolbar button:active{ transform:translateY(1px); box-shadow:none; }
+#colorBtn{ width:34px;height:32px;border:none;background:#222;border-radius:6px;cursor:pointer; }
+
+#dateLine{ font:14px/1.2 'IM Fell English',serif; color:#6e5849; margin:2px 0 8px; }
+#editor{
+  min-height:60vh; padding:16px 18px; outline:none;
+  background:var(--paper); border:1px solid rgba(0,0,0,.15); border-radius:8px;
+  box-shadow: inset 0 2px 12px rgba(0,0,0,.12), 0 1px 0 rgba(255,255,255,.35);
+  font-size:17px; line-height:1.6;
 }
 
-.page h2 {
-  margin-top: 0;
-  font-family: 'IM Fell English', serif;
+/* Actions */
+#actions{ display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; }
+#actions button, #menu button, #lockscreen button{
+  appearance:none;border:none;border-radius:8px;padding:10px 14px;font-weight:700;
+  color:#fff;background:linear-gradient(#c94141,#a02b2b);
+  box-shadow:0 2px 0 #7f2222; cursor:pointer;
+}
+#actions .danger{ background:linear-gradient(#b02828,#7f1e1e); }
+
+/* Låsskärm styrs helt av body.locked */
+.book{ display:flex; }
+#lockscreen{ display:none; }
+
+body.locked .book{ display:none !important; }
+body.locked #lockscreen{ display:flex !important; }
+
+#lockscreen{
+  position:fixed; inset:0; background:rgba(0,0,0,.75);
+  align-items:center; justify-content:center; z-index:9999;
+}
+#lockscreen .card{
+  width:min(520px,92vw);
+  background:#111; color:#fff;
+  border:1px solid #3a0f0f; border-radius:12px;
+  padding:22px; text-align:center;
+  box-shadow:0 12px 40px rgba(0,0,0,.7);
+}
+#lockscreen h2{
+  margin:0 0 14px; font-family:'Dancing Script','IM Fell English',serif;
+}
+#lockscreen input{
+  width:100%; padding:12px 14px; border:1px solid #444; border-radius:8px;
+  margin:10px 0 12px; background:#000; color:#fff; font-size:16px;
+}
+#lockscreen .row{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+#status{ margin-top:8px; color:#ffd2d2; font-size:14px; }
+
+/* Meny */
+#menuToggle{
+  position:fixed; top:14px; left:14px; z-index:1200;
+  background:#1d1d1d; color:#fff; border:1px solid #444; border-radius:8px;
+  padding:8px 10px; cursor:pointer;
+}
+#menu{
+  position:fixed; top:0; right:-280px; width:260px; height:100%;
+  background:#1c1c1c; color:#fff; border-left:1px solid #000;
+  padding:16px; transition:right .28s ease; z-index:1100;
+  display:flex; flex-direction:column; gap:10px;
+}
+#menu.open{ right:0; }
+#menu h2{ margin:6px 0 10px; color:#ffdddd; }
+#menu select{
+  width:100%; padding:8px 10px; background:#101010; color:#fff;
+  border:1px solid #700; border-radius:6px;
 }
 
-/* =========================
-   Toolbar & Editor
-   ========================= */
-#toolbar {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
+/* Force update */
+#forceUpdateBtn{
+  position:fixed; bottom:12px; right:12px; z-index:1300;
+  background:#222; color:#fff; border:1px solid #c33; border-radius:6px;
+  padding:8px 10px; font-size:13px; opacity:.9; cursor:pointer;
 }
+#forceUpdateBtn:hover{ opacity:1; }
 
-#toolbar button {
-  padding: 0.4rem 0.6rem;
-  border: none;
-  border-radius: 6px;
-  background: var(--accent);
-  color: white;
-  font-weight: bold;
-  cursor: pointer;
-}
+/* Scrollbars */
+::-webkit-scrollbar{ width:10px; }
+::-webkit-scrollbar-thumb{ background:#6c4f3d; border-radius:6px; }
+::-webkit-scrollbar-thumb:hover{ background:#874; }
 
-#toolbar button:hover {
-  opacity: 0.8;
-}
-
-#editor {
-  flex: 1;
-  min-height: 60vh;
-  padding: 1rem;
-  font-size: 1rem;
-  line-height: 1.6;
-  background: rgba(253, 248, 228, 0.85);
-  border-radius: 6px;
-  overflow-y: auto;
-}
-
-#actions {
-  margin-top: 0.5rem;
-  display: flex;
-  gap: 0.5rem;
-}
-
-#actions button {
-  flex: 1;
-  padding: 0.6rem;
-  border: none;
-  border-radius: 6px;
-  background: var(--accent);
-  color: #fff;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-#actions button:hover {
-  background: #700;
-}
-
-/* =========================
-   Menu
-   ========================= */
-#menu {
-  position: fixed;
-  top: 0;
-  right: -260px;
-  width: 240px;
-  height: 100%;
-  background: rgba(30, 20, 10, 0.95);
-  color: #fff;
-  padding: 1rem;
-  transition: right 0.3s ease;
-  z-index: 1100;
-}
-
-#menu.open {
-  right: 0;
-}
-
-#menu h3 {
-  margin-top: 0;
-}
-
-#menu button, #menu select {
-  width: 100%;
-  margin-bottom: 0.5rem;
-  padding: 0.5rem;
-  border: none;
-  border-radius: 6px;
-  background: var(--accent);
-  color: #fff;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-#menu button:hover {
-  background: #700;
-}
-
-#menuToggle {
-  position: fixed;
-  top: 10px;
-  left: 10px;
-  z-index: 1200;
-  padding: 0.5rem 0.7rem;
-  font-size: 1.2rem;
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-/* =========================
-   Lock screen
-   ========================= */
-#lockscreen {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.8);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 2000;
-}
-
-#lockscreen .card {
-  background: #222;
-  padding: 2rem;
-  border-radius: 12px;
-  box-shadow: 0 0 20px rgba(0,0,0,0.7);
-  text-align: center;
-  width: 90%;
-  max-width: 350px;
-  color: #fff;
-}
-
-#lockscreen h2 {
-  margin-top: 0;
-  font-family: 'Dancing Script', cursive;
-  font-size: 1.6rem;
-  margin-bottom: 1rem;
-}
-
-#lockscreen input {
-  width: 100%;
-  padding: 0.6rem;
-  margin-bottom: 1rem;
-  border: none;
-  border-radius: 6px;
-  background: #000;
-  color: #fff;
-  font-size: 1rem;
-}
-
-#lockscreen button {
-  padding: 0.6rem 0.8rem;
-  margin: 0.3rem;
-  border: none;
-  border-radius: 6px;
-  background: var(--accent);
-  color: #fff;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-#lockscreen button:hover {
-  background: #700;
-}
-
-#status {
-  margin-top: 0.5rem;
-  font-size: 0.9rem;
-}
-
-/* =========================
-   Force Update Button
-   ========================= */
-#forceUpdateBtn {
-  position: fixed;
-  bottom: 10px;
-  right: 10px;
-  z-index: 1500;
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  padding: 0.5rem 0.8rem;
-  cursor: pointer;
-  font-weight: bold;
-  opacity: 0.85;
-}
-
-#forceUpdateBtn:hover {
-  opacity: 1;
-}
-
-/* =========================
-   Scrollbars
-   ========================= */
-.page::-webkit-scrollbar {
-  width: 8px;
-}
-
-.page::-webkit-scrollbar-thumb {
-  background: #555;
-  border-radius: 4px;
+@media (max-width:860px){
+  .book{ flex-direction:column; }
+  #entries{ max-height:260px; }
+  #editor{ min-height:46vh; }
 }
