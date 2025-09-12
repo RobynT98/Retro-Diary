@@ -1,0 +1,26 @@
+/* theme_memory.css – stilla minnesläge (kan kombineras med dark/light) */
+body.memory-mode {
+  background: #0e0b12 url("stars.jpg") center/cover fixed;
+  color: #f1e8e0;
+}
+body.memory-mode .page{
+  background: #16141c url("paper_faded.jpg") center/cover;
+  color: #efe7df;
+  border-left-color: rgba(255,255,255,.06);
+}
+body.memory-mode #editor{
+  background: rgba(20,18,26,.85);
+  color: #f7efe6;
+  border-color: rgba(255,255,255,.12);
+}
+body.memory-mode .titleInput{
+  background:#1f1c27; color:#fff; border-color:#3a3346;
+}
+body.memory-mode #menu{ background:#0f0c15; }
+body.memory-mode .btn{
+  background:linear-gradient(#6a5577,#4c3b5a);
+  box-shadow:0 3px 0 #342a3c, inset 0 0 0 1px rgba(255,255,255,.08);
+}
+body.memory-mode .btn.danger{
+  background:linear-gradient(#7a3c4a,#5a2934);
+}
