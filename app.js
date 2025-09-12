@@ -246,4 +246,20 @@ window.addEventListener('load',()=>{
   $('#italicBtn').onclick=()=>exec("italic");
   $('#underlineBtn').onclick=()=>exec("underline");
   $('#colorBtn').oninput=e=>exec("foreColor",e.target.value);
+// Font selector
+const fontSelect = document.getElementById('fontSelect');
+if(fontSelect){
+  // Ladda ev. tidigare sparat val
+  const savedFont = localStorage.getItem('rd_font');
+  if(savedFont){
+    document.getElementById('editor').style.fontFamily = savedFont;
+    fontSelect.value = savedFont;
+  }
+
+  fontSelect.addEventListener('change', e=>{
+    const font = e.target.value;
+    document.getElementById('editor').style.fontFamily = font;
+    localStorage.setItem('rd_font', font);
+  });
+}
 });
