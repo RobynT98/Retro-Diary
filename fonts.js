@@ -1,32 +1,37 @@
-// fonts.js — separat fontdatabas för Retro Diary
-// Lägg till fler genom att stoppa in ett objekt med label, value, google
-// "google" = namnet som används i Google Fonts URL (utan mellanslag, + mellan ord)
-// "value" = CSS font-family du vill sätta i editor (fallback ingår)
+// Enkel font-databas. Lägg till fler rader vid behov.
+// url = Google Fonts CSS (eller tom sträng om den redan finns i index).
+const FONTS = [
+  {label:'Special Elite (skrivmaskin)', value:"'Special Elite', cursive", url:''},
+  {label:'IM Fell English (gammaldags)', value:"'IM Fell English', serif", url:''},
 
-const FONT_DB = [
-  { label: 'Special Elite (skrivmaskin)', value: "'Special Elite', cursive", google: 'Special+Elite' },
-  { label: 'IM Fell English (gammaldags)', value: "'IM Fell English', serif", google: 'IM+Fell+English' },
-  { label: 'Dancing Script', value: "'Dancing Script', cursive", google: 'Dancing+Script' },
-  { label: 'Merriweather', value: "'Merriweather', serif", google: 'Merriweather' },
-  { label: 'Roboto Slab', value: "'Roboto Slab', serif", google: 'Roboto+Slab' },
-  { label: 'Cinzel', value: "'Cinzel', serif", google: 'Cinzel' },
-  { label: 'Cormorant Garamond', value: "'Cormorant Garamond', serif", google: 'Cormorant+Garamond' },
-  { label: 'Libre Baskerville', value: "'Libre Baskerville', serif", google: 'Libre+Baskerville' },
-  { label: 'Playfair Display', value: "'Playfair Display', serif", google: 'Playfair+Display' },
-  { label: 'Lora', value: "'Lora', serif", google: 'Lora' },
-  { label: 'Crimson Pro', value: "'Crimson Pro', serif", google: 'Crimson+Pro' },
-  { label: 'Spectral', value: "'Spectral', serif", google: 'Spectral' },
-  { label: 'PT Serif', value: "'PT Serif', serif", google: 'PT+Serif' },
-  { label: 'Noto Serif', value: "'Noto Serif', serif", google: 'Noto+Serif' },
-  { label: 'Alegreya', value: "'Alegreya', serif", google: 'Alegreya' },
-  { label: 'EB Garamond', value: "'EB Garamond', serif", google: 'EB+Garamond' },
-  // lätta sans/fun:
-  { label: 'Inter', value: "'Inter', sans-serif", google: 'Inter:opsz,wght@14..32,400;14..32,600' },
-  { label: 'Montserrat', value: "'Montserrat', sans-serif", google: 'Montserrat' }
+  {label:'Merriweather', value:"'Merriweather', serif",
+   url:"https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700&display=swap"},
+  {label:'Roboto Slab', value:"'Roboto Slab', serif",
+   url:"https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@300;400;700&display=swap"},
+  {label:'Dancing Script', value:"'Dancing+Script', cursive",
+   url:"https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;600&display=swap"},
+  {label:'Amatic SC', value:"'Amatic SC', cursive",
+   url:"https://fonts.googleapis.com/css2?family=Amatic+SC:wght@400;700&display=swap"},
+  {label:'Cinzel', value:"'Cinzel', serif",
+   url:"https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap"},
+  {label:'Patrick Hand', value:"'Patrick Hand', cursive",
+   url:"https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap"},
+  {label:'Cormorant Garamond', value:"'Cormorant Garamond', serif",
+   url:"https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&display=swap"},
+  {label:'EB Garamond', value:"'EB Garamond', serif",
+   url:"https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600&display=swap"},
+  {label:'Noto Serif', value:"'Noto Serif', serif",
+   url:"https://fonts.googleapis.com/css2?family=Noto+Serif:wght@400;700&display=swap"},
+  {label:'Crimson Pro', value:"'Crimson Pro', serif",
+   url:"https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;700&display=swap"},
+  {label:'Quattrocento', value:"'Quattrocento', serif",
+   url:"https://fonts.googleapis.com/css2?family=Quattrocento:wght@400;700&display=swap"},
+  {label:'Alegreya', value:"'Alegreya', serif",
+   url:"https://fonts.googleapis.com/css2?family=Alegreya:wght@400;700&display=swap"},
+  {label:'Playfair Display', value:"'Playfair Display', serif",
+   url:"https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&display=swap"},
+  {label:'Spectral', value:"'Spectral', serif",
+   url:"https://fonts.googleapis.com/css2?family=Spectral:wght@400;700&display=swap"},
+  {label:'Poppins', value:"'Poppins', sans-serif",
+   url:"https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap"},
 ];
-
-// Utility för att få Google Fonts URL med alla familjer i FONT_DB
-function buildGoogleFontsHref(list = FONT_DB){
-  const fams = list.map(f => `family=${f.google}`).join('&');
-  return `https://fonts.googleapis.com/css2?${fams}&display=swap`;
-}
