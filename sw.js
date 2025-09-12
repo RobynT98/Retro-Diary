@@ -1,9 +1,9 @@
-const CACHE_NAME = "retro-diary-book12";
+const CACHE_NAME = "retro-diary-book13";
 const ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=book12",
-  "./app.js?v=book12",
+  "./styles.css?v=book13",
+  "./app.js?v=book13",
   "./leather.jpg",
   "./parchment.jpg",
   "./manifest.json",
@@ -12,16 +12,21 @@ const ASSETS = [
 ];
 
 self.addEventListener("install", e=>{
+  self.skipWaiting();
   e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(ASSETS)));
 });
 
 self.addEventListener("activate", e=>{
   e.waitUntil(
-    caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k))))
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k)))
+    ).then(()=>self.clients.claim())
   );
 });
 
 self.addEventListener("fetch", e=>{
+  if (e.request.method !== "GET") return;
+
   e.respondWith(
     fetch(e.request).then(res=>{
       const copy=res.clone();
