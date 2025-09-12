@@ -1,47 +1,26 @@
-/* Minnesläge – bas, gäller oavsett ljust/mörkt */
+/* Gemensamt */
 body.memory-mode {
   background: url("stars.jpg") center center / cover fixed;
   transition: background 0.6s ease;
 }
 
-/* Minnesläge – mörkt tema */
+/* Minnesläge + mörkt */
 body.memory-mode.theme-dark #editor {
-  background: rgba(0, 0, 0, 0.75);
+  background: rgba(0, 0, 0, 0.7);
   color: #f5f2e9;
-  box-shadow: 0 0 15px rgba(0,0,0,0.8);
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.8);
 }
 
-/* Minnesläge – ljust tema */
+/* Minnesläge + ljust */
 body.memory-mode.theme-light #editor {
   background: url("paper_faded.jpg") center center / cover no-repeat;
-  background-blend-mode: normal;
   color: #2b2b2b;
-  box-shadow: 0 0 20px rgba(0,0,0,0.5);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
 }
 
-/* Textfält, knappar och inputs i minnesläge */
 body.memory-mode button,
 body.memory-mode select,
 body.memory-mode input {
   border-radius: 10px;
   opacity: 0.95;
-  transition: all 0.3s ease;
-}
-
-/* Hover-effekt på knappar i minnesläge */
-body.memory-mode button:hover {
-  opacity: 1;
-  transform: translateY(-1px);
-}
-
-/* Lite mjukare scrollbar i minnesläge */
-body.memory-mode ::-webkit-scrollbar {
-  width: 10px;
-}
-body.memory-mode ::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.3);
-  border-radius: 5px;
-}
-body.memory-mode ::-webkit-scrollbar-track {
-  background: rgba(0,0,0,0.1);
 }
