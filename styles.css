@@ -1,130 +1,74 @@
 :root {
-  --bg-leather: url('leather.jpg');
-  --bg-parchment: url('parchment.jpg');
+  --bg: #111;
   --accent: #b33;
 }
 
 body {
   margin: 0;
-  font-family: 'Special Elite', cursive;
-  background: var(--bg-leather) center/cover no-repeat fixed;
-  color: #111;
+  font-family: "Special Elite", serif;
+  background: url('leather.jpg') center/cover no-repeat fixed;
+  color: #222;
 }
 
-/* Boklayout */
 .book {
   display: flex;
   max-width: 900px;
-  margin: 40px auto;
-  box-shadow: 0 0 25px rgba(0,0,0,0.7);
+  margin: auto;
+  box-shadow: 0 0 20px rgba(0,0,0,0.5);
 }
+
 .page {
   flex: 1;
-  background: var(--bg-parchment) center/cover no-repeat;
-  padding: 20px;
-  border: 1px solid #5a2;
+  background: url('parchment.jpg') center/cover no-repeat;
+  padding: 1rem;
   overflow-y: auto;
-  min-height: 80vh;
-}
-.page.left {
-  border-right: none;
-}
-.page.right {
-  display: flex;
-  flex-direction: column;
 }
 
 #editor {
-  flex: 1;
-  min-height: 60vh;
-  padding: 10px;
+  min-height: 400px;
   outline: none;
   cursor: text;
 }
 
-.toolbar button {
-  margin: 2px;
+.toolbar button,
+.actions button,
+aside button,
+#forceUpdateBtn {
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: .5rem .8rem;
+  margin: .2rem;
 }
 
-/* Låsskärm */
+button.danger {
+  background: #800;
+}
+
 #lockscreen {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.8);
   display: flex;
-  justify-content: center;
   align-items: center;
-  z-index: 2000;
+  justify-content: center;
+  background: rgba(0,0,0,0.85);
+  z-index: 1000;
 }
+
 #lockscreen .card {
   background: #222;
-  color: #fff;
-  padding: 20px;
+  color: white;
+  padding: 2rem;
   border-radius: 10px;
-  box-shadow: 0 0 15px #000;
   text-align: center;
 }
-#lockscreen input {
-  display: block;
-  width: 100%;
-  padding: 8px;
-  margin: 10px 0;
-}
 
-button {
-  padding: 6px 12px;
-  border: 1px solid var(--accent);
-  background: #111;
-  color: #fff;
-  cursor: pointer;
-  border-radius: 4px;
-}
-button:hover {
-  background: var(--accent);
-}
-button.danger {
-  background: #600;
-}
-button.danger:hover {
-  background: #b00;
-}
+#status { margin-top: .5rem; font-size: .9rem; color: #bbb; }
 
-/* Sidomeny */
-#menu {
+#forceUpdateBtn {
   position: fixed;
-  right: -220px;
-  top: 0;
-  width: 200px;
-  height: 100%;
-  background: #111;
-  color: #fff;
-  padding: 20px;
-  box-shadow: -2px 0 8px rgba(0,0,0,0.5);
-  transition: right 0.3s ease;
-  z-index: 1500;
-}
-#menu.show {
-  right: 0;
-}
-#menuToggle {
-  position: fixed;
-  top: 10px;
-  right: 10px;
-  z-index: 1600;
-  background: var(--accent);
-  border: none;
-  padding: 10px;
-  border-radius: 50%;
-  color: #fff;
-  font-size: 20px;
-}
-#forceUpdateBtn.update {
-  position: fixed;
-  bottom: 10px;
-  right: 10px;
-  z-index: 1700;
-  background: #333;
-  color: #fff;
-  border-radius: 50%;
-  padding: 12px;
+  bottom: 5px;
+  right: 5px;
+  font-size: .8rem;
 }
