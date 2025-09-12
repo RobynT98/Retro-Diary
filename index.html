@@ -18,7 +18,7 @@
   <!-- Supabase (CDN) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- Miljövariabler för klienten -->
+  <!-- Miljövariabler (byt till dina värden om du vill) -->
   <script>
     window.__env = {
       SUPABASE_URL: "https://ehjsihadlrjbfocodxay.supabase.co",
@@ -26,7 +26,7 @@
     };
   </script>
 </head>
-<body class="retro">>
+<body>
   <div class="frame">
     <div class="titlebar">
       <div class="brand">
@@ -111,7 +111,6 @@
         <div class="stamp" id="stamp"></div>
       </main>
     </div>
-
     <!-- Låsskärm -->
     <div class="lockscreen" id="lockscreen" hidden>
       <div class="lockcard">
@@ -199,14 +198,13 @@
       <div id="iconGrid" class="icon-grid" aria-label="Emoji palette"></div>
       <div class="field"><button id="closeIconDlg" class="ghost">Stäng</button></div>
     </dialog>
-  </div>
-
-  <!-- Viktigt: bumpa v-numret när du deployar för att forsera ny JS -->
-  <script src="app.js?v=14" defer></script>
+      </div>
+      <!-- Viktigt: bumpa v-numret vid deploy så ny JS laddas säkert -->
+  <script src="app.js?v=17" defer></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
     }
   </script>
-</body> 
+</body>
 </html>
