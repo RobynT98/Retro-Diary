@@ -96,3 +96,20 @@ body.locked #menu {
   z-index: 150;
 }
 #menu.open { right: 0; }
+#forceUpdateBtn {
+  position: fixed;
+  bottom: 10px;
+  right: 10px;
+  z-index: 9999;          /* ovanpå allt */
+  background: #222;
+  color: #fff;
+  border: 1px solid #c33;
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 12px;
+  opacity: 0.8;
+}
+#forceUpdateBtn:hover {
+  opacity: 1;
+  cursor: pointer;
+}
