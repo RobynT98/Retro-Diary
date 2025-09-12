@@ -1,11 +1,11 @@
 {
   "name": "Retro Diary",
   "short_name": "Diary",
-  "description": "En retroinspirerad krypterad dagbok med pergament och läderstil.",
-  "start_url": "/Retro-Diary/",
+  "description": "Krypterad retro-dagbok (PWA) med sök, taggar, fonter och teman.",
+  "start_url": "/index.html",
   "display": "standalone",
-  "background_color": "#111111",
-  "theme_color": "#b33",
+  "background_color": "#2b1a14",
+  "theme_color": "#2b1a14",
   "orientation": "portrait",
   "icons": [
     { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
