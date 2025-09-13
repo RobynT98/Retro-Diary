@@ -1,40 +1,73 @@
-function setStatus(t){ const el=document.getElementById('status'); if(el) el.textContent=t||''; }
-function showLock(){ document.body.classList.add('locked'); }
-function hideLock(){ document.body.classList.remove('locked'); }
+// lock.js — multi-user aware lock/unlock
+import { idbReady, setCurrentUser, restoreLastUser, User,
+         dbPutMeta, dbGetMeta, dbClearUser } from './storage.js';
+import { deriveKey, encObj, decObj } from './crypto.js';
 
-async function setInitialPass(passRaw){
-  try{
-    const pass=String(passRaw||'').trim();
-    if(!pass){ setStatus('Skriv ett lösenord.'); return; }
-    const salt = crypto.getRandomValues(new Uint8Array(16));
-    const saltHex = Array.from(salt).map(b=>b.toString(16).padStart(2,'0')).join('');
-    const key  = await deriveKey(pass, saltHex);
-    const test = await encObj(key, {ok:true});
-    await setWrapMeta({k:'wrap', salt:saltHex, test});
-    window.AppState.key=key;
-    setStatus('Lösen satt ✔'); hideLock(); await renderList();
-  }catch(e){ setStatus('Kunde inte sätta lösen.'); }
+export const App = { key:null };
+
+function qs(id){ return document.getElementById(id); }
+function setStatus(t){ const el=qs('status'); if(el) el.textContent=t||''; }
+export function showLock(){ document.body.classList.add('locked'); qs('lockscreen')?.setAttribute('aria-hidden','false'); }
+export function hideLock(){ document.body.classList.remove('locked'); qs('lockscreen')?.setAttribute('aria-hidden','true'); }
+
+async function getWrap(){
+  return await dbGetMeta('wrap'); // {salt, test}
+}
+async function setWrap(obj){
+  await dbPutMeta('wrap', obj);
 }
 
-async function unlock(passRaw){
-  try{
-    const pass=String(passRaw||'').trim();
-    if(!pass){ setStatus('Skriv ditt lösenord.'); return; }
-    const meta=await getWrapMeta();
-    if(!meta || !meta.salt || !meta.test){ setStatus('Välj “Sätt nytt lösen” först.'); return; }
-    setStatus('Kontrollerar…');
-    const key=await deriveKey(pass, meta.salt);
-    const probe=await decObj(key, meta.test);
-    if(!probe || probe.ok!==true) throw new Error('Test-decrypt misslyckades');
-    window.AppState.key=key; setStatus(''); hideLock(); await renderList();
-  }catch(e){ setStatus('Upplåsning misslyckades.'); }
+// init (restore last user so låsskärm visar namnet)
+export async function initLock(){
+  await idbReady();
+  restoreLastUser();
+  const u = qs('userInput'); if(u) u.value = User.name;
+  showLock();
+  setTimeout(()=>qs('passInput')?.focus(), 60);
 }
 
-function lock(){
-  const st=window.AppState||{};
-  st.key=null; st.currentId=null;
-  const ed=document.getElementById('editor'), dl=document.getElementById('dateLine');
-  if(ed) ed.innerHTML=''; if(dl) dl.textContent='';
-  showLock(); setStatus('');
-  setTimeout(()=>document.getElementById('passInput')?.focus(), 50);
+export async function setInitialPass(userName, pass){
+  const name = (userName||'').trim();
+  const p    = (pass||'').trim();
+  if(!name){ setStatus('Skriv ett användarnamn.'); return; }
+  if(!p){ setStatus('Skriv ett lösenord.'); return; }
+
+  setCurrentUser(name);
+
+  const salt = Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b=>b.toString(16).padStart(2,'0')).join('');
+  const key  = await deriveKey(p, salt);
+  const test = await encObj(key, {ok:true});
+  await setWrap({salt, test});
+
+  App.key = key;
+  setStatus('Lösen satt ✔'); hideLock();
+}
+
+export async function unlock(userName, pass){
+  const name = (userName||'').trim();
+  const p    = (pass||'').trim();
+  if(!name){ setStatus('Skriv ditt användarnamn.'); return; }
+  if(!p){ setStatus('Skriv ditt lösenord.'); return; }
+
+  setCurrentUser(name);
+  const wrap = await getWrap();
+  if(!wrap || !wrap.salt || !wrap.test){ setStatus('Ingen profil hittad. Välj “Sätt nytt lösen”.'); return; }
+
+  try{
+    const key = await deriveKey(p, wrap.salt);
+    const probe = await decObj(key, wrap.test);
+    if(!probe || probe.ok!==true) throw new Error('fel test');
+    App.key = key;
+    setStatus(''); hideLock();
+  }catch{
+    setStatus('Fel lösenord för användaren.');
+  }
+}
+
+export async function wipeCurrentUser(){
+  if(!confirm(`Rensa ALL lokal data för “${User.name}”?`)) return;
+  await dbClearUser();
+  setStatus('Allt rensat för användaren.');
+  App.key = null;
+  showLock();
 }
