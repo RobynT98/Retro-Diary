@@ -86,31 +86,50 @@ body.theme-light #menuToggle{ background:#1a1a1a; border-color:#2a2a2a; }
 body.theme-dark  #menuToggle{ background:#0f0f0f; border-color:#222; }
 body.memory-mode #menuToggle{
   box-shadow: 0 10px 16px rgba(0,0,0,.5), 0 2px 0 #7a3d31 inset;
-  }
+                    }
+
 /* ===== Side menu (slide-in) ===== */
 #menu{
-  position: fixed;
-  top: 0; right: 0; bottom: 0;
-  width: 320px; max-width: 94vw;
-  background: #111; color: #fff;
-  padding: 18px;
-  overflow: auto;
-  z-index: 1100;
+  position: fixed; top:0; right:0; bottom:0;
+  width:320px; max-width:94vw;
+  background:#111; color:#fff; padding:18px; overflow:auto;
+  z-index:1100;
 
-  /* start: helt utanför skärmen och tar INTE emot klick */
-  transform: translateX(100%);
-  transition: transform .25s ease;
-  pointer-events: none;
+  /* utanför skärmen + tar inga klick när stängd */
+  transform:translateX(100%);
+  transition:transform .25s ease;
+  pointer-events:none;
 }
-#menu.open{
-  transform: translateX(0);
-  pointer-events: auto;
+#menu.open{ transform:translateX(0); pointer-events:auto; }
+body.menu-open{ overflow:hidden; } /* lås scroll när menyn är öppen */
+
+/* Dölj texten i knappen (vi ritar strecken i ::before) */
+#menuToggle{ color:transparent; }
+
+/* Se till att verktygsraden alltid ligger över editorinnehållet men under menyn */
+#toolbar{ z-index:1050; }
+
+/* ===== Mobil-layout ===== */
+@media (max-width:860px){
+  .book{
+    flex-direction:column;
+    width:min(100vw,980px);
+    margin: clamp(10px,3vw,16px) auto;
+  }
+  #leftPage{ order:1; }
+  #rightPage{ order:2; }
+
+  /* lista får lagom höjd så editor syns */
+  #entries{ max-height: 38vh; }
+
+  /* mer kompakt padding */
+  .page{ padding:12px; min-height:auto; }
+
+  /* sticky toolbar i editor-delen */
+  #toolbar{
+    position: sticky;
+    top: calc(env(safe-area-inset-top, 0px) + 8px);
+    margin-bottom: 10px;
+    z-index: 1050; /* under #menu (1100), över editor */
+  }
 }
-#menu h2{ margin:6px 0 10px; color:#ffdddd; }
-#menu select{ padding:8px; border-radius:8px; border:1px solid #700; background:#0f0f0f; color:#fff; }
-
-/* Lås scroll när menyn är öppen (valfritt men skönt på mobil) */
-body.menu-open{ overflow:hidden; }
-
-/* Fix: döljer gamla "☰"-tecknet i knappen – vi ritar linjerna med ::before */
-#menuToggle{ color: transparent; }
