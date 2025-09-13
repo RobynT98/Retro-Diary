@@ -64,12 +64,12 @@ document.addEventListener('DOMContentLoaded', async ()=>{
     for(const row of data.entries) await dbPut('entries', row);
     alert('Importerad.'); renderList();
   });
-
 // --- Tema ---
 function setTheme(val) {
   const b = document.body;
+
   // växla klass (används bl.a. av theme_memory.css)
-  b.classList.remove('theme-light','theme-dark');
+  b.classList.remove('theme-light', 'theme-dark');
   b.classList.add(val === 'dark' ? 'theme-dark' : 'theme-light');
 
   // växla CSS-fil via <link id="themeLink">
@@ -79,33 +79,49 @@ function setTheme(val) {
   localStorage.setItem('theme', val);
 }
 
-// Anrop vid start:
 document.addEventListener('DOMContentLoaded', () => {
-  const saved = localStorage.getItem('theme') || 'light';
-  setTheme(saved);
+  // 1) Init tema
+  const savedTheme = localStorage.getItem('theme') || 'light';
+  setTheme(savedTheme);
+
   const sel = document.getElementById('themeSelect');
-  if (sel) sel.value = saved;
+  if (sel) {
+    sel.value = savedTheme;
+    sel.addEventListener('change', e => setTheme(e.target.value));
+  }
 
-  sel?.addEventListener('change', e => setTheme(e.target.value));
-});
-
-  // Force-update
-  document.getElementById('forceUpdateBtn')?.addEventListener('click', async ()=>{
-    try{
-      if('serviceWorker' in navigator){
-        const regs=await navigator.serviceWorker.getRegistrations();
-        await Promise.all(regs.map(r=>r.unregister()));
-      }
-      if('caches' in window){
-        const names=await caches.keys();
-        await Promise.all(names.map(n=>caches.delete(n)));
-      }
-      alert('Appen uppdateras – laddar om…'); location.reload(true);
-    }catch(e){ alert('Kunde inte uppdatera.'); }
+  // 2) Minnesläge (läser & sparar)
+  const memBtn = document.getElementById('memoryBtn');
+  if (localStorage.getItem('memoryMode') === 'on') {
+    document.body.classList.add('memory-mode');
+  }
+  memBtn?.addEventListener('click', () => {
+    document.body.classList.toggle('memory-mode');
+    const on = document.body.classList.contains('memory-mode');
+    localStorage.setItem('memoryMode', on ? 'on' : 'off');
   });
 
-  // Start i låst läge
+  // 3) Force-update (måste bindas efter DOM finns)
+  document.getElementById('forceUpdateBtn')?.addEventListener('click', async () => {
+    try {
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.unregister()));
+      }
+      if ('caches' in window) {
+        const names = await caches.keys();
+        await Promise.all(names.map(n => caches.delete(n)));
+      }
+      alert('Appen uppdateras – laddar om…');
+      location.reload(true);
+    } catch (e) {
+      alert('Kunde inte uppdatera.');
+    }
+  });
+
+  // 4) Start i låst läge
   showLock();
-  setTimeout(()=>document.getElementById('passInput')?.focus(), 50);
+  setTimeout(() => document.getElementById('passInput')?.focus(), 50);
+
   console.log('✅ init klar');
 });
