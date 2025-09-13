@@ -226,5 +226,9 @@
       navigator.serviceWorker.register('sw.js').catch(()=>{});
     }
   </script>
+<script>
+window.addEventListener('error', e => console.log('JS error:', e.message, e.filename, e.lineno));
+window.addEventListener('unhandledrejection', e => console.log('Promise rejection:', e.reason));
+</script>
 </body>
             </html>
