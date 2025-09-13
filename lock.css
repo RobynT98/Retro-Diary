@@ -13,3 +13,4 @@ body.locked #lockscreen{ display:flex !important; }
 }
 #status{ margin-top:8px; color:#ffd2d2; font-size:14px; }
 #lockscreen .row{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+#lockscreen, #lockscreen .card { pointer-events: auto; }
