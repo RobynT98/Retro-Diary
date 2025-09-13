@@ -1,5 +1,5 @@
 // ===== Retro Diary SW v36 =====
-const CACHE_VERSION = "v36";                 // ⬅️ bumpa denna varje gång
+const CACHE_VERSION = "v38";                 // ⬅️ bumpa denna varje gång
 const PRECACHE = `retro-diary-precache-${CACHE_VERSION}`;
 const RUNTIME  = `retro-diary-runtime-${CACHE_VERSION}`;
 
