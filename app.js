@@ -1,19 +1,16 @@
+// app.js — central ESM-wire-up (ren & stabil)
 console.log('✅ app.js loaded');
 
-import './editor.js';
-import './storage.js';
-import './crypto.js';
-import './lock.js';
-import './memory.js';
+import './editor.js';   // binder toolbar m.m. via side-effect
+import './memory.js';   // minnesläge via side-effect
 
-// app.js — wire-up mellan UI och moduler (ESM)
 import { idbReady, dbAllEntries, dbPutEntry, dbGetEntry, dbDelEntry } from './storage.js';
 import { App, initLock, setInitialPass, unlock, showLock, hideLock, wipeCurrentUser } from './lock.js';
 import { encObj, decObj } from './crypto.js';
 
 const $ = id => document.getElementById(id);
 
-// ================= Theme =================
+// =============== Tema ===============
 function setTheme(val){
   document.body.classList.remove('theme-light','theme-dark');
   document.body.classList.add(val === 'dark' ? 'theme-dark' : 'theme-light');
@@ -22,18 +19,18 @@ function setTheme(val){
   localStorage.setItem('theme', val);
 }
 
-// ================= Autosave =================
+// =============== Autosave ===============
 let _deb=null;
 function scheduleAutosave(){ clearTimeout(_deb); _deb = setTimeout(saveEntry, 600); }
 
-// ================= Hjälp: titel från innehåll =================
+// =============== Hjälp: titel från innehåll ===============
 function titleFrom(html){
   const tmp=document.createElement('div'); tmp.innerHTML=html||'';
   const t=(tmp.textContent||'').trim().split(/\n/)[0];
   return (t||'Anteckning').slice(0,80);
 }
 
-// ================= CRUD =================
+// =============== CRUD ===============
 async function renderList(filter=''){
   const ul=$('entries'); if(!ul) return;
   ul.innerHTML='';
@@ -69,8 +66,8 @@ async function openEntry(id){
   try{
     const dec = await decObj(App.key, row.wrap);
     window.AppState = { ...(window.AppState||{}), currentId: dec.id };
-    $('editor').innerHTML   = dec.html;
-    $('titleInput').value   = dec.title||'';
+    $('editor').innerHTML     = dec.html;
+    $('titleInput').value     = dec.title||'';
     $('dateLine').textContent = dec.date||'';
     $('editor').focus();
   }catch{ alert('Kunde inte dekryptera posten.'); }
@@ -85,7 +82,7 @@ async function delEntry(){
   renderList();
 }
 
-// ================= Init UI =================
+// =============== Init UI ===============
 document.addEventListener('DOMContentLoaded', async ()=>{
   await idbReady();
   await initLock();
@@ -94,7 +91,7 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   $('setPassBtn')?.addEventListener('click', ()=>setInitialPass($('userInput').value, $('passInput').value));
   $('unlockBtn') ?.addEventListener('click', async ()=>{
     await unlock($('userInput').value, $('passInput').value);
-    if (App.key) { hideLock(); renderList(); } // uppdatera efter upplåsning
+    if (App.key) { hideLock(); renderList(); } // rendera först efter lyckad upplåsning
   });
   $('wipeLocalOnLock')?.addEventListener('click', wipeCurrentUser);
 
@@ -133,7 +130,7 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   $('searchBtn')?.addEventListener('click', ()=>renderList(($('searchInput').value||'').trim()));
   $('clearSearchBtn')?.addEventListener('click', ()=>{ $('searchInput').value=''; renderList(''); });
 
-  // ----- Tema (init + select + snabbväxling)
+  // ----- Tema
   const savedTheme = localStorage.getItem('theme') || 'light';
   setTheme(savedTheme);
   $('themeSelect')?.addEventListener('change', e=>setTheme(e.target.value));
@@ -143,7 +140,7 @@ document.addEventListener('DOMContentLoaded', async ()=>{
     if ($('themeSelect')) $('themeSelect').value = next;
   });
 
-  // ----- Språk (init + båda select)
+  // ----- Språk
   const savedLang = localStorage.getItem('lang') || 'sv';
   window.applyLang?.(savedLang);
   $('langSelectLock')?.value  = savedLang;
@@ -151,7 +148,7 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   $('langSelectLock')?.addEventListener('change', e => window.applyLang?.(e.target.value));
   $('langSelectMenu')?.addEventListener('change', e => window.applyLang?.(e.target.value));
 
-  // ----- Wipe från sidomeny + Force update
+  // ----- Wipe + Force update
   $('wipeBtn')?.addEventListener('click', wipeCurrentUser);
   $('forceUpdateBtn')?.addEventListener('click', async ()=>{
     try{
@@ -168,6 +165,5 @@ document.addEventListener('DOMContentLoaded', async ()=>{
     }catch{ alert('Kunde inte uppdatera.'); }
   });
 
-  // ----- Första render (visas efter upplåsning)
-  renderList();
+  // Ingen renderList här — vi kör den efter lyckad unlock.
 });
