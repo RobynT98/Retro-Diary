@@ -1,4 +1,4 @@
-const CACHE_NAME = "retro-diary-v36"; // bumpa version vid varje ändring
+const CACHE_NAME = "retro-diary-v37"; // bumpa version vid varje ändring
 const CORE_ASSETS = [
   "./", 
   "index.html",
