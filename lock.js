@@ -1,40 +1,70 @@
-// lock.js — multi-user aware lock/unlock (robust + fallback)
-import {
-  idbReady,
-  setCurrentUser, restoreLastUser, User,
-  dbPutMeta, dbGetMeta, dbClearUser,
-  // följande två kan saknas i vissa versioner – vi testar strax
-  dbGet, dbPut
-} from './storage.js';
-
+// lock.js
+import { idbReady, setCurrentUser, restoreLastUser, User,
+         dbPutMeta, dbGetMeta, dbClearUser } from './storage.js';
 import { deriveKey, encObj, decObj } from './crypto.js';
 
-export const App = { key: null };
+export const App = { key:null };
 
 const $ = id => document.getElementById(id);
-const log = (...a)=>console.log('[lock]', ...a);
-
-function setStatus(txt){ const el=$('status'); if (el) el.textContent = txt || ''; }
-
+function setStatus(t){ const el=$('status'); if(el) el.textContent=t||''; }
 export function showLock(){ document.body.classList.add('locked'); $('lockscreen')?.setAttribute('aria-hidden','false'); }
 export function hideLock(){ document.body.classList.remove('locked'); $('lockscreen')?.setAttribute('aria-hidden','true'); }
 
-// ---- Meta-lagring (try IDB, annars localStorage) ----
-const hasMetaAPI = typeof dbPutMeta === 'function' && typeof dbGetMeta === 'function';
+async function getWrap(){ return await dbGetMeta('wrap'); }
+async function setWrap(obj){ await dbPutMeta('wrap', obj); }
 
-async function getWrap(){
-  try{
-    if (hasMetaAPI) return await dbGetMeta('wrap');
-    // fallback 1: meta-tabell via dbGet/dbPut om de finns
-    if (typeof dbGet === 'function') return await dbGet('meta','wrap');
-  }catch(e){ log('getWrap fail:', e); }
-  // fallback 2: localStorage
-  const raw = localStorage.getItem(`rd:user:${User?.name||'default'}:wrap`);
-  return raw ? JSON.parse(raw) : null;
+// 👉 NYTT: bind knapparna lokalt här
+function wireLockUI(){
+  $('setPassBtn')?.addEventListener('click', ()=>setInitialPass($('userInput').value, $('passInput').value));
+  $('unlockBtn') ?.addEventListener('click', ()=>unlock($('userInput').value, $('passInput').value));
+  $('wipeLocalOnLock')?.addEventListener('click', wipeCurrentUser);
 }
-async function setWrap(obj){
+
+export async function initLock(){
+  await idbReady();
+  restoreLastUser();
+  const u = $('userInput'); if(u) u.value = User.name;
+  showLock();
+  wireLockUI();                             // 👈 bind här
+  setTimeout(()=>$('passInput')?.focus(), 60);
+}
+
+export async function setInitialPass(userName, pass){
+  const name=(userName||'').trim(), p=(pass||'').trim();
+  if(!name){ setStatus('Skriv ett användarnamn.'); return; }
+  if(!p){ setStatus('Skriv ett lösenord.'); return; }
+  setCurrentUser(name);
+  const salt = Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b=>b.toString(16).padStart(2,'0')).join('');
+  const key  = await deriveKey(p, salt);
+  const test = await encObj(key, {ok:true});
+  await setWrap({salt, test});
+  App.key = key;
+  setStatus('Lösen satt ✔'); hideLock();
+}
+
+export async function unlock(userName, pass){
+  const name=(userName||'').trim(), p=(pass||'').trim();
+  if(!name){ setStatus('Skriv ditt användarnamn.'); return; }
+  if(!p){ setStatus('Skriv ditt lösenord.'); return; }
+  setCurrentUser(name);
+  const wrap = await getWrap();
+  if(!wrap || !wrap.salt || !wrap.test){ setStatus('Ingen profil hittad. Välj “Sätt nytt lösen”.'); return; }
   try{
-    if (hasMetaAPI) return await dbPutMeta('wrap', obj);
+    const key = await deriveKey(p, wrap.salt);
+    const probe = await decObj(key, wrap.test);
+    if(!probe || probe.ok!==true) throw new Error('fel test');
+    App.key = key;
+    setStatus(''); hideLock();
+  }catch{ setStatus('Fel lösenord för användaren.'); }
+}
+
+export async function wipeCurrentUser(){
+  if(!confirm(`Rensa ALL lokal data för “${User.name}”?`)) return;
+  await dbClearUser();
+  setStatus('Allt rensat för användaren.');
+  App.key = null;
+  showLock();
+}    if (hasMetaAPI) return await dbPutMeta('wrap', obj);
     if (typeof dbPut === 'function')  return await dbPut('meta', { id:'wrap', ...obj });
   }catch(e){ log('setWrap fail (IDB path):', e); }
   // fallback localStorage
