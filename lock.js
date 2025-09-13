@@ -14,6 +14,7 @@ function setStatus(t){
   const el = $('status');
   if (el) el.textContent = t || '';
 }
+
 export function showLock(){
   document.body.classList.add('locked');
   $('lockscreen')?.setAttribute('aria-hidden','false');
@@ -26,11 +27,25 @@ export function hideLock(){
 async function getWrap(){ return await dbGetMeta('wrap'); }
 async function setWrap(obj){ await dbPutMeta('wrap', obj); }
 
-// Bind knapparna direkt här så de alltid funkar
+// ========== UI binding ==========
 function wireLockUI(){
-  $('setPassBtn')      ?.addEventListener('click', ()=>setInitialPass($('userInput').value, $('passInput').value));
-  $('unlockBtn')       ?.addEventListener('click', ()=>unlock($('userInput').value, $('passInput').value));
-  $('wipeLocalOnLock') ?.addEventListener('click', wipeCurrentUser);
+  const sp = $('setPassBtn');
+  const ub = $('unlockBtn');
+  const wp = $('wipeLocalOnLock');
+  log('wireLockUI', {sp:!!sp, ub:!!ub, wp:!!wp});
+
+  sp?.addEventListener('click', ()=>{
+    log('click setPass');
+    setInitialPass($('userInput').value, $('passInput').value);
+  });
+  ub?.addEventListener('click', ()=>{
+    log('click unlock');
+    unlock($('userInput').value, $('passInput').value);
+  });
+  wp?.addEventListener('click', ()=>{
+    log('click wipe');
+    wipeCurrentUser();
+  });
 }
 
 export async function initLock(){
