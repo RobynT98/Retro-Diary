@@ -1,1 +1,103 @@
-/* Ljust tema – redan pergamentbaserat, men lämna plats för overrides */
+/* ====== Retro Diary – LJUST TEMA ======
+   Bas-färger och ytor för ljus läsning.
+   Lämnar medvetet utrymme för overrides i theme_memory.css (som laddas efter).
+================================================ */
+
+/* Bakgrund – läder + varm ton */
+body{
+  background: #3a241c url("leather.jpg") center/cover fixed no-repeat;
+  color:#1d1b18;
+}
+
+/* “Boksidorna” */
+.page{
+  background: #fdf7ea url("parchment.jpg") center/cover no-repeat;
+  border:1px solid #e3d3c3;
+  box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 8px 24px rgba(0,0,0,.12);
+}
+
+/* Rubriker */
+h2{
+  color:#1b1713;
+  text-shadow:0 1px 0 #fff;
+}
+
+/* Sökfält + lista */
+.searchRow input{
+  background:#fff7f0;
+  color:#1d1b18;
+  border:1px solid #cbb;
+}
+#entries li{
+  background:#ffffffcc;
+  border:1px dashed #b7a79a;
+  color:#1d1b18;
+}
+#entries li.fav{
+  background:#ffe8b8;
+  border-color:#f2b64a;
+}
+
+/* Toolbar – lätt glas */
+#toolbar{
+  background: linear-gradient(0deg, rgba(255,255,255,.85), rgba(255,255,255,.65));
+  border-bottom:1px solid #d9c8b8;
+}
+
+/* Titelrad och datum */
+.titleInput{
+  background:#fff7f0;
+  color:#1d1b18;
+  border:1px solid #cbb;
+}
+.titleInput::placeholder{ color:#94867a; }
+#dateLine{ color:#6b5a4d; }
+
+/* Editor-ytan */
+#editor{
+  background:#fffdf8;
+  color:#1d1b18;
+  border:1px solid #e3d3c3;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.4), 0 1px 2px rgba(0,0,0,.08);
+}
+
+/* Bilder i editor */
+#editor img{
+  box-shadow:0 6px 20px rgba(0,0,0,.18);
+  border-radius:10px;
+}
+#editor img.selected{ outline:3px solid #f2b64a; }
+#editor figcaption{ color:#6b5a4d; }
+
+/* Sidomeny */
+#menu{
+  background:#111;  /* mörk panel men lämnar resten för minnesläge att ändra */
+  color:#fff;
+}
+#menu select{
+  background:#1b1b1b;
+  color:#fff;
+  border-color:#444;
+}
+
+/* Knappar – grundton (matchar dina befintliga) */
+.btn{
+  background: linear-gradient(#c77a67, #a55d4c);
+  color:#fff;
+  border:1px solid #7a3d31;
+  box-shadow:0 3px 6px rgba(0,0,0,.25);
+}
+.btn:hover{ transform: translateY(-1px); }
+.btn:active{ transform: translateY(0); }
+.danger{
+  background: linear-gradient(#d55, #b33);
+  border-color:#8a2626;
+}
+
+/* Actions-rad – behåll spacing/border om du använder det i din bas */
+#actions{ /* tom avsiktligt – regler ligger i basen/stiles.css */ }
+
+/* Små skärmar – inga hårda overrides här; bas/layout får sköta grid */
+@media (max-width:900px){
+  /* lämnas tomt – layouten styrs från base/layout */
+}
