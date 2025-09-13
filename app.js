@@ -1,5 +1,8 @@
-// överst i app.js
 import './editor.js';
+import './storage.js';
+import './crypto.js';
+import './lock.js';
+import './memory.js';
 
 // app.js — wire-up mellan UI och moduler (ESM)
 import { idbReady, dbAllEntries, dbPutEntry, dbGetEntry, dbDelEntry } from './storage.js';
