@@ -22,16 +22,15 @@
   </noscript>
 </head>
 
-<!-- Viktigt: starta låst för att undvika “öppen” glimt innan JS kör -->
 <body class="locked">
   <noscript><div class="nojs" data-i18n="no_js">Den här appen kräver JavaScript.</div></noscript>
 
-  <!-- Menyknapp (hamburger ritas i CSS via ::before) -->
+  <!-- Menyknapp -->
   <button id="menuToggle" aria-label="Meny" title="Meny"></button>
 
   <!-- Bok-layout -->
   <div class="book" aria-label="Retro Diary">
-    <!-- Innehåll -->
+    <!-- Innehållssida -->
     <section class="page" id="leftPage" aria-labelledby="tocTitle">
       <h2 id="tocTitle" data-i18n="contents">Innehåll</h2>
 
@@ -46,9 +45,8 @@
 
     <!-- Editor -->
     <section class="page" id="rightPage" aria-labelledby="editorTitle">
-      <!-- STICKY TOOLBAR -->
       <div id="toolbar" role="toolbar" aria-label="Textverktyg">
-        <!-- Grupp 1: textstil -->
+        <!-- Grupp 1 -->
         <div class="group">
           <button id="boldBtn" class="btn" title="Fet (Ctrl+B)" aria-label="Fet"><b>B</b></button>
           <button id="italicBtn" class="btn" title="Kursiv (Ctrl+I)" aria-label="Kursiv"><i>I</i></button>
@@ -56,8 +54,7 @@
           <button id="strikeBtn" class="btn" title="Genomstruken" aria-label="Genomstruken">S</button>
           <button id="clearFmtBtn" class="btn" title="Rensa formatering" aria-label="Rensa formatering">⨂</button>
         </div>
-
-        <!-- Grupp 2: block/justering/lista -->
+        <!-- Grupp 2 -->
         <div class="group">
           <label class="sr-only" for="blockSelect" data-i18n="block">Block</label>
           <select id="blockSelect" title="Block">
@@ -67,61 +64,48 @@
             <option value="h3" data-i18n="block_h3">Rubrik 3</option>
             <option value="blockquote" data-i18n="block_quote">Citat</option>
           </select>
-          <button id="leftBtn"   class="btn" title="Vänster"   aria-label="Vänster">⟸</button>
-          <button id="centerBtn" class="btn" title="Centrera"  aria-label="Centrera">⇔</button>
-          <button id="rightBtn"  class="btn" title="Höger"     aria-label="Höger">⟹</button>
-          <button id="justifyBtn" class="btn" title="Justera"  aria-label="Justera">≋</button>
-          <button id="ulBtn" class="btn" title="Punktlista" aria-label="Punktlista">• Lista</button>
-          <button id="olBtn" class="btn" title="Numrerad lista" aria-label="Numrerad lista">1. Lista</button>
-          <button id="hrBtn" class="btn" title="Horisontell linje" aria-label="Horisontell linje">—</button>
-          <button id="undoBtn" class="btn" title="Ångra" aria-label="Ångra">↶</button>
-          <button id="redoBtn" class="btn" title="Gör om" aria-label="Gör om">↷</button>
+          <button id="leftBtn"   class="btn" aria-label="Vänster">⟸</button>
+          <button id="centerBtn" class="btn" aria-label="Centrera">⇔</button>
+          <button id="rightBtn"  class="btn" aria-label="Höger">⟹</button>
+          <button id="justifyBtn" class="btn" aria-label="Justera">≋</button>
+          <button id="ulBtn" class="btn" aria-label="Punktlista">• Lista</button>
+          <button id="olBtn" class="btn" aria-label="Numrerad lista">1. Lista</button>
+          <button id="hrBtn" class="btn" aria-label="Horisontell linje">—</button>
+          <button id="undoBtn" class="btn" aria-label="Ångra">↶</button>
+          <button id="redoBtn" class="btn" aria-label="Gör om">↷</button>
         </div>
-
-        <!-- Grupp 3: färg/font -->
+        <!-- Grupp 3 -->
         <div class="group">
-          <label class="swatch" title="Textfärg" aria-label="Textfärg">
-            <input id="foreColor" type="color">
-          </label>
-          <label class="swatch" title="Markering" aria-label="Markering">
-            <input id="hiliteColor" type="color" value="#fff7a8">
-          </label>
-          <label class="swatch" title="Bakgrund block" aria-label="Bakgrund block">
-            <input id="blockBg" type="color" value="#ffffff">
-          </label>
-
-          <label class="sr-only" for="fontFamily" data-i18n="font">Font</label>
+          <label class="swatch" title="Textfärg"><input id="foreColor" type="color"></label>
+          <label class="swatch" title="Markering"><input id="hiliteColor" type="color" value="#fff7a8"></label>
+          <label class="swatch" title="Bakgrund block"><input id="blockBg" type="color" value="#ffffff"></label>
           <select id="fontFamily" title="Font" style="min-width:160px"></select>
-
-          <label class="sr-only" for="fontSize" data-i18n="size">Storlek</label>
           <select id="fontSize" title="Storlek">
             <option>14px</option><option selected>16px</option><option>18px</option>
             <option>20px</option><option>22px</option><option>24px</option><option>28px</option>
           </select>
         </div>
-
-        <!-- Grupp 4: infoga/verktyg -->
+        <!-- Grupp 4 -->
         <div class="group">
-          <button id="linkBtn" class="btn" title="Infoga länk" aria-label="Infoga länk">🔗</button>
-          <button id="unlinkBtn" class="btn" title="Ta bort länk" aria-label="Ta bort länk">✂︎🔗</button>
-          <button id="btnImage" class="btn" title="Infoga bild" aria-label="Infoga bild">🖼️</button>
-          <button id="btnImgSmaller" class="btn" title="Mindre bild" aria-label="Mindre bild">➖</button>
-          <button id="btnImgBigger" class="btn" title="Större bild" aria-label="Större bild">➕</button>
-          <button id="btnAudio" class="btn" title="Infoga ljud" aria-label="Infoga ljud">🎵</button>
-          <button id="emojiBtn" class="btn" title="Emoji" aria-label="Emoji">😊</button>
-          <button id="stampBtn" class="btn" title="Infoga datum/tid" aria-label="Infoga datum/tid">🗓️</button>
-          <button id="copyBtn" class="btn" title="Kopiera" aria-label="Kopiera">⎘</button>
-          <button id="pasteBtn" class="btn" title="Klistra in" aria-label="Klistra in">📋</button>
-          <button id="ttsBtn" class="btn" title="Läs upp" aria-label="Läs upp">🔊</button>
-          <button id="favoriteBtn" class="btn" title="Favorit" aria-label="Favorit">☆</button>
-          <button id="quickThemeBtn" class="btn" title="Tema snabbväxling" aria-label="Tema snabbväxling">🌓</button>
+          <button id="linkBtn" class="btn" aria-label="Infoga länk">🔗</button>
+          <button id="unlinkBtn" class="btn" aria-label="Ta bort länk">✂︎🔗</button>
+          <button id="btnImage" class="btn" aria-label="Infoga bild">🖼️</button>
+          <button id="btnImgSmaller" class="btn" aria-label="Mindre bild">➖</button>
+          <button id="btnImgBigger" class="btn" aria-label="Större bild">➕</button>
+          <button id="btnAudio" class="btn" aria-label="Infoga ljud">🎵</button>
+          <button id="emojiBtn" class="btn" aria-label="Emoji">😊</button>
+          <button id="stampBtn" class="btn" aria-label="Infoga datum/tid">🗓️</button>
+          <button id="copyBtn" class="btn" aria-label="Kopiera">⎘</button>
+          <button id="pasteBtn" class="btn" aria-label="Klistra in">📋</button>
+          <button id="ttsBtn" class="btn" aria-label="Läs upp">🔊</button>
+          <button id="favoriteBtn" class="btn" aria-label="Favorit">☆</button>
+          <button id="quickThemeBtn" class="btn" aria-label="Tema snabbväxling">🌓</button>
         </div>
       </div>
 
       <h2 id="editorTitle" class="sr-only" data-i18n="editor">Editor</h2>
 
-      <input id="titleInput" class="titleInput"
-             placeholder="Titel…" data-i18n-placeholder="title_ph" aria-label="Titel">
+      <input id="titleInput" class="titleInput" placeholder="Titel…" data-i18n-placeholder="title_ph">
       <div id="dateLine" aria-live="polite"></div>
       <div id="editor" contenteditable="true" spellcheck="true" aria-label="Skriv här…"></div>
 
@@ -135,36 +119,24 @@
   </div>
 
   <!-- Sidomeny -->
-  <aside id="menu" aria-hidden="true" aria-label="Meny">
+  <aside id="menu" aria-hidden="true">
     <h2 data-i18n="menu">Meny</h2>
-
     <button id="switchUserBtn" class="btn" data-i18n="switch_user">Byt användare</button>
     <button id="exportBtn" class="btn" data-i18n="export">Exportera (.json)</button>
     <input id="importInput" type="file" accept="application/json" hidden>
     <button id="importBtn" class="btn" data-i18n="import">Importera (.json)</button>
-
     <label for="themeSelect" data-i18n="theme">Tema</label>
-    <select id="themeSelect" aria-label="Tema">
-      <option value="light" data-i18n="theme_light">Ljust</option>
-      <option value="dark"  data-i18n="theme_dark">Mörkt</option>
-    </select>
-
+    <select id="themeSelect"><option value="light">Ljust</option><option value="dark">Mörkt</option></select>
     <label for="langSelectMenu" data-i18n="language">Språk</label>
-    <select id="langSelectMenu" aria-label="Språk">
-      <option value="sv">Svenska</option>
-      <option value="en">English</option>
-    </select>
-
+    <select id="langSelectMenu"><option value="sv">Svenska</option><option value="en">English</option></select>
     <button id="memoryBtn" class="btn" data-i18n="memory_mode">Minnesläge</button>
     <button id="wipeBtn" class="btn danger" data-i18n="wipe_all">Rensa ALL lokal data</button>
-
     <hr>
     <nav class="menu-links">
-      <a href="about.html"   data-i18n="about">Om appen</a><br>
-      <a href="help.html"    data-i18n="help">Hjälp</a><br>
+      <a href="about.html" data-i18n="about">Om appen</a> •
+      <a href="help.html" data-i18n="help">Hjälp</a> •
       <a href="privacy.html" data-i18n="privacy">Sekretess</a>
     </nav>
-
     <p class="copyright"><small>© Conri Turesson</small></p>
   </aside>
 
@@ -172,35 +144,21 @@
   <div id="lockscreen" class="lock" aria-modal="true" role="dialog">
     <div class="card">
       <h2 data-i18n="lock_title">🔒 Retro Diary</h2>
-
-      <!-- Multi-user -->
-      <input type="text" id="userInput" placeholder="Användarnamn"
-             autocomplete="username" inputmode="text" aria-label="Användarnamn"
-             data-i18n-placeholder="username_ph">
-
-      <input type="password" id="passInput" placeholder="Dagbokens lösenord"
-             autocomplete="current-password" aria-label="Dagbokens lösenord"
-             data-i18n-placeholder="password_ph">
-
+      <input type="text" id="userInput" placeholder="Användarnamn" data-i18n-placeholder="username_ph">
+      <input type="password" id="passInput" placeholder="Dagbokens lösenord" data-i18n-placeholder="password_ph">
       <div class="row">
         <button id="setPassBtn" class="btn" data-i18n="set_pass">Sätt nytt lösen</button>
-        <button id="unlockBtn"  class="btn" data-i18n="unlock">Lås upp</button>
+        <button id="unlockBtn" class="btn" data-i18n="unlock">Lås upp</button>
       </div>
-
       <button id="wipeLocalOnLock" class="btn danger" data-i18n="wipe_all">Rensa ALL lokal data</button>
       <p id="status" aria-live="polite"></p>
-
       <div class="lang-row">
         <label for="langSelectLock">Language / Språk</label>
-        <select id="langSelectLock" aria-label="Language">
-          <option value="sv">Svenska</option>
-          <option value="en">English</option>
-        </select>
+        <select id="langSelectLock"><option value="sv">Svenska</option><option value="en">English</option></select>
       </div>
-
       <div id="aboutBox">
-        <a href="about.html"   data-i18n="about">Om appen</a> •
-        <a href="help.html"    data-i18n="help">Hjälp</a> •
+        <a href="about.html" data-i18n="about">Om appen</a> •
+        <a href="help.html" data-i18n="help">Hjälp</a> •
         <a href="privacy.html" data-i18n="privacy">Sekretess</a><br>
         <small>© Conri Turesson</small>
       </div>
@@ -208,27 +166,24 @@
   </div>
 
   <!-- Dolda filinputs -->
-  <input id="imgFile"   type="file" accept="image/*" hidden>
+  <input id="imgFile" type="file" accept="image/*" hidden>
   <input id="audioFile" type="file" accept="audio/*" hidden>
 
   <!-- Force-update -->
-  <button id="forceUpdateBtn" title="Rensa cache och ladda om" aria-label="Uppdatera">⟳</button>
+  <button id="forceUpdateBtn" title="Rensa cache och ladda om">⟳</button>
 
   <!-- JS -->
   <script src="fonts_db.js"></script>
   <script src="i18n.js"></script>
-
-  <!-- Viktigt: endast EN modul som importerar resten -->
   <script type="module" src="app.js"></script>
-
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js').catch(()=>{});
     }
   </script>
-<script>
-window.addEventListener('error', e => console.log('JS error:', e.message, e.filename, e.lineno));
-window.addEventListener('unhandledrejection', e => console.log('Promise rejection:', e.reason));
-</script>
+  <script>
+    window.addEventListener('error', e => console.log('JS error:', e.message));
+    window.addEventListener('unhandledrejection', e => console.log('Promise rejection:', e.reason));
+  </script>
 </body>
-            </html>
+</html>
