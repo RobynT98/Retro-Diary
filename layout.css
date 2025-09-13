@@ -46,3 +46,55 @@
   .book{ flex-direction:column; }
   #entries{ max-height:260px; }
 }
+/* === Menyknapp (FAB) === */
+#menuToggle{
+  position: fixed;
+  left: 12px; top: 12px;
+  z-index: 60;
+
+  /* storlek & form */
+  width: 56px; height: 56px;
+  border-radius: 16px;
+
+  /* färger – mörk “platta” med retro-skugga */
+  background: #141414;               /* själva plattan */
+  border: 1px solid #2a2a2a;         /* subtil kant */
+  box-shadow:
+    0 10px 16px rgba(0,0,0,.35),     /* mjuk skugga */
+    0 2px 0   #7a3d31 inset;          /* “inset” kant som dina knappar */
+  color: transparent;                 /* vi ritar linjerna med :before */
+  display: grid; place-items: center;
+  padding: 0;
+}
+
+/* tre vita linjer */
+#menuToggle::before{
+  content: "";
+  width: 24px; height: 2px;
+  background: #fff;
+  border-radius: 2px;
+  box-shadow:
+    0 -8px 0 0 #fff,
+    0  8px 0 0 #fff;  /* skapar tre streck */
+  opacity: .95;
+}
+
+/* hover/active – lyft lite, klick-känsla */
+#menuToggle:hover{ transform: translateY(-1px); }
+#menuToggle:active{ transform: translateY(0); box-shadow:
+  0 6px 12px rgba(0,0,0,.35),
+  0 1px 0 #7a3d31 inset;
+}
+
+/* focus – tydlig ring (tangentbord/mobil) */
+#menuToggle:focus-visible{
+  outline: 3px solid #f2b64a;
+  outline-offset: 3px;
+}
+
+/* –– Tema-anpassningar –– */
+body.theme-light #menuToggle{ background:#1a1a1a; border-color:#2a2a2a; }
+body.theme-dark  #menuToggle{ background:#0f0f0f; border-color:#222; }
+body.memory-mode #menuToggle{ box-shadow:
+  0 10px 16px rgba(0,0,0,.5),
+  0 2px 0 #7a3d31 inset; } /* lite starkare mot stjärn-bakgrunden */
