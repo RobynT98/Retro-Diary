@@ -1,12 +1,11 @@
 // app.js — central ESM-wire-up (ren & stabil)
 console.log('✅ app.js loaded');
 
-// Side-effects som binder toolbar/minnesläge
-import './editor.js';
-import './memory.js';
+import './editor.js';   // binder toolbar
+import './memory.js';   // hanterar minnesläge (tema-overlay)
 
 import { idbReady, dbAllEntries, dbPutEntry, dbGetEntry, dbDelEntry } from './storage.js';
-import { App, initLock, showLock, hideLock, wipeCurrentUser } from './lock.js';
+import { App, initLock, showLock, wipeCurrentUser } from './lock.js';
 import { encObj, decObj } from './crypto.js';
 
 const $ = id => document.getElementById(id);
@@ -158,7 +157,7 @@ document.addEventListener('DOMContentLoaded', async ()=>{
     }catch{ alert('Kunde inte uppdatera.'); }
   });
 
-  // Ingen renderList här; den körs när du väl låst upp & sparar etc.
+  console.log('✅ DOMContentLoaded klart (app.js)');
 });
 
 // Exponera vid behov
