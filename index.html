@@ -7,8 +7,9 @@
 
   <!-- PWA / manifest -->
   <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#3a241c"/>
 
-  <!-- Bas-stilar + teman (light via link, dark laddas när användaren växlar) -->
+  <!-- Bas-stilar + teman -->
   <link rel="stylesheet" href="styles.css">
   <link id="themeLink" rel="stylesheet" href="theme_light.css">
   <link rel="stylesheet" href="theme_memory.css">
@@ -20,7 +21,9 @@
     </style>
   </noscript>
 </head>
-<body>
+
+<!-- Viktigt: starta låst för att undvika “öppen” glimt innan JS kör -->
+<body class="locked">
   <noscript><div class="nojs" data-i18n="no_js">Den här appen kräver JavaScript.</div></noscript>
 
   <!-- Menyknapp (hamburger ritas i CSS via ::before) -->
@@ -170,7 +173,7 @@
     <div class="card">
       <h2 data-i18n="lock_title">🔒 Retro Diary</h2>
 
-      <!-- (Framtida multi-user, används redan i UI) -->
+      <!-- Multi-user -->
       <input type="text" id="userInput" placeholder="Användarnamn"
              autocomplete="username" inputmode="text" aria-label="Användarnamn"
              data-i18n-placeholder="username_ph">
@@ -187,7 +190,6 @@
       <button id="wipeLocalOnLock" class="btn danger" data-i18n="wipe_all">Rensa ALL lokal data</button>
       <p id="status" aria-live="polite"></p>
 
-      <!-- Språk på låsskärm -->
       <div class="lang-row">
         <label for="langSelectLock">Language / Språk</label>
         <select id="langSelectLock" aria-label="Language">
@@ -212,15 +214,12 @@
   <!-- Force-update -->
   <button id="forceUpdateBtn" title="Rensa cache och ladda om" aria-label="Uppdatera">⟳</button>
 
-  <!-- JS – ordning är viktig -->
+  <!-- JS -->
   <script src="fonts_db.js"></script>
-  <script src="i18n.js"></script>   <!-- se till att i18n finns före app.js -->
-  <script src="crypto.js"></script>
-  <script src="storage.js"></script>
-  <script src="lock.js"></script>
-  <script src="editor.js"></script>
-  <script src="memory.js"></script>
-  <script src="app.js"></script>
+  <script src="i18n.js"></script>
+
+  <!-- Viktigt: endast EN modul som importerar resten -->
+  <script type="module" src="app.js"></script>
 
   <script>
     if ('serviceWorker' in navigator) {
@@ -228,4 +227,4 @@
     }
   </script>
 </body>
-</html>
+            </html>
