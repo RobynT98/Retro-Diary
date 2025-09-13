@@ -1,11 +1,12 @@
 // app.js — central ESM-wire-up (ren & stabil)
 console.log('✅ app.js loaded');
 
-import './editor.js';   // binder toolbar m.m. via side-effect
-import './memory.js';   // minnesläge via side-effect
+// Side-effects som binder toolbar/minnesläge
+import './editor.js';
+import './memory.js';
 
 import { idbReady, dbAllEntries, dbPutEntry, dbGetEntry, dbDelEntry } from './storage.js';
-import { App, initLock, setInitialPass, unlock, showLock, hideLock, wipeCurrentUser } from './lock.js';
+import { App, initLock, showLock, hideLock, wipeCurrentUser } from './lock.js';
 import { encObj, decObj } from './crypto.js';
 
 const $ = id => document.getElementById(id);
@@ -85,15 +86,7 @@ async function delEntry(){
 // =============== Init UI ===============
 document.addEventListener('DOMContentLoaded', async ()=>{
   await idbReady();
-  await initLock();
-
-  // ----- Låsskärm
-  $('setPassBtn')?.addEventListener('click', ()=>setInitialPass($('userInput').value, $('passInput').value));
-  $('unlockBtn') ?.addEventListener('click', async ()=>{
-    await unlock($('userInput').value, $('passInput').value);
-    if (App.key) { hideLock(); renderList(); } // rendera först efter lyckad upplåsning
-  });
-  $('wipeLocalOnLock')?.addEventListener('click', wipeCurrentUser);
+  await initLock();               // 🔐 lock.js binder låsskärms-knapparna själv
 
   // ----- Meny (öppna/stäng + lås scroll)
   const menu   = $('menu');
@@ -165,5 +158,11 @@ document.addEventListener('DOMContentLoaded', async ()=>{
     }catch{ alert('Kunde inte uppdatera.'); }
   });
 
-  // Ingen renderList här — vi kör den efter lyckad unlock.
+  // Ingen renderList här; den körs när du väl låst upp & sparar etc.
 });
+
+// Exponera vid behov
+window.renderList = renderList;
+window.saveEntry  = saveEntry;
+window.openEntry  = openEntry;
+window.delEntry   = delEntry;
