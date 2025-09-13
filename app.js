@@ -1,163 +1,97 @@
-// ==============================
-// Retro Diary - app.js (clean)
-// ==============================
+// app.js — wire-up mellan UI och moduler
+import { idbReady, dbAllEntries, dbPutEntry, dbGetEntry, dbDelEntry } from './storage.js';
+import { App, initLock, setInitialPass, unlock, showLock, hideLock, wipeCurrentUser } from './lock.js';
+import { encObj, decObj } from './crypto.js';
 
-// Globalt state
-window.AppState = { key: null, currentId: null, selectedImg: null };
+const $ = id => document.getElementById(id);
 
-// ------------------------------
-// Tema
-function setTheme(val) {
-  const b = document.body;
-  b.classList.remove('theme-light', 'theme-dark');
-  b.classList.add(val === 'dark' ? 'theme-dark' : 'theme-light');
+// autosave
+let _deb=null;
+function scheduleAutosave(){ clearTimeout(_deb); _deb = setTimeout(saveEntry, 600); }
 
-  const link = document.getElementById('themeLink');
-  if (link) link.href = (val === 'dark') ? 'theme_dark.css' : 'theme_light.css';
-
-  localStorage.setItem('theme', val);
+// titel
+function titleFrom(html){
+  const tmp=document.createElement('div'); tmp.innerHTML=html||'';
+  const t=(tmp.textContent||'').trim().split(/\n/)[0];
+  return (t||'Anteckning').slice(0,80);
 }
 
-// ------------------------------
-// Init
-document.addEventListener('DOMContentLoaded', async () => {
+// CRUD
+async function renderList(filter=''){
+  const ul=$('entries'); if(!ul) return;
+  ul.innerHTML='';
+  const rows=await dbAllEntries();
+  for(const r of rows){
+    let title=''; try{
+      if(App.key){ const dec=await decObj(App.key, r.wrap); title=dec.title||''; }
+    }catch{}
+    const li=document.createElement('li');
+    li.textContent = (title?title+' — ':'') + new Date(r.updated||r.id).toLocaleString('sv-SE');
+    if(filter && !li.textContent.toLowerCase().includes(filter.toLowerCase())) continue;
+    li.onclick = ()=>openEntry(r.id);
+    ul.appendChild(li);
+  }
+}
+
+async function saveEntry(){
+  if(!App.key) { alert('Lås upp först.'); return; }
+  const id = window.AppState?.currentId || Date.now();
+  const html = $('editor').innerHTML;
+  const obj = { id, html, date:new Date().toLocaleString('sv-SE'), title: ($('titleInput').value || titleFrom(html)) };
+  const wrap = await encObj(App.key, obj);
+  await dbPutEntry({ id, wrap, updated: Date.now() });
+  window.AppState = { ...(window.AppState||{}), currentId:id };
+  renderList();
+}
+async function openEntry(id){
+  if(!App.key) return;
+  const row = await dbGetEntry(id); if(!row) return;
+  try{
+    const dec = await decObj(App.key, row.wrap);
+    window.AppState = { ...(window.AppState||{}), currentId: dec.id };
+    $('editor').innerHTML = dec.html;
+    $('titleInput').value = dec.title||'';
+    $('dateLine').textContent = dec.date||'';
+    $('editor').focus();
+  }catch{ alert('Kunde inte dekryptera posten.'); }
+}
+async function delEntry(){
+  if(!App.key || !window.AppState?.currentId) return;
+  if(!confirm('Radera sidan?')) return;
+  await dbDelEntry(window.AppState.currentId);
+  window.AppState.currentId=null; $('editor').innerHTML=''; $('titleInput').value=''; $('dateLine').textContent='';
+  renderList();
+}
+
+// init UI
+document.addEventListener('DOMContentLoaded', async ()=>{
   await idbReady();
+  await initLock();
 
-  // ----- Lås-skärm
-  document.getElementById('setPassBtn')?.addEventListener('click', () =>
-    setInitialPass(document.getElementById('passInput').value)
-  );
-  document.getElementById('unlockBtn')?.addEventListener('click', () =>
-    unlock(document.getElementById('passInput').value)
-  );
-  document.getElementById('wipeLocalOnLock')?.addEventListener('click', async () => {
-    if (!confirm('Rensa ALL lokal data?')) return;
-    await dbClearAll();
-    localStorage.removeItem('wrap');
-    lock();
-    alert('Allt rensat.');
+  // Låsskärm
+  $('setPassBtn')?.addEventListener('click', ()=>setInitialPass($('userInput').value, $('passInput').value));
+  $('unlockBtn') ?.addEventListener('click', ()=>unlock($('userInput').value, $('passInput').value));
+  $('wipeLocalOnLock')?.addEventListener('click', wipeCurrentUser);
+
+  // Meny: byt användare
+  $('switchUserBtn')?.addEventListener('click', ()=>{
+    // visa låsskärmen och låt användaren skriva nytt namn + låsa upp
+    showLock();
+    $('passInput')?.focus();
   });
 
-  // ----- CRUD
-  document.getElementById('newBtn')?.addEventListener('click', () => {
-    AppState.currentId = null;
-    document.getElementById('editor').innerHTML = '';
-    document.getElementById('titleInput').value = '';
-    document.getElementById('dateLine').textContent = '';
-    document.getElementById('editor').focus();
-  });
-  document.getElementById('saveBtn')?.addEventListener('click', saveEntry);
-  document.getElementById('deleteBtn')?.addEventListener('click', delEntry);
-  document.getElementById('lockBtn')?.addEventListener('click', lock);
+  // editor
+  $('editor')?.addEventListener('input', scheduleAutosave);
+  $('titleInput')?.addEventListener('input', scheduleAutosave);
+  $('saveBtn')?.addEventListener('click', saveEntry);
+  $('newBtn') ?.addEventListener('click', ()=>{ window.AppState={currentId:null}; $('editor').innerHTML=''; $('titleInput').value=''; $('dateLine').textContent=''; $('editor').focus(); });
+  $('deleteBtn')?.addEventListener('click', delEntry);
+  $('lockBtn')?.addEventListener('click', ()=>{ App.key=null; showLock(); });
 
-  // ----- Editor autosave
-  document.getElementById('editor')?.addEventListener('input', scheduleAutosave);
-  document.getElementById('titleInput')?.addEventListener('input', scheduleAutosave);
+  // sök
+  $('searchBtn')?.addEventListener('click', ()=>renderList(($('searchInput').value||'').trim()));
+  $('clearSearchBtn')?.addEventListener('click', ()=>{ $('searchInput').value=''; renderList(''); });
 
-  // ----- Toolbar
-  wireToolbar();
-
-  // ----- Sök
-  document.getElementById('searchBtn')?.addEventListener('click', () => {
-    const q = document.getElementById('searchInput').value.trim();
-    renderList(q);
-  });
-  document.getElementById('clearSearchBtn')?.addEventListener('click', () => {
-    document.getElementById('searchInput').value = '';
-    renderList('');
-  });
-
-  // ----- Meny (hamburger)
-  const menu = document.getElementById('menu');
-  const toggle = document.getElementById('menuToggle');
-
-  toggle?.addEventListener('click', (e) => {
-    if (document.body.classList.contains('locked')) return;
-    e.stopPropagation();
-    const opened = menu.classList.toggle('open');
-    document.body.classList.toggle('menu-open', opened);
-    // focus in menu for a11y
-    if (opened) menu.querySelector('button,select,input')?.focus?.();
-  });
-
-  // stäng när man klickar utanför
-  document.addEventListener('click', (e) => {
-    if (!menu?.classList.contains('open')) return;
-    if (menu.contains(e.target) || toggle.contains(e.target)) return;
-    menu.classList.remove('open');
-    document.body.classList.remove('menu-open');
-  });
-
-  // ----- Export/Import
-  document.getElementById('exportBtn')?.addEventListener('click', async () => {
-    const entries = await dbAll('entries');
-    const meta = await getWrapMeta();
-    const blob = new Blob([JSON.stringify({ meta, entries })], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'retro-diary.json';
-    a.click();
-    URL.revokeObjectURL(url);
-  });
-
-  document.getElementById('importBtn')?.addEventListener('click', () =>
-    document.getElementById('importInput').click()
-  );
-
-  document.getElementById('importInput')?.addEventListener('change', async (e) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    const txt = await f.text();
-    const data = JSON.parse(txt);
-    if (!data.meta || !data.entries) return alert('Felaktig fil.');
-    await setWrapMeta(data.meta);
-    for (const row of data.entries) await dbPut('entries', row);
-    alert('Importerad.');
-    renderList();
-  });
-
-  // ----- Tema (init + select)
-  const savedTheme = localStorage.getItem('theme') || 'light';
-  setTheme(savedTheme);
-
-  const themeSel = document.getElementById('themeSelect');
-  if (themeSel) {
-    themeSel.value = savedTheme;
-    themeSel.addEventListener('change', (e) => setTheme(e.target.value));
-  }
-
-  // ----- Minnesläge (init + toggle)
-  if (localStorage.getItem('memoryMode') === 'on') {
-    document.body.classList.add('memory-mode');
-  }
-  document.getElementById('memoryBtn')?.addEventListener('click', () => {
-    document.body.classList.toggle('memory-mode');
-    const on = document.body.classList.contains('memory-mode');
-    localStorage.setItem('memoryMode', on ? 'on' : 'off');
-  });
-
-  // ----- Force-update
-  document.getElementById('forceUpdateBtn')?.addEventListener('click', async () => {
-    try {
-      if ('serviceWorker' in navigator) {
-        const regs = await navigator.serviceWorker.getRegistrations();
-        await Promise.all(regs.map((r) => r.unregister()));
-      }
-      if ('caches' in window) {
-        const names = await caches.keys();
-        await Promise.all(names.map((n) => caches.delete(n)));
-      }
-      alert('Appen uppdateras – laddar om…');
-      location.reload(true);
-    } catch (e) {
-      alert('Kunde inte uppdatera.');
-    }
-  });
-
-  // ----- Start i låst läge
-  showLock();
-  setTimeout(() => document.getElementById('passInput')?.focus(), 50);
-
-  console.log('✅ init klar');
+  // första gång list
+  renderList();
 });
