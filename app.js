@@ -1,3 +1,5 @@
+console.log('✅ app.js loaded');
+
 import './editor.js';
 import './storage.js';
 import './crypto.js';
