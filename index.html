@@ -109,6 +109,7 @@
   <!-- Sidomeny -->
   <aside id="menu" aria-hidden="true">
     <h2>Meny</h2>
+    <button id="switchUserBtn" class="btn">Byt användare</button>
     <button id="exportBtn" class="btn">Exportera (.json)</button>
     <input id="importInput" type="file" accept="application/json" hidden>
     <button id="importBtn" class="btn">Importera (.json)</button>
@@ -127,6 +128,7 @@
   <div id="lockscreen" class="lock">
     <div class="card">
       <h2>🔒 Retro Diary</h2>
+      <input type="text" id="userInput" placeholder="Användarnamn" autocomplete="username">
       <input type="password" id="passInput" placeholder="Dagbokens lösenord">
       <div class="row">
         <button id="setPassBtn" class="btn">Sätt nytt lösen</button>
