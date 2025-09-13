@@ -4,26 +4,35 @@
   position: sticky;
   top: calc(env(safe-area-inset-top, 0px) + 0px);
   z-index: 1050; /* under #menu (1100), över editor/innehåll */
-  display: flex; flex-wrap: wrap; align-items: center;
-  gap: 8px;                 /* mindre mellanrum */
-  padding: 6px 8px;         /* lägre höjd */
-  margin: -8px -8px 10px -8px; /* samma visuella “platta” som innan */
+
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;                   /* mindre mellanrum */
+
+  /* extra högerpadding så sista knappen aldrig klipps */
+  padding: 6px 12px 6px 8px;  /* <— 12px till höger */
+  margin: -8px -8px 10px -8px;
+
   background: linear-gradient(#c77a67, #a55d4c);
   border: 1px solid #7a3d31;
   border-radius: 12px;
   box-shadow: 0 3px 6px rgba(0,0,0,.25);
   -webkit-tap-highlight-color: transparent;
+  overflow: visible;          /* säkerställ att skuggor syns */
 }
 
-/* Grupper (t.ex. textstil, block, listor…) */
+/* Gruppindelning */
 #toolbar .group{
-  display: flex; align-items: center; gap: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding-right: 8px;
   border-right: 1px dashed rgba(0,0,0,.15);
 }
 #toolbar .group:last-child{ border-right: none; }
 
-/* Knappar i toolbaren – smalare utan att röra övriga .btn i appen */
+/* Knappar i toolbaren – egen, smalare variant */
 #toolbar .btn{
   appearance: none;
   padding: 6px 9px;
@@ -38,12 +47,19 @@
 }
 #toolbar .btn:hover{ transform: translateY(-1px); }
 #toolbar .btn:active{ transform: translateY(0); }
+
+/* sista knappen (t.ex. ☆) får lite extra luft mot högerkanten */
+#toolbar .btn:last-child{ margin-right: 2px; }
+
 #toolbar .btn-ghost{
-  background: transparent; border: none; box-shadow: none;
-  color: inherit; padding: 4px 6px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  color: inherit;
+  padding: 4px 6px;
 }
 
-/* Selects & färgväljare – tajtare men klickvänligt */
+/* Selects & färgväljare */
 #toolbar select{
   padding: 6px 8px;
   border-radius: 10px;
@@ -52,24 +68,28 @@
 }
 #toolbar .swatch input{
   width: 26px; height: 26px;
-  padding: 0; border: none; background: transparent;
+  padding: 0;
+  border: none;
+  background: transparent;
 }
 
-/* Små ikoner i knappar kan centreras med detta (om du använder emoji/symboler) */
-#toolbar .btn > *{ vertical-align: middle; line-height: 1; }
+/* Centrera ev. ikon/emoji i knappar */
+#toolbar .btn > *{
+  vertical-align: middle;
+  line-height: 1;
+}
 
-/* Radbrytning och kompaktering på riktigt smala skärmar */
+/* Smalare skärmar */
 @media (max-width: 640px){
-  #toolbar{ gap: 6px; padding: 5px 6px; }
+  #toolbar{ gap: 6px; padding: 5px 10px 5px 6px; } /* behåll extra högerpadding */
   #toolbar .group{ padding-right: 6px; }
   #toolbar .btn{ padding: 6px 8px; }
 }
 @media (max-width: 480px){
-  /* färre skiljelinjer när grupper hoppar rad */
-  #toolbar .group{ border-right: none; }
+  #toolbar .group{ border-right: none; } /* mindre störigt när grupper bryter rad */
 }
 
-/* ---- Tema-justeringar (valfritt, påverkar bara toolbar) ---- */
+/* ---- Tema-justeringar (bara toolbar) ---- */
 body.theme-dark #toolbar{
   background: linear-gradient(#6b4a40, #5a3e35);
   border-color: #57372d;
