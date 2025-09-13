@@ -71,3 +71,18 @@ export async function wipeCurrentUser(){
   App.key = null;
   showLock();
 }
+#aboutBox{
+  margin-top: 1rem;
+  text-align: center;
+  font-size: .85rem;
+  opacity: .8;
+}
+#aboutBox a{ color: inherit; text-decoration: underline; }
+.lang-row{
+  margin-top: .75rem;
+  display: flex;
+  gap: .5rem;
+  align-items: center;
+  justify-content: center;
+}
+.lang-row select{ padding: .35rem .5rem; border-radius: 8px; }
