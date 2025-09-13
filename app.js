@@ -1,3 +1,6 @@
+// överst i app.js
+import './editor.js';
+
 // app.js — wire-up mellan UI och moduler (ESM)
 import { idbReady, dbAllEntries, dbPutEntry, dbGetEntry, dbDelEntry } from './storage.js';
 import { App, initLock, setInitialPass, unlock, showLock, hideLock, wipeCurrentUser } from './lock.js';
