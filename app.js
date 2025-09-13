@@ -1,33 +1,44 @@
-// app.js — wire-up mellan UI och moduler
+// app.js — wire-up mellan UI och moduler (ESM)
 import { idbReady, dbAllEntries, dbPutEntry, dbGetEntry, dbDelEntry } from './storage.js';
 import { App, initLock, setInitialPass, unlock, showLock, hideLock, wipeCurrentUser } from './lock.js';
 import { encObj, decObj } from './crypto.js';
 
 const $ = id => document.getElementById(id);
 
-// autosave
+// ================= Theme =================
+function setTheme(val){
+  document.body.classList.remove('theme-light','theme-dark');
+  document.body.classList.add(val === 'dark' ? 'theme-dark' : 'theme-light');
+  const link = $('themeLink');
+  if (link) link.href = (val === 'dark') ? 'theme_dark.css' : 'theme_light.css';
+  localStorage.setItem('theme', val);
+}
+
+// ================= Autosave =================
 let _deb=null;
 function scheduleAutosave(){ clearTimeout(_deb); _deb = setTimeout(saveEntry, 600); }
 
-// titel
+// ================= Hjälp: titel från innehåll =================
 function titleFrom(html){
   const tmp=document.createElement('div'); tmp.innerHTML=html||'';
   const t=(tmp.textContent||'').trim().split(/\n/)[0];
   return (t||'Anteckning').slice(0,80);
 }
 
-// CRUD
+// ================= CRUD =================
 async function renderList(filter=''){
   const ul=$('entries'); if(!ul) return;
   ul.innerHTML='';
   const rows=await dbAllEntries();
+
   for(const r of rows){
-    let title=''; try{
-      if(App.key){ const dec=await decObj(App.key, r.wrap); title=dec.title||''; }
-    }catch{}
+    let title='';
+    try{ if(App.key){ const dec=await decObj(App.key, r.wrap); title=dec.title||''; } }catch{}
+    const text = (title?title+' — ':'') + new Date(r.updated||r.id).toLocaleString('sv-SE');
+    if(filter && !text.toLowerCase().includes(filter.toLowerCase())) continue;
+
     const li=document.createElement('li');
-    li.textContent = (title?title+' — ':'') + new Date(r.updated||r.id).toLocaleString('sv-SE');
-    if(filter && !li.textContent.toLowerCase().includes(filter.toLowerCase())) continue;
+    li.textContent = text;
     li.onclick = ()=>openEntry(r.id);
     ul.appendChild(li);
   }
@@ -35,63 +46,120 @@ async function renderList(filter=''){
 
 async function saveEntry(){
   if(!App.key) { alert('Lås upp först.'); return; }
-  const id = window.AppState?.currentId || Date.now();
+  const id   = window.AppState?.currentId || Date.now();
   const html = $('editor').innerHTML;
-  const obj = { id, html, date:new Date().toLocaleString('sv-SE'), title: ($('titleInput').value || titleFrom(html)) };
+  const obj  = { id, html, date:new Date().toLocaleString('sv-SE'), title: ($('titleInput').value || titleFrom(html)) };
   const wrap = await encObj(App.key, obj);
   await dbPutEntry({ id, wrap, updated: Date.now() });
   window.AppState = { ...(window.AppState||{}), currentId:id };
   renderList();
 }
+
 async function openEntry(id){
   if(!App.key) return;
   const row = await dbGetEntry(id); if(!row) return;
   try{
     const dec = await decObj(App.key, row.wrap);
     window.AppState = { ...(window.AppState||{}), currentId: dec.id };
-    $('editor').innerHTML = dec.html;
-    $('titleInput').value = dec.title||'';
+    $('editor').innerHTML   = dec.html;
+    $('titleInput').value   = dec.title||'';
     $('dateLine').textContent = dec.date||'';
     $('editor').focus();
   }catch{ alert('Kunde inte dekryptera posten.'); }
 }
+
 async function delEntry(){
   if(!App.key || !window.AppState?.currentId) return;
   if(!confirm('Radera sidan?')) return;
   await dbDelEntry(window.AppState.currentId);
-  window.AppState.currentId=null; $('editor').innerHTML=''; $('titleInput').value=''; $('dateLine').textContent='';
+  window.AppState.currentId=null;
+  $('editor').innerHTML=''; $('titleInput').value=''; $('dateLine').textContent='';
   renderList();
 }
 
-// init UI
+// ================= Init UI =================
 document.addEventListener('DOMContentLoaded', async ()=>{
   await idbReady();
   await initLock();
 
-  // Låsskärm
+  // ----- Låsskärm
   $('setPassBtn')?.addEventListener('click', ()=>setInitialPass($('userInput').value, $('passInput').value));
-  $('unlockBtn') ?.addEventListener('click', ()=>unlock($('userInput').value, $('passInput').value));
+  $('unlockBtn') ?.addEventListener('click', async ()=>{
+    await unlock($('userInput').value, $('passInput').value);
+    if (App.key) { hideLock(); renderList(); } // uppdatera efter upplåsning
+  });
   $('wipeLocalOnLock')?.addEventListener('click', wipeCurrentUser);
 
-  // Meny: byt användare
-  $('switchUserBtn')?.addEventListener('click', ()=>{
-    // visa låsskärmen och låt användaren skriva nytt namn + låsa upp
-    showLock();
-    $('passInput')?.focus();
+  // ----- Meny (öppna/stäng + lås scroll)
+  const menu   = $('menu');
+  const toggle = $('menuToggle');
+
+  toggle?.addEventListener('click', (e)=>{
+    if (document.body.classList.contains('locked')) return;
+    e.stopPropagation();
+    const opened = menu.classList.toggle('open');
+    document.body.classList.toggle('menu-open', opened);
+    if (opened) menu.querySelector('button,select,input')?.focus?.();
   });
 
-  // editor
+  document.addEventListener('click', (e)=>{
+    if (!menu?.classList.contains('open')) return;
+    if (menu.contains(e.target) || toggle.contains(e.target)) return;
+    menu.classList.remove('open');
+    document.body.classList.remove('menu-open');
+  });
+
+  // ----- Editor
   $('editor')?.addEventListener('input', scheduleAutosave);
   $('titleInput')?.addEventListener('input', scheduleAutosave);
   $('saveBtn')?.addEventListener('click', saveEntry);
-  $('newBtn') ?.addEventListener('click', ()=>{ window.AppState={currentId:null}; $('editor').innerHTML=''; $('titleInput').value=''; $('dateLine').textContent=''; $('editor').focus(); });
+  $('newBtn') ?.addEventListener('click', ()=>{
+    window.AppState={currentId:null};
+    $('editor').innerHTML=''; $('titleInput').value=''; $('dateLine').textContent='';
+    $('editor').focus();
+  });
   $('deleteBtn')?.addEventListener('click', delEntry);
   $('lockBtn')?.addEventListener('click', ()=>{ App.key=null; showLock(); });
 
-  // sök
+  // ----- Sök
   $('searchBtn')?.addEventListener('click', ()=>renderList(($('searchInput').value||'').trim()));
   $('clearSearchBtn')?.addEventListener('click', ()=>{ $('searchInput').value=''; renderList(''); });
 
-  // första gång list
+  // ----- Tema (init + select + snabbväxling)
+  const savedTheme = localStorage.getItem('theme') || 'light';
+  setTheme(savedTheme);
+  $('themeSelect')?.addEventListener('change', e=>setTheme(e.target.value));
+  $('quickThemeBtn')?.addEventListener('click', ()=>{
+    const next = (localStorage.getItem('theme')==='dark') ? 'light' : 'dark';
+    setTheme(next);
+    if ($('themeSelect')) $('themeSelect').value = next;
+  });
+
+  // ----- Språk (init + båda select)
+  const savedLang = localStorage.getItem('lang') || 'sv';
+  window.applyLang?.(savedLang);
+  $('langSelectLock')?.value  = savedLang;
+  $('langSelectMenu')?.value  = savedLang;
+  $('langSelectLock')?.addEventListener('change', e => window.applyLang?.(e.target.value));
+  $('langSelectMenu')?.addEventListener('change', e => window.applyLang?.(e.target.value));
+
+  // ----- Wipe från sidomeny + Force update
+  $('wipeBtn')?.addEventListener('click', wipeCurrentUser);
+  $('forceUpdateBtn')?.addEventListener('click', async ()=>{
+    try{
+      if('serviceWorker' in navigator){
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r=>r.unregister()));
+      }
+      if('caches' in window){
+        const names = await caches.keys();
+        await Promise.all(names.map(n=>caches.delete(n)));
+      }
+      alert('Appen uppdateras – laddar om…');
+      location.reload(true);
+    }catch{ alert('Kunde inte uppdatera.'); }
+  });
+
+  // ----- Första render (visas efter upplåsning)
   renderList();
 });
