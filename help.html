@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Help • Retro Diary</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="i18n.js"></script>
+</head>
+<body style="max-width:760px;margin:2rem auto;padding:1rem">
+  <nav style="margin-bottom:1rem">
+    <a href="index.html">← Back</a>
+    <span style="float:right">
+      <label>Language</label>
+      <select id="lang"><option value="sv">Svenska</option><option value="en">English</option></select>
+    </span>
+  </nav>
+
+  <h1 data-i18n="help_head">Hjälp</h1>
+  <p data-i18n="help_p1">Välj ett lösenord, skriv, spara. Allt lagras lokalt och krypteras.</p>
+  <script>
+    const saved=localStorage.getItem('lang')||'sv'; applyLang(saved);
+    const sel=document.getElementById('lang'); sel.value=saved;
+    sel.addEventListener('change', e=>applyLang(e.target.value));
+  </script>
+</body>
+</html>
