@@ -18,3 +18,7 @@
 .info-page h1 {
   margin-bottom: 1rem;
 }
+#menu[aria-hidden="true"] { transform: translateX(-110%); opacity: 0; pointer-events:none; }
+#menu.open, #menu[aria-hidden="false"] { transform: translateX(0); opacity: 1; pointer-events:auto; }
+#menuToggle { position: relative; z-index: 1001; }
+#menu { position: fixed; z-index: 1000; }
