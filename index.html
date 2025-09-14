@@ -218,10 +218,14 @@
 
   <!-- Force-update -->
   <button id="forceUpdateBtn" title="Rensa cache och ladda om" aria-label="Uppdatera">⟳</button>
+  
+<!-- JS: ordning viktig -->
+<script src="fonts_db.js"></script>
+<script src="i18n.js"></script>
 
-  <!-- JS: ordning viktig -->
-  <script src="fonts_db.js"></script>
-  <script src="i18n.js"></script>
+<!-- Ladda lock.js före app.js så window.Lock finns för inline onclick -->
+<script type="module" src="lock.js?v=5"></script>
+<script type="module" src="app.js?v=5"></script>
 
   <!-- Ladda lock.js före app.js så window.Lock finns för onclick -->
   <script type="module" src="lock.js?v=3"></script>
