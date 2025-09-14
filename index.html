@@ -87,76 +87,39 @@
     <p class="copyright"><small>© Conri Turesson</small></p>
   </aside>
 
-  <!-- Låsskärm -->
-  <div id="lockscreen" class="lock" aria-modal="true" role="dialog">
-    <div class="card">
-      <h2 data-i18n="lock_title">🔒 Retro Diary</h2>
+<!-- Låsskärm -->
+<div id="lockscreen" class="lock" aria-modal="true" role="dialog">
+  <div class="card">
+    <h2 data-i18n="lock_title">🔒 Retro Diary</h2>
 
-      <input type="text" id="userInput"
-             placeholder="Användarnamn"
-             data-i18n-placeholder="username_ph">
+    <input type="text" id="userInput" placeholder="Användarnamn" data-i18n-placeholder="username_ph">
+    <input type="password" id="passInput" placeholder="Dagbokens lösenord" data-i18n-placeholder="password_ph">
 
-      <input type="password" id="passInput"
-             placeholder="Dagbokens lösenord"
-             data-i18n-placeholder="password_ph">
+    <div class="row">
+      <button id="setPassBtn" class="btn" type="button" data-i18n="set_pass"
+        onclick="window.Lock?.setInitialPass(
+          document.getElementById('userInput').value,
+          document.getElementById('passInput').value
+        )">Sätt nytt lösen</button>
 
-      <div class="row">
-        <button id="setPassBtn" class="btn" type="button" data-i18n="set_pass"
-          onclick="window.Lock?.setInitialPass?.(
-            document.getElementById('userInput').value,
-            document.getElementById('passInput').value
-          )">
-          Sätt nytt lösen
-        </button>
-
-        <button id="unlockBtn" class="btn" type="button" data-i18n="unlock"
-          onclick="window.Lock?.unlock?.(
-            document.getElementById('userInput').value,
-            document.getElementById('passInput').value
-          )">
-          Lås upp
-        </button>
-      </div>
-
-      <button id="wipeLocalOnLock" class="btn danger" type="button" data-i18n="wipe_all"
-        onclick="window.Lock?.wipeCurrentUser?.()">
-        Rensa ALL lokal data
-      </button>
-
-      <p id="status" aria-live="polite"></p>
-
-      <div class="lang-row">
-        <label for="langSelectLock">Language / Språk</label>
-        <select id="langSelectLock">
-          <option value="sv">Svenska</option>
-          <option value="en">English</option>
-        </select>
-      </div>
-
-      <div id="aboutBox">
-        <a href="about.html" data-i18n="about">Om appen</a> •
-        <a href="help.html" data-i18n="help">Hjälp</a> •
-        <a href="privacy.html" data-i18n="privacy">Sekretess</a><br>
-        <small>© Conri Turesson</small>
-      </div>
+      <button id="unlockBtn" class="btn" type="button" data-i18n="unlock"
+        onclick="window.Lock?.unlock(
+          document.getElementById('userInput').value,
+          document.getElementById('passInput').value
+        )">Lås upp</button>
     </div>
+
+    <button id="wipeLocalOnLock" class="btn danger" type="button" data-i18n="wipe_all"
+      onclick="window.Lock?.wipeCurrentUser()">Rensa ALL lokal data</button>
+
+    <p id="status" aria-live="polite"></p>
   </div>
+</div>
 
-  <!-- Dolda filinputs -->
-  <input id="imgFile" type="file" accept="image/*" hidden>
-  <input id="audioFile" type="file" accept="audio/*" hidden>
-
-  <!-- Force-update -->
-  <button id="forceUpdateBtn" title="Rensa cache och ladda om">⟳</button>
-
-  <!-- JS -->
-  <script src="fonts_db.js"></script>
-  <script src="i18n.js"></script>
-  <script type="module" src="app.js"></script>
-  <script>
-  console.log('[diag] inline index.js running. Lock present now?', !!window.Lock);
-  document.addEventListener('DOMContentLoaded', ()=>console.log('[diag] DOMContentLoaded (inline)'));
-  window.addEventListener('load', ()=>console.log('[diag] window.load (inline)'));
+<!-- JS laddning (ordning!) -->
+<script src="fonts_db.js"></script>
+<script src="i18n.js"></script>
+<script type="module" src="app.js"></script>
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations()
