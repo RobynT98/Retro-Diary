@@ -87,25 +87,41 @@ async function delEntry(){
 // =============== Init UI ===============
 document.addEventListener('DOMContentLoaded', async ()=>{
   await idbReady();
-  await initLock();               // 🔐 lock.js binder låsskärms-knapparna själv
+  await initLock();               // 🔐 låsskärms-knappar binds i lock.js
 
-  // ----- Meny (öppna/stäng + lås scroll)
+  // ----- Meny (öppna/stäng + lås scroll) — FIX: synka ARIA
   const menu   = $('menu');
   const toggle = $('menuToggle');
+
+  // säkra initial aria:
+  if (menu && !menu.hasAttribute('aria-hidden')) menu.setAttribute('aria-hidden','true');
+  if (toggle && !toggle.hasAttribute('aria-expanded')) toggle.setAttribute('aria-expanded','false');
 
   toggle?.addEventListener('click', (e)=>{
     if (document.body.classList.contains('locked')) return;
     e.stopPropagation();
-    const opened = menu.classList.toggle('open');
-    document.body.classList.toggle('menu-open', opened);
-    if (opened) menu.querySelector('button,select,input')?.focus?.();
+
+    const willOpen = !menu.classList.contains('open');
+    menu.classList.toggle('open', willOpen);
+    document.body.classList.toggle('menu-open', willOpen);
+
+    // 🟢 viktigt: uppdatera aria så CSS inte gömmer menyn
+    menu.setAttribute('aria-hidden', willOpen ? 'false' : 'true');
+    toggle.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+
+    if (willOpen) menu.querySelector('button,select,input,a,[tabindex]')?.focus?.();
   });
 
   document.addEventListener('click', (e)=>{
     if (!menu?.classList.contains('open')) return;
     if (menu.contains(e.target) || toggle.contains(e.target)) return;
+
     menu.classList.remove('open');
     document.body.classList.remove('menu-open');
+
+    // stäng aria
+    menu.setAttribute('aria-hidden', 'true');
+    toggle.setAttribute('aria-expanded', 'false');
   });
 
   // ----- Editor
