@@ -1,7 +1,20 @@
-#lockscreen{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; z-index:9999; background:rgba(0,0,0,.75); }
-body.locked .book{ display:none !important; }
-body.locked #lockscreen{ display:flex !important; }
+/* Bas */
+#lockscreen{
+  position: fixed; inset: 0;
+  display: none;                /* start: dold */
+  align-items: center; justify-content: center;
+  z-index: 9999;                /* över allt */
+  background: rgba(0,0,0,.75);
+}
 
+/* Visa/dölj styrs av aria-hidden */
+#lockscreen[aria-hidden="true"]  { display: none !important; pointer-events: none; }
+#lockscreen[aria-hidden="false"] { display: flex !important; pointer-events: auto; }
+
+/* När låst vill du gärna dölja boken – det är OK att behålla denna */
+body.locked .book{ display:none; }
+
+/* Kortet och inputs */
 #lockscreen .card{
   width:min(520px,92vw);
   background:#111; color:#fff; border:1px solid #3a0f0f; border-radius:12px;
@@ -13,4 +26,3 @@ body.locked #lockscreen{ display:flex !important; }
 }
 #status{ margin-top:8px; color:#ffd2d2; font-size:14px; }
 #lockscreen .row{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
-#lockscreen, #lockscreen .card { pointer-events: auto; }
