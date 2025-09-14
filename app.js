@@ -1,14 +1,12 @@
 // app.js — central ESM-wire-up (ren & stabil)
 console.log('✅ app.js loaded');
 
-import './editor.js';   // binder toolbar
-import './memory.js';   // hanterar minnesläge (tema-overlay)
+import './editor.js';   // binder toolbar via side-effect
+import './memory.js';   // minnesläge (tema-overlay)
 
 import { idbReady, dbAllEntries, dbPutEntry, dbGetEntry, dbDelEntry } from './storage.js';
 import { App, initLock, showLock, wipeCurrentUser } from './lock.js';
 import { encObj, decObj } from './crypto.js';
-
-console.log('window.Lock nu?', !!window.Lock);
 
 const $ = id => document.getElementById(id);
 
@@ -89,23 +87,23 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   await idbReady();
   await initLock();               // 🔐 låsskärms-knappar binds i lock.js
 
-  // ----- Meny (öppna/stäng + lås scroll) — FIX: synka ARIA
+  // ----- Meny (öppna/stäng + lås scroll) — synka ARIA och blockera när lockscreen är synlig
   const menu   = $('menu');
   const toggle = $('menuToggle');
+  const lockscreen = $('lockscreen');
 
-  // säkra initial aria:
   if (menu && !menu.hasAttribute('aria-hidden')) menu.setAttribute('aria-hidden','true');
   if (toggle && !toggle.hasAttribute('aria-expanded')) toggle.setAttribute('aria-expanded','false');
 
   toggle?.addEventListener('click', (e)=>{
-    if (document.body.classList.contains('locked')) return;
-    e.stopPropagation();
+    // öppna inte menyn om låsskärmen är synlig (aria-hidden="false")
+    if (lockscreen && lockscreen.getAttribute('aria-hidden') === 'false') return;
 
+    e.stopPropagation();
     const willOpen = !menu.classList.contains('open');
     menu.classList.toggle('open', willOpen);
     document.body.classList.toggle('menu-open', willOpen);
 
-    // 🟢 viktigt: uppdatera aria så CSS inte gömmer menyn
     menu.setAttribute('aria-hidden', willOpen ? 'false' : 'true');
     toggle.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
 
@@ -118,8 +116,6 @@ document.addEventListener('DOMContentLoaded', async ()=>{
 
     menu.classList.remove('open');
     document.body.classList.remove('menu-open');
-
-    // stäng aria
     menu.setAttribute('aria-hidden', 'true');
     toggle.setAttribute('aria-expanded', 'false');
   });
