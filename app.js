@@ -91,6 +91,13 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   }
   await initLock();               // 🔐 låsskärms-knappar binds i lock.js
 
+  // Safety hook: normalize lockscreen overlay state at runtime
+  const lockscreenEl = $('lockscreen');
+  if (lockscreenEl && lockscreenEl.getAttribute('aria-hidden') === 'true') {
+    lockscreenEl.style.display = 'none';
+    lockscreenEl.style.pointerEvents = 'none';
+  }
+
   // ----- Meny (öppna/stäng + lås scroll) — synka ARIA och blockera när lockscreen är synlig
   const menu   = $('menu');
   const toggle = $('menuToggle');

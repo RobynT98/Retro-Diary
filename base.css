@@ -44,7 +44,7 @@ body{
 }
 
 #forceUpdateBtn{
-  position:fixed; bottom:12px; right:12px; z-index:1300;
+  position:fixed; bottom:12px; right:12px; z-index:10000;
   background:#222; color:#fff; border:1px solid #c33; border-radius:6px; padding:8px 10px; font-size:13px; opacity:.9;
 }
 #forceUpdateBtn:hover{ opacity:1; }

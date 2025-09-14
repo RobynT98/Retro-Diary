@@ -27,11 +27,11 @@
   display: flex;              /* synlig som default */
   align-items: center;
   justify-content: center;
-  z-index: 9999;
+  z-index: 9998;              /* lowered to ensure forceUpdateBtn is above */
   background: rgba(0,0,0,.75);
   pointer-events: auto;
 }
-#lockscreen[aria-hidden="true"]{ display: none !important; }
+#lockscreen[aria-hidden="true"]{ display: none !important; pointer-events: none !important; }
 
 /* 2) När låst: göm boken */
 body.locked .book{ display: none !important; }

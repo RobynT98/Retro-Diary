@@ -15,11 +15,21 @@ function setStatus(t){
 }
 export function showLock(){
   document.body.classList.add('locked');
-  $('lockscreen')?.setAttribute('aria-hidden','false');
+  const lockscreen = $('lockscreen');
+  if (lockscreen) {
+    lockscreen.setAttribute('aria-hidden','false');
+    lockscreen.style.display = 'flex';
+    lockscreen.style.pointerEvents = 'auto';
+  }
 }
 export function hideLock(){
   document.body.classList.remove('locked');
-  $('lockscreen')?.setAttribute('aria-hidden','true');
+  const lockscreen = $('lockscreen');
+  if (lockscreen) {
+    lockscreen.setAttribute('aria-hidden','true');
+    lockscreen.style.display = 'none';
+    lockscreen.style.pointerEvents = 'none';
+  }
 }
 
 /* ---------- Meta wrap (per user) ---------- */
