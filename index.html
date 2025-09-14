@@ -223,32 +223,37 @@
 <script src="fonts_db.js"></script>
 <script src="i18n.js"></script>
 
-<!-- Ladda lock.js före app.js så window.Lock finns för inline onclick -->
-<script type="module" src="lock.js?v=5"></script>
-<script type="module" src="app.js?v=5"></script>
+<!-- Ladda lock.js före app.js (med cache-bust v=6) -->
+<script type="module" src="lock.js?v=6"></script>
+<script type="module" src="app.js?v=6"></script>
 
-  <!-- Ladda lock.js före app.js så window.Lock finns för onclick -->
-  <script type="module" src="lock.js?v=3"></script>
-  <script type="module" src="app.js?v=3"></script>
+<!-- Liten on-screen diagnos + språk-init (ingen konsol behövs) -->
+<script>
+  // Sätt svenska första gången om inget valt
+  if (!localStorage.getItem('lang')) localStorage.setItem('lang','sv');
+  if (window.applyLang) window.applyLang(localStorage.getItem('lang') || 'sv');
 
-  <script>
-    // Sätt default-språk om inget finns
-    (function ensureLang(){
-      let lang = localStorage.getItem('lang') || document.documentElement.lang || 'sv';
-      if (!['sv','en'].includes(lang)) lang = 'sv';
-      localStorage.setItem('lang', lang);
-      if (window.applyLang) window.applyLang(lang);
-      const lockSel = document.getElementById('langSelectLock');
-      const menuSel = document.getElementById('langSelectMenu');
-      if (lockSel) lockSel.value = lang;
-      if (menuSel) menuSel.value = lang;
-      lockSel?.addEventListener('change', e => window.applyLang?.(e.target.value));
-      menuSel?.addEventListener('change', e => window.applyLang?.(e.target.value));
-    })();
+  // Visa om Lock laddats, direkt i status-raden
+  (function(){
+    var s = document.getElementById('status');
+    if (s) s.textContent = (window.Lock ? '🔓 Låsskärm redo' : '❌ Låsskärm saknas');
+  })();
 
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').catch(()=>{});
-    }
-  </script>
+  // Force update-knapp fungerar även på mobil
+  document.getElementById('forceUpdateBtn')?.addEventListener('click', async ()=>{
+    try{
+      if('serviceWorker' in navigator){
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r=>r.unregister()));
+      }
+      if('caches' in window){
+        const names = await caches.keys();
+        await Promise.all(names.map(n=>caches.delete(n)));
+      }
+      alert('Appen uppdateras – laddar om…');
+      location.reload(true);
+    }catch{ alert('Kunde inte uppdatera.'); }
+  });
+</script>
 </body>
 </html>
