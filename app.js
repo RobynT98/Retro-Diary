@@ -84,7 +84,11 @@ async function delEntry(){
 
 // =============== Init UI ===============
 document.addEventListener('DOMContentLoaded', async ()=>{
-  await idbReady();
+  try {
+    await idbReady();
+  } catch (e) {
+    console.warn('⚠️ IndexedDB init failed – continuing with localStorage fallback / degraded mode.', e);
+  }
   await initLock();               // 🔐 låsskärms-knappar binds i lock.js
 
   // ----- Meny (öppna/stäng + lås scroll) — synka ARIA och blockera när lockscreen är synlig
