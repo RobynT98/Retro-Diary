@@ -1,4 +1,4 @@
-// lock.js — multi-user aware lock/unlock (REN VERSION)
+// lock.js — minimal & stabil
 import {
   idbReady, setCurrentUser, restoreLastUser, User,
   dbPutMeta, dbGetMeta, dbClearUser
@@ -6,14 +6,9 @@ import {
 import { deriveKey, encObj, decObj } from './crypto.js';
 
 export const App = { key: null };
-
 const $ = id => document.getElementById(id);
-const log = (...a) => console.log('[lock]', ...a);
 
-function setStatus(t){
-  const el = $('status');
-  if (el) el.textContent = t || '';
-}
+function setStatus(t){ const el = $('status'); if (el) el.textContent = t || ''; }
 
 export function showLock(){
   document.body.classList.add('locked');
@@ -27,35 +22,12 @@ export function hideLock(){
 async function getWrap(){ return await dbGetMeta('wrap'); }
 async function setWrap(obj){ await dbPutMeta('wrap', obj); }
 
-// ========== UI binding ==========
-function wireLockUI(){
-  const sp = $('setPassBtn');
-  const ub = $('unlockBtn');
-  const wp = $('wipeLocalOnLock');
-  log('wireLockUI', {sp:!!sp, ub:!!ub, wp:!!wp});
-
-  sp?.addEventListener('click', ()=>{
-    log('click setPass');
-    setInitialPass($('userInput').value, $('passInput').value);
-  });
-  ub?.addEventListener('click', ()=>{
-    log('click unlock');
-    unlock($('userInput').value, $('passInput').value);
-  });
-  wp?.addEventListener('click', ()=>{
-    log('click wipe');
-    wipeCurrentUser();
-  });
-}
-
 export async function initLock(){
   await idbReady().catch(()=>{});
   try { restoreLastUser(); } catch {}
-  if ($('userInput')) $('userInput').value = User?.name || '';
+  const u = $('userInput'); if (u) u.value = User?.name || '';
   showLock();
-  wireLockUI();
   setTimeout(() => $('passInput')?.focus(), 60);
-  log('initLock done. user =', User?.name);
 }
 
 export async function setInitialPass(userName, pass){
@@ -65,18 +37,14 @@ export async function setInitialPass(userName, pass){
   if(!p){    setStatus('Skriv ett lösenord.');     return; }
 
   setCurrentUser(name);
-
-  const salt = Array.from(crypto.getRandomValues(new Uint8Array(16)))
-    .map(b=>b.toString(16).padStart(2,'0')).join('');
+  const salt = Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b=>b.toString(16).padStart(2,'0')).join('');
   const key  = await deriveKey(p, salt);
   const test = await encObj(key, { ok:true, user:name });
 
   await setWrap({ salt, test });
   App.key = key;
-
   setStatus('Lösen satt ✔');
   hideLock();
-  log('setInitialPass OK for', name);
 }
 
 export async function unlock(userName, pass){
@@ -89,10 +57,8 @@ export async function unlock(userName, pass){
   const wrap = await getWrap();
   if(!wrap || !wrap.salt || !wrap.test){
     setStatus('Ingen profil hittad. Välj “Sätt nytt lösen”.');
-    log('unlock: no profile for', name);
     return;
   }
-
   try{
     const key   = await deriveKey(p, wrap.salt);
     const probe = await decObj(key, wrap.test);
@@ -100,10 +66,8 @@ export async function unlock(userName, pass){
     App.key = key;
     setStatus('');
     hideLock();
-    log('unlock OK for', name);
-  }catch(err){
+  }catch{
     setStatus('Fel lösenord för användaren.');
-    log('unlock ERROR', err);
   }
 }
 
@@ -113,10 +77,9 @@ export async function wipeCurrentUser(){
   App.key = null;
   setStatus('Allt rensat för användaren.');
   showLock();
-  log('wipe done');
 }
 
-// Exponera för felsökning
+// Exponera globalt för inline onclick
 if (typeof window !== 'undefined') {
   window.Lock = { initLock, setInitialPass, unlock, wipeCurrentUser, showLock, hideLock, App };
 }
