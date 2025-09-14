@@ -8,6 +8,8 @@ import { idbReady, dbAllEntries, dbPutEntry, dbGetEntry, dbDelEntry } from './st
 import { App, initLock, showLock, wipeCurrentUser } from './lock.js';
 import { encObj, decObj } from './crypto.js';
 
+console.log('window.Lock nu?', !!window.Lock);
+
 const $ = id => document.getElementById(id);
 
 // =============== Tema ===============
