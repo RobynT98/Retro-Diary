@@ -8,8 +8,11 @@ import { deriveKey, encObj, decObj } from './crypto.js';
 export const App = { key: null };
 const $ = id => document.getElementById(id);
 
-function setStatus(t){ const el = $('status'); if (el) el.textContent = t || ''; }
-
+/* ---------- UI helpers ---------- */
+function setStatus(t){
+  const el = $('status');
+  if (el) el.textContent = t || '';
+}
 export function showLock(){
   document.body.classList.add('locked');
   $('lockscreen')?.setAttribute('aria-hidden','false');
@@ -19,17 +22,50 @@ export function hideLock(){
   $('lockscreen')?.setAttribute('aria-hidden','true');
 }
 
+/* ---------- Meta wrap (per user) ---------- */
 async function getWrap(){ return await dbGetMeta('wrap'); }
 async function setWrap(obj){ await dbPutMeta('wrap', obj); }
 
+/* ---------- Init: körs vid start ---------- */
 export async function initLock(){
   await idbReady().catch(()=>{});
   try { restoreLastUser(); } catch {}
-  const u = $('userInput'); if (u) u.value = User?.name || '';
+
+  // Förifyll användarnamn på låsskärmen
+  const u = $('userInput');
+  if (u) u.value = User?.name || '';
+
+  // Visa låsskärmen
   showLock();
+  setStatus('🔓 Skriv användarnamn och lösenord.');
+
+  // 🔁 BACKUP-BINDNINGAR (säkerställer att knapparna fungerar överallt)
+  $('setPassBtn')?.addEventListener('click', () => {
+    setStatus('⏳ Sätter nytt lösen …');
+    setInitialPass($('userInput').value, $('passInput').value);
+  });
+  $('unlockBtn')?.addEventListener('click', () => {
+    setStatus('⏳ Låser upp …');
+    unlock($('userInput').value, $('passInput').value);
+  });
+  $('wipeLocalOnLock')?.addEventListener('click', () => {
+    setStatus('⏳ Rensar lokal data …');
+    wipeCurrentUser();
+  });
+
+  // Enter i lösenordsfältet → försök låsa upp
+  $('passInput')?.addEventListener('keydown', (e)=>{
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      unlock($('userInput').value, $('passInput').value);
+    }
+  });
+
+  // Fokus på lösenordsfältet
   setTimeout(() => $('passInput')?.focus(), 60);
 }
 
+/* ---------- Actions ---------- */
 export async function setInitialPass(userName, pass){
   const name = (userName||'').trim();
   const p    = (pass||'').trim();
@@ -37,11 +73,16 @@ export async function setInitialPass(userName, pass){
   if(!p){    setStatus('Skriv ett lösenord.');     return; }
 
   setCurrentUser(name);
-  const salt = Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b=>b.toString(16).padStart(2,'0')).join('');
-  const key  = await deriveKey(p, salt);
-  const test = await encObj(key, { ok:true, user:name });
 
+  // Skapa salt + nyckel
+  const salt = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+    .map(b=>b.toString(16).padStart(2,'0')).join('');
+  const key  = await deriveKey(p, salt);
+
+  // Test-wrap för att verifiera lösenord senare
+  const test = await encObj(key, { ok:true, user:name });
   await setWrap({ salt, test });
+
   App.key = key;
   setStatus('Lösen satt ✔');
   hideLock();
@@ -59,10 +100,12 @@ export async function unlock(userName, pass){
     setStatus('Ingen profil hittad. Välj “Sätt nytt lösen”.');
     return;
   }
+
   try{
     const key   = await deriveKey(p, wrap.salt);
     const probe = await decObj(key, wrap.test);
     if(!probe || probe.ok !== true) throw new Error('probe fail');
+
     App.key = key;
     setStatus('');
     hideLock();
@@ -79,7 +122,7 @@ export async function wipeCurrentUser(){
   showLock();
 }
 
-// Exponera globalt för inline onclick
+/* ---------- Exponera globalt för inline onclick (mobilvänligt) ---------- */
 if (typeof window !== 'undefined') {
   window.Lock = { initLock, setInitialPass, unlock, wipeCurrentUser, showLock, hideLock, App };
 }
