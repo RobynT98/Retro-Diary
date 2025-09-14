@@ -22,15 +22,16 @@
   </noscript>
 </head>
 
+<!-- Starta låst för att undvika “öppen” glimt innan JS kör -->
 <body class="locked">
   <noscript><div class="nojs" data-i18n="no_js">Den här appen kräver JavaScript.</div></noscript>
 
-  <!-- Menyknapp -->
+  <!-- Menyknapp (hamburger ritas i CSS via ::before) -->
   <button id="menuToggle" aria-label="Meny" title="Meny"></button>
 
   <!-- Bok-layout -->
   <div class="book" aria-label="Retro Diary">
-    <!-- Innehållssida -->
+    <!-- Innehåll -->
     <section class="page" id="leftPage" aria-labelledby="tocTitle">
       <h2 id="tocTitle" data-i18n="contents">Innehåll</h2>
 
@@ -134,30 +135,36 @@
   </div>
 
   <!-- Sidomeny -->
-  <aside id="menu" aria-hidden="true">
+  <aside id="menu" aria-hidden="true" aria-label="Meny">
     <h2 data-i18n="menu">Meny</h2>
+
     <button id="switchUserBtn" class="btn" data-i18n="switch_user">Byt användare</button>
     <button id="exportBtn" class="btn" data-i18n="export">Exportera (.json)</button>
     <input id="importInput" type="file" accept="application/json" hidden>
     <button id="importBtn" class="btn" data-i18n="import">Importera (.json)</button>
+
     <label for="themeSelect" data-i18n="theme">Tema</label>
     <select id="themeSelect" aria-label="Tema">
       <option value="light" data-i18n="theme_light">Ljust</option>
       <option value="dark"  data-i18n="theme_dark">Mörkt</option>
     </select>
+
     <label for="langSelectMenu" data-i18n="language">Språk</label>
     <select id="langSelectMenu" aria-label="Språk">
       <option value="sv">🇸🇪</option>
       <option value="en">🇺🇸</option>
     </select>
+
     <button id="memoryBtn" class="btn" data-i18n="memory_mode">Minnesläge</button>
     <button id="wipeBtn" class="btn danger" data-i18n="wipe_all">Rensa ALL lokal data</button>
+
     <hr>
     <nav class="menu-links">
-      <a href="about.html" data-i18n="about">Om appen</a> •
-      <a href="help.html" data-i18n="help">Hjälp</a> •
+      <a href="about.html"   data-i18n="about">Om appen</a> •
+      <a href="help.html"    data-i18n="help">Hjälp</a> •
       <a href="privacy.html" data-i18n="privacy">Sekretess</a>
     </nav>
+
     <p class="copyright"><small>© Conri Turesson</small></p>
   </aside>
 
@@ -191,14 +198,14 @@
       <div class="lang-row">
         <label for="langSelectLock">Language / Språk</label>
         <select id="langSelectLock" aria-label="Language">
-          <option value="sv">Svenska</option>
-          <option value="en">English</option>
+          <option value="sv">🇸🇪</option>
+          <option value="en">🇺🇸</option>
         </select>
       </div>
 
       <div id="aboutBox">
-        <a href="about.html" data-i18n="about">Om appen</a> •
-        <a href="help.html" data-i18n="help">Hjälp</a> •
+        <a href="about.html"   data-i18n="about">Om appen</a> •
+        <a href="help.html"    data-i18n="help">Hjälp</a> •
         <a href="privacy.html" data-i18n="privacy">Sekretess</a><br>
         <small>© Conri Turesson</small>
       </div>
@@ -206,7 +213,7 @@
   </div>
 
   <!-- Dolda filinputs -->
-  <input id="imgFile" type="file" accept="image/*" hidden>
+  <input id="imgFile"   type="file" accept="image/*" hidden>
   <input id="audioFile" type="file" accept="audio/*" hidden>
 
   <!-- Force-update -->
@@ -216,24 +223,28 @@
   <script src="fonts_db.js"></script>
   <script src="i18n.js"></script>
 
-  <!-- Viktigt: ladda lock.js *före* app.js så window.Lock finns för onclick -->
+  <!-- Ladda lock.js före app.js så window.Lock finns för onclick -->
   <script type="module" src="lock.js?v=3"></script>
   <script type="module" src="app.js?v=3"></script>
 
   <script>
-    // Diagnostik (valfritt)
-    console.log('[diag] window.Lock finns?', !!window.Lock);
-    document.addEventListener('DOMContentLoaded', ()=>console.log('[diag] DOMContentLoaded (inline)'));
-    window.addEventListener('load', ()=>console.log('[diag] window.load (inline)'));
+    // Sätt default-språk om inget finns
+    (function ensureLang(){
+      let lang = localStorage.getItem('lang') || document.documentElement.lang || 'sv';
+      if (!['sv','en'].includes(lang)) lang = 'sv';
+      localStorage.setItem('lang', lang);
+      if (window.applyLang) window.applyLang(lang);
+      const lockSel = document.getElementById('langSelectLock');
+      const menuSel = document.getElementById('langSelectMenu');
+      if (lockSel) lockSel.value = lang;
+      if (menuSel) menuSel.value = lang;
+      lockSel?.addEventListener('change', e => window.applyLang?.(e.target.value));
+      menuSel?.addEventListener('change', e => window.applyLang?.(e.target.value));
+    })();
 
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js').catch(()=>{});
-      navigator.serviceWorker.getRegistrations()
-        .then(regs => console.log('[diag] SW regs:', regs.map(r => r.active?.scriptURL || r.scope)));
     }
-
-    const must = ['setPassBtn','unlockBtn','wipeLocalOnLock','userInput','passInput','lockscreen'];
-    console.log('[diag] DOM ids present:', Object.fromEntries(must.map(id => [id, !!document.getElementById(id)])));
   </script>
 </body>
-      </html>
+</html>
