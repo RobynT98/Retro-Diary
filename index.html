@@ -115,19 +115,24 @@
     <p id="status" aria-live="polite"></p>
   </div>
 </div>
+<!-- JS -->
+  <script src="fonts_db.js"></script>
+  <script src="i18n.js"></script>
+  <script type="module" src="app.js"></script>
 
-<!-- JS laddning (ordning!) -->
-<script src="fonts_db.js"></script>
-<script src="i18n.js"></script>
-<script type="module" src="app.js"></script>
+  <script>
+    // diag
+    console.log('[diag] inline index.js running. Lock present now?', !!window.Lock);
+    document.addEventListener('DOMContentLoaded', ()=>console.log('[diag] DOMContentLoaded (inline)'));
+    window.addEventListener('load', ()=>console.log('[diag] window.load (inline)'));
 
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations()
-      .then(regs => console.log('[diag] SW registrations:', regs.map(r => r.active?.scriptURL || r.scope)));
-  }
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations()
+        .then(regs => console.log('[diag] SW registrations:', regs.map(r => r.active?.scriptURL || r.scope)));
+    }
 
-  const must = ['setPassBtn','unlockBtn','wipeLocalOnLock','userInput','passInput','lockscreen'];
-  console.log('[diag] DOM ids present:', Object.fromEntries(must.map(id => [id, !!document.getElementById(id)])));
+    const must = ['setPassBtn','unlockBtn','wipeLocalOnLock','userInput','passInput','lockscreen'];
+    console.log('[diag] DOM ids present:', Object.fromEntries(must.map(id => [id, !!document.getElementById(id)])));
   </script>
 </body>
 </html>
